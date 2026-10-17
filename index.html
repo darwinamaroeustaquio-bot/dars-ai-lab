@@ -72,9 +72,9 @@
 <div class="stack">
 <section class="panel"><div class="row"><div><div class="eyebrow">Market lab</div><h1>See the setup.<br><span style="color:var(--green)">Control the risk.</span></h1></div><span class="tag">ILLUSTRATIVE DATA</span></div>
 <div class="tabs" id="assetTabs"><button class="tab active" data-asset="XAUUSD">XAUUSD</button><button class="tab" data-asset="EURUSD">EURUSD</button><button class="tab" data-asset="BTCUSD">BTCUSD</button><button class="tab" data-asset="GBPUSD">GBPUSD</button></div>
-<div class="chart-head"><div><div class="eyebrow" id="chartName">Gold · XAUUSD</div><div class="price" id="chartPrice">2,345.60 <span style="font-size:12px;color:var(--muted)">sample</span></div><div class="note">Generated sample candles · not broker quotes</div></div><div><label for="timeframe">Chart timeframe</label><select id="timeframe"><option>M15</option><option selected>H1</option><option>H4</option><option>D1</option></select></div></div>
+<div class="chart-head"><div><div class="eyebrow" id="chartName">Gold · XAUUSD</div><div class="price" id="chartPrice">Waiting for MT5 candles</div><div class="note" id="chartFeedStatus" role="status">Waiting for real broker candle feed · sample data is never labeled live</div></div><div><label for="timeframe">Chart timeframe</label><select id="timeframe"><option>M5</option><option>M15</option><option selected>H1</option></select></div></div>
 <div class="chartbox"><svg id="chart" viewBox="0 0 760 270" role="img" aria-label="Illustrative candle chart, not live market data"></svg></div>
-<div class="row" style="margin-top:12px"><span class="note">Chart overlays: sample EMA20 / EMA50</span><button class="btn" id="refreshChart">Regenerate sample</button></div>
+<div class="row" style="margin-top:12px"><span class="note" id="chartOverlayNote">Live OHLC candles · EMA20 overlay</span><button class="btn" id="refreshChart">Refresh live chart</button></div>
 </section>
 <section class="panel"><div class="row"><h2>Strategy confluence lab</h2><span class="tag">MANUAL CHECKLIST</span></div><p class="note">Tick only what you verified from a real chart. This score is a checklist aid, not an AI prediction or guaranteed signal.</p>
 <div class="fields">
@@ -150,7 +150,7 @@
 <div class="check"><span><b>04 · Human approval</b><br><small>Manual review before any order</small></span></div>
 </div><p class="note">Advanced interface first; real broker integration is a separate secured step.</p></section>
 </aside></div>
-<footer class="footer">Dars AI Lab · Educational planning workspace, not financial advice. Sample chart values are generated and must not be used to place trades. No live data, verified signal, win rate guarantee, or order execution is provided in this build.</footer></div>
+<footer class="footer">Dars AI Lab · Educational research only, not financial advice. Live chart requires the MT5 candle bridge and Supabase history. No order execution is enabled.</footer></div>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -163,9 +163,55 @@ const assets={
 let selected="XAUUSD";let journal=[];
 try{journal=JSON.parse(localStorage.getItem("dars-ai-lab-journal-v03")||"[]");if(!Array.isArray(journal))journal=[]}catch(e){journal=[]}
 function fmt(v){return Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
-function drawChart(){const a=assets[selected],svg=$("chart"),data=a.samples.slice();const tf=$("timeframe").value;const scale=tf==="M15"?1:tf==="H1"?1.7:tf==="H4"?2.6:4;const center=data.reduce((x,y)=>x+y,0)/data.length;const vals=data.map((v,i)=>center+(v-center)*scale);const min=Math.min(...vals)-Math.abs(center)*.0007,max=Math.max(...vals)+Math.abs(center)*.0007;const y=v=>230-(v-min)/(max-min)*190;let out="";for(let i=0;i<5;i++){let yy=24+i*48;out+='<line x1="18" y1="'+yy+'" x2="740" y2="'+yy+'" stroke="#203147" stroke-width="1"/>'}let points=[],ema20=center,ema50=center;vals.forEach((v,i)=>{ema20=ema20*.72+v*.28;ema50=ema50*.9+v*.1;points.push([30+i*36,y(ema20)]);let open=i?vals[i-1]:v-(v*.00025),close=v,hi=Math.max(open,close)+Math.abs(v)*(.00025+(i%3)*.00006),lo=Math.min(open,close)-Math.abs(v)*(.0002+(i%4)*.00005),up=close>=open,color=up?"#39d9a0":"#ff7d89",x=30+i*36;out+='<line x1="'+x+'" y1="'+y(hi)+'" x2="'+x+'" y2="'+y(lo)+'" stroke="'+color+'" stroke-width="1.5"/><rect x="'+(x-6)+'" y="'+Math.min(y(open),y(close))+'" width="12" height="'+Math.max(3,Math.abs(y(open)-y(close)))+'" rx="1" fill="'+color+'"/>'});out+='<polyline points="'+points.map(p=>p[0]+","+p[1]).join(" ")+'" fill="none" stroke="#7da7ff" stroke-width="2" opacity=".95"/>';out+='<text x="22" y="258" fill="#91a4ba" font-size="10">Generated sample candles · '+tf+'</text>';out+='<text x="738" y="17" text-anchor="end" fill="#91a4ba" font-size="10">EMA20 illustrative</text>';svg.innerHTML=out;$("chartName").textContent=a.name;$("chartPrice").innerHTML=fmt(a.price)+' <span style="font-size:12px;color:var(--muted)">sample</span>'}
+let liveChartCandles=[],chartFetchBusy=false,chartFetchTimer=null;
+function drawChart(){
+ const a=assets[selected],svg=$("chart"),tf=$("timeframe").value;
+ const data=liveChartCandles.filter(c=>c&&Number.isFinite(Number(c.open))&&Number.isFinite(Number(c.high))&&Number.isFinite(Number(c.low))&&Number.isFinite(Number(c.close)));
+ if(data.length<2){
+  const vals=a.samples.slice(),center=vals.reduce((x,y)=>x+y,0)/vals.length,min=Math.min(...vals)-Math.abs(center)*.0007,max=Math.max(...vals)+Math.abs(center)*.0007,y=v=>230-(v-min)/(max-min)*190;
+  let out="";for(let i=0;i<5;i++){const yy=24+i*48;out+='<line x1="18" y1="'+yy+'" x2="740" y2="'+yy+'" stroke="#203147" stroke-width="1"/>'}
+  vals.forEach((v,i)=>{const open=i?vals[i-1]:v-v*.00025,close=v,hi=Math.max(open,close)+Math.abs(v)*(.00025+(i%3)*.00006),lo=Math.min(open,close)-Math.abs(v)*(.0002+(i%4)*.00005),color=close>=open?"#39d9a0":"#ff7d89",x=30+i*36;out+='<line x1="'+x+'" y1="'+y(hi)+'" x2="'+x+'" y2="'+y(lo)+'" stroke="'+color+'" stroke-width="1.5"/><rect x="'+(x-6)+'" y="'+Math.min(y(open),y(close))+'" width="12" height="'+Math.max(2,Math.abs(y(open)-y(close)))+'" rx="1" fill="'+color+'"/>'});
+  out+='<text x="22" y="258" fill="#f3c66d" font-size="10">SAMPLE ONLY · waiting for real '+tf+' candles</text>';svg.innerHTML=out;
+  $("chartPrice").textContent="No live candles";$("chartOverlayNote").textContent="Illustrative fallback · not market data";return;
+ }
+ const candles=data.slice(-48),closes=candles.map(c=>Number(c.close));
+ const ranges=candles.flatMap(c=>[Number(c.high),Number(c.low),Number(c.open),Number(c.close)]);
+ let min=Math.min(...ranges),max=Math.max(...ranges);if(!(max>min)){max+=1;min-=1}
+ const pad=(max-min)*.08;min-=pad;max+=pad;
+ const y=v=>230-(v-min)/(max-min)*190;
+ let out="";for(let i=0;i<5;i++){const yy=24+i*48;out+='<line x1="18" y1="'+yy+'" x2="740" y2="'+yy+'" stroke="#203147" stroke-width="1"/>'}
+ const step=710/candles.length,bodyW=Math.max(3,Math.min(12,step*.58)),ema20=[],k=2/21;let e=closes[0];
+ closes.forEach((v,i)=>{e=i? v*k+e*(1-k):v;ema20.push([30+(i+.5)*step,y(e)])});
+ candles.forEach((c,i)=>{const o=Number(c.open),h=Number(c.high),l=Number(c.low),cl=Number(c.close),color=cl>=o?"#39d9a0":"#ff7d89",x=30+(i+.5)*step;out+='<line x1="'+x+'" y1="'+y(h)+'" x2="'+x+'" y2="'+y(l)+'" stroke="'+color+'" stroke-width="1.4"/><rect x="'+(x-bodyW/2)+'" y="'+Math.min(y(o),y(cl))+'" width="'+bodyW+'" height="'+Math.max(1.5,Math.abs(y(o)-y(cl)))+'" rx="1" fill="'+color+'"/>'});
+ out+='<polyline points="'+ema20.map(p=>p[0]+","+p[1]).join(" ")+'" fill="none" stroke="#7da7ff" stroke-width="1.8"/>';
+ out+='<text x="22" y="258" fill="#91a4ba" font-size="10">LIVE MT5 · '+tf+' · '+candles.length+' candles</text>';
+ out+='<text x="738" y="17" text-anchor="end" fill="#91a4ba" font-size="10">EMA20</text>';
+ svg.innerHTML=out;
+ const last=candles[candles.length-1],lastTime=last.bar_time?new Date(last.bar_time).toLocaleString():"timestamp unavailable";
+ $("chartName").textContent=a.name+" · "+tf;
+ $("chartPrice").textContent=Number(last.close).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:5});
+ $("chartFeedStatus").textContent="LIVE MT5 candle history · last candle "+lastTime;
+ $("chartOverlayNote").textContent="Real OHLC candles · EMA20 overlay · auto-refresh";
+}
+async function refreshLiveChart(){
+ if(chartFetchBusy)return;chartFetchBusy=true;
+ try{
+  const tf=$("timeframe").value,selectedSymbol=selected==="XAUUSD"?"XAUUSD-STD":selected;
+  const r=await fetch("/api/mt5-candles?symbol="+encodeURIComponent(selectedSymbol)+"&timeframe="+encodeURIComponent(tf)+"&limit=100",{cache:"no-store",headers:{Accept:"application/json"}});
+  const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"Candle feed unavailable");
+  liveChartCandles=Array.isArray(d.candles)?d.candles:[];
+  if(liveChartCandles.length<2)throw new Error("Waiting for at least 2 real candles. Keep MT5 open and the read-only bridge running.");
+  drawChart();
+ }catch(e){
+  liveChartCandles=[];
+  drawChart();
+  $("chartFeedStatus").textContent=e.message+" · chart below is sample only";
+  $("chartOverlayNote").textContent="No live data · sample fallback only";
+ }finally{chartFetchBusy=false;}
+}
+
 function renderWatch(){const el=$("watchlist");el.innerHTML="";Object.keys(assets).forEach(k=>{const a=assets[k],div=document.createElement("div");div.className="asset-row"+(selected===k?" selected":"");div.innerHTML='<div><b>'+k+'</b><small>'+a.name.split(" · ")[0]+'</small></div><div class="asset-price">'+a.price.toLocaleString(undefined,{maximumFractionDigits:5})+'</div><div class="change">'+a.change+'</div>';div.addEventListener("click",()=>selectAsset(k));el.appendChild(div)})}
-function selectAsset(k){selected=k;document.querySelectorAll("[data-asset]").forEach(b=>b.classList.toggle("active",b.dataset.asset===k));drawChart();renderWatch()}
+function selectAsset(k){selected=k;document.querySelectorAll("[data-asset]").forEach(b=>b.classList.toggle("active",b.dataset.asset===k));liveChartCandles=[];drawChart();renderWatch();refreshLiveChart()}
 function updateRisk(){const bal=Math.max(0,Number($("balance").value)||0),risk=Number($("risk").value)||0,c=$("currency").value,amount=bal*risk/100;$("riskLabel").textContent=risk.toFixed(2).replace(/0$/,"")+"%";$("riskAmount").textContent=c+fmt(amount);$("mRisk").textContent=c+fmt(amount);const dist=Math.max(0,Number($("stopDistance").value)||0),value=Math.max(0,Number($("valuePerUnit").value)||0);if(dist>0&&value>0){const lots=amount/(dist*value);$("lotResult").textContent=lots.toFixed(4)+" lots";$("lotNote").textContent="Raw estimate only. Apply broker min/max lot, lot step, contract size, tick value, conversion, spread and fees before use."}else{$("lotResult").textContent="Enter broker values";$("lotNote").textContent="No tick/contract values are hard-coded. Confirm symbol specs and lot step in MT5 first."}}
 let setupSoundEnabled=false,setupAudioContext=null,lastSetupReady=false;
 function playSetupAlert(){
@@ -222,7 +268,7 @@ $("enableSetupSound").addEventListener("click",async()=>{
 function persist(){try{localStorage.setItem("dars-ai-lab-journal-v03",JSON.stringify(journal))}catch(e){alert("Hindi ma-save sa browser. Please export CSV to keep a copy.")}renderJournal()}
 function renderJournal(){const body=$("journalBody");body.innerHTML="";if(!journal.length)body.innerHTML='<tr><td colspan="6" class="empty">No trades saved yet.</td></tr>';journal.forEach(t=>{const tr=document.createElement("tr");const date=new Date(t.date).toLocaleDateString();const pnl=t.pnl===null?"—":($("currency").value+fmt(t.pnl));const outcome=t.outcome==="win"?"Win":t.outcome==="loss"?"Loss":t.outcome==="breakeven"?"Breakeven":"Open";[date,t.symbol+" / "+t.side,outcome,pnl,t.note||"—"].forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;if(i===2)td.className=t.outcome==="win"?"tag-green":t.outcome==="loss"?"tag-red":"";tr.appendChild(td)});const td=document.createElement("td"),del=document.createElement("button");del.className="btn";del.textContent="×";del.title="Delete entry";del.addEventListener("click",()=>{journal=journal.filter(x=>x.id!==t.id);persist()});td.appendChild(del);tr.appendChild(td);body.appendChild(tr)});const closed=journal.filter(t=>["win","loss","breakeven"].includes(t.outcome)),wins=closed.filter(t=>t.outcome==="win").length;$("mTrades").textContent=journal.length;$("mWin").textContent=closed.length?Math.round(wins/closed.length*100)+"%":"—"}
 document.querySelectorAll("[data-asset]").forEach(b=>b.addEventListener("click",()=>selectAsset(b.dataset.asset)));
-$("timeframe").addEventListener("change",drawChart);$("refreshChart").addEventListener("click",()=>{Object.keys(assets).forEach(k=>{assets[k].samples=assets[k].samples.map((v,i)=>v+(Math.sin(Date.now()/1000+i*2)*Math.abs(v)*.00008))});drawChart()});
+$("timeframe").addEventListener("change",refreshLiveChart);$("refreshChart").addEventListener("click",refreshLiveChart);
 document.querySelectorAll("#checks input").forEach(c=>c.addEventListener("change",updateScore));$("direction").addEventListener("change",updateScore);
 ["balance","risk","currency","stopDistance","valuePerUnit"].forEach(id=>$(id).addEventListener("input",updateRisk));$("currency").addEventListener("change",()=>{updateRisk();renderJournal()});
 $("resetRisk").addEventListener("click",()=>{$("balance").value=1000;$("risk").value=1;$("currency").value="$";$("stopDistance").value=100;$("valuePerUnit").value="";updateRisk()});
@@ -230,7 +276,7 @@ $("copyPlan").addEventListener("click",async()=>{const txt="Dars AI Lab risk pla
 $("saveTrade").addEventListener("click",()=>{const pnlRaw=$("jPnl").value;const t={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),date:new Date().toISOString(),symbol:$("jSymbol").value,side:$("jSide").value,outcome:$("jOutcome").value,pnl:pnlRaw.trim()===""?null:Number(pnlRaw),note:$("jNote").value.trim()};journal.unshift(t);persist();$("jPnl").value="";$("jNote").value=""});
 $("clearJournal").addEventListener("click",()=>{if(confirm("Delete all locally saved journal entries? Export CSV first if you need a backup.")){journal=[];persist()}});
 $("exportJournal").addEventListener("click",()=>{const rows=[["date","symbol","side","outcome","pnl","notes"],...journal.map(t=>[t.date,t.symbol,t.side,t.outcome,t.pnl===null?"":t.pnl,t.note])];const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="dars-ai-lab-journal.csv";a.click();URL.revokeObjectURL(url)});
-renderWatch();drawChart();updateRisk();updateScore();renderJournal();
+renderWatch();drawChart();refreshLiveChart();chartFetchTimer=setInterval(refreshLiveChart,5000);updateRisk();updateScore();renderJournal();
 
 function calculateSetup(){
  const side=$("setupSide").value,e=Number($("setupEntry").value),d=Number($("setupDistance").value);
