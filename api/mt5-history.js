@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
     if (!record_time || !Number.isFinite(Number(d.ticket)) || !Number.isFinite(Number(d.profit)))
       return send(res, 400, { ok: false, error: "Invalid closed-deal payload." });
     deals.push({
-      account, record_type: "deal", symbol, timeframe: null, record_time,
+      account, record_type: "deal", symbol, timeframe: "DEAL", record_time,
       payload: { ...d, symbol, time: record_time, account }
     });
   }
@@ -80,7 +80,7 @@ module.exports = async (req, res) => {
       if (!r.ok) return send(res, 502, { ok: false, error: "Saving candles failed. Run sql/mt5_candles.sql in Supabase.", upstream_status: r.status, detail: (await r.text()).slice(0, 300) });
     }
     if (deals.length) {
-      const r = await fetch(root + "/rest/v1/mt5_history", {
+      const r = await fetch(root + "/rest/v1/mt5_history?on_conflict=account,record_type,symbol,timeframe,record_time,payload", {
         method: "POST", headers, body: JSON.stringify(deals)
       });
       if (!r.ok) return send(res, 502, { ok: false, error: "Saving closed trades failed. Run supabase/mt5_history.sql in Supabase.", upstream_status: r.status, detail: (await r.text()).slice(0, 300) });
