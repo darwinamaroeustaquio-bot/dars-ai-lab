@@ -150,8 +150,11 @@ renderWatch();drawChart();updateRisk();updateScore();renderJournal();
    if(!window.supabase||!window.supabase.createClient) throw new Error("Supabase library did not load. Refresh and try again.");
    client=window.supabase.createClient(cfg.url,cfg.key);
    const {data:{session}}=await client.auth.getSession();
-   setSignedIn(session?.user||null);
-   if(!session?.user){status.textContent="Configured · sign in required";say("Supabase configuration found. Sign in or create an account to enable private cloud sync.");}
+   // Always show the dedicated sign-in screen first, even if this browser has a saved session.
+   setSignedIn(null);
+   status.textContent="Configured · sign in required";
+   if(session?.user) say("A saved session was found for "+session.user.email+". Sign in here to open the dashboard.");
+   else say("Supabase configuration found. Sign in or create an account to open the dashboard.");
  }catch(e){status.textContent="Not configured";say(e.message+" Check Vercel environment variables and redeploy.");return;}
  signUp.addEventListener("click",async()=>{
    if(!email.value.trim()||!password.value){say("Enter your email and password first.");return;}
@@ -199,6 +202,10 @@ renderWatch();drawChart();updateRisk();updateScore();renderJournal();
    }catch(e){say("Sync failed: "+e.message+" Check that supabase/setup.sql has been run in the Supabase SQL Editor.");}
    finally{syncBtn.disabled=!currentUser;}
  });
- client.auth.onAuthStateChange((_event,session)=>{setSignedIn(session?.user||null);});
+ client.auth.onAuthStateChange((event,session)=>{
+   // Do not auto-open the dashboard for INITIAL_SESSION; wait for an explicit sign-in action.
+   if(event==="SIGNED_IN") setSignedIn(session?.user||null);
+   else if(event==="SIGNED_OUT") setSignedIn(null);
+ });
 })();
 </script></body></html>
