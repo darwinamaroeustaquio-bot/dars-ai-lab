@@ -73,8 +73,19 @@
 <div class="metric"><div class="eyebrow">Review candidates</div><strong id="candidatePassed">—</strong><small>Requires human review</small></div>
 </div>
 <p class="note" id="candidateLabMessage" role="status" aria-live="polite">External historical import uses Twelve Data XAU/USD proxy candles. Coverage depends on your Twelve Data plan. Data is not VT Markets broker-specific pricing.</p>
+<div class="resultbox" id="proSelectorCard" style="border-color:#806b3e;background:#211d13">
+ <div class="eyebrow">PRO SELECTOR · RESEARCH ONLY</div>
+ <strong id="proSelectedName" style="font-size:20px">NO STRATEGY SELECTED</strong>
+ <p id="proSelectedReason" class="note">Run the candidate lab to rank the available strategies. The selector will not force a pick if none passes the filters.</p>
+ <div class="metrics" style="margin:8px 0 0">
+  <div class="metric"><div class="eyebrow">Decision</div><strong id="proDecision" style="font-size:16px">WAIT</strong><small>Never an automatic order</small></div>
+  <div class="metric"><div class="eyebrow">After-cost expectancy</div><strong id="proExpectancy" style="font-size:16px">—</strong><small>Assumed cost sensitivity</small></div>
+  <div class="metric"><div class="eyebrow">Profit factor</div><strong id="proPF" style="font-size:16px">—</strong><small>After assumed costs</small></div>
+  <div class="metric"><div class="eyebrow">Maximum drawdown</div><strong id="proDD" style="font-size:16px">—</strong><small>Holdout R</small></div>
+ </div>
+</div>
 <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:720px"><thead><tr><th align="left">Candidate</th><th>Holdout trades</th><th>Win rate</th><th>Net R after costs</th><th>Expectancy after costs</th><th>PF after costs</th><th>Max DD R</th><th>Status</th></tr></thead><tbody id="candidateResults"><tr><td colspan="8" class="muted">No research run yet.</td></tr></tbody></table></div>
-<p class="note">Important: this first version is a transparent candidate screening engine, not self-modifying AI. It excludes real spread, commission and slippage, so no candidate is labelled profitable or automatically converted to an EA.</p>
+<p class="note">Important: this is a transparent screening engine, not self-modifying AI. After-cost metrics use only the assumed R-cost input; actual VT Markets spread, commission, swap and slippage are not broker-calibrated. Passing means review candidate only—not proven profitable, not auto-selected for live trading, and never automatically converted to an EA.</p>
 </section>
 <section class="panel" id="learningModelPanel" style="margin-bottom:15px;border-color:#4a6190">
 <div class="row"><div><div class="eyebrow">GOLD ONLY · HISTORICAL + LIVE FORWARD TEST</div><h2 style="margin:5px 0 8px">Gold strategy research engine</h2></div><span class="tag" id="learningStatus">Waiting for history</span></div>
@@ -779,10 +790,24 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
    $("candidateCandles").textContent=Number(d.candleCount||0).toLocaleString();
    if(!d.ready){$("candidateCount").textContent="0";$("candidateBestExpectancy").textContent="—";$("candidatePassed").textContent="0";$("candidateLabStatus").textContent="Waiting for data";$("candidateLabMessage").textContent=d.message||"More candle history is needed.";return;}
    lastCandidates=d.candidates||[];$("candidateCount").textContent=String(d.generated||lastCandidates.length);
-   const best=lastCandidates[0];$("candidateBestExpectancy").textContent=best?Number((best.afterCosts||best.holdout).expectancyR).toFixed(3)+"R":"—";
-   $("candidatePassed").textContent=String(lastCandidates.filter(x=>x.status==="REVIEW CANDIDATE").length);
+   const passed=lastCandidates.filter(x=>x.status==="REVIEW CANDIDATE");
+   const best=passed[0]||null;
+   $("candidateBestExpectancy").textContent=best?Number((best.afterCosts||best.holdout).expectancyR).toFixed(3)+"R":"NO PASS";
+   $("candidatePassed").textContent=String(passed.length);
    $("candidateLabStatus").textContent="Research complete · "+tf;
    $("candidateLabMessage").textContent=d.method+" "+d.warning;
+   $("proSelectedName").textContent=best?(best.id+" · "+best.name):"NO STRATEGY PASSED";
+   $("proDecision").textContent=best?"REVIEW ONLY":"WAIT / NO TRADE";
+   if(best){
+     const n=best.afterCosts||best.holdout;
+     $("proExpectancy").textContent=Number(n.expectancyR).toFixed(3)+"R";
+     $("proPF").textContent=Number(n.profitFactor).toFixed(2);
+     $("proDD").textContent=Number(n.maxDrawdownR).toFixed(2)+"R";
+     $("proSelectedReason").textContent="Top candidate that passed the current screening filters (minimum 30 holdout trades, positive after-cost expectancy and PF > 1.10). Not a validated live strategy. Confirm on separate periods and broker-specific costs before considering even paper deployment.";
+   }else{
+     $("proExpectancy").textContent="—";$("proPF").textContent="—";$("proDD").textContent="—";
+     $("proSelectedReason").textContent="No candidate met all current screening filters. Do not select the highest raw expectancy by default; keep WAIT, check data quality and cost assumptions, and validate on other periods.";
+   }
    const body=$("candidateResults");body.replaceChildren();
    lastCandidates.forEach(c=>{const tr=document.createElement("tr");cell(tr,c.id+" · "+c.name);cell(tr,c.holdout.trades);cell(tr,pct(c.holdout.winRate));const net=c.afterCosts||c.holdout;cell(tr,net.netR+"R");cell(tr,net.expectancyR+"R");cell(tr,net.profitFactor);cell(tr,net.maxDrawdownR+"R");cell(tr,c.status);body.appendChild(tr);});
    $("exportCandidates").disabled=!lastCandidates.length;
