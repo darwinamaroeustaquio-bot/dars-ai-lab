@@ -60,6 +60,7 @@
 </div>
 <div class="row" style="justify-content:flex-start;margin-top:12px"><div class="metric" style="flex:1;min-width:150px"><div class="eyebrow">Labeled examples</div><strong id="learningSamples">0</strong><small id="learningSplit">Train / test split</small></div><div class="metric" style="flex:1;min-width:150px"><div class="eyebrow">Last model refresh</div><strong id="learningUpdated" style="font-size:14px">—</strong><small>Retrains from saved candles</small></div><button class="btn" id="refreshLearning" type="button">Train / refresh model</button></div>
 <p class="note" id="learningExplanation" role="status" aria-live="polite">The model will train from historical MT5 candles after enough data has been stored.</p>
+ <div class="panel" style="margin-top:12px;background:var(--panel2,#101a2a)"><div class="row"><div><div class="eyebrow">Forward outcome tracking · paper only</div><h3 style="margin:5px 0 8px">Signal journal & outcome learning</h3></div><span class="tag" id="signalJournalStatus">Waiting for signals</span></div><div class="metrics"><div class="metric"><div class="eyebrow">Tracked</div><strong id="sjTracked">0</strong><small>Unique closed M5 bars</small></div><div class="metric"><div class="eyebrow">Resolved directional hit rate</div><strong id="sjHitRate">—</strong><small>3-bar close-to-close · before costs</small></div><div class="metric"><div class="eyebrow">Pending outcomes</div><strong id="sjPending">0</strong><small>Waiting for 3 future M5 bars</small></div></div><p class="note" id="sjNote">Records model probabilities once per new closed M5 candle, then scores the direction after three bars. Browser-local only; not a trade or proof of profitability.</p><div class="tablewrap"><table><thead><tr><th>Signal time</th><th>Model view</th><th>Up probability</th><th>Entry close</th><th>3-bar outcome</th></tr></thead><tbody id="signalJournalBody"><tr><td colspan="5" class="empty">Waiting for real MT5 candles and model output.</td></tr></tbody></table></div><div class="row" style="margin-top:10px"><button class="btn" id="exportSignalJournal" type="button">Export signal journal CSV</button><button class="btn" id="clearSignalJournal" type="button">Clear local signal journal</button></div></div>
 <p class="note">Experimental logistic-regression classifier. It retrains from stored candle history and reports a later holdout test, but this is not proof of profitability or guaranteed AI intelligence. Historical accuracy may change and may not persist in live markets. Paper-test only; read-only and no orders are sent.</p>
 </section>
 <div class="metrics">
@@ -581,6 +582,56 @@ calculateSetup();
  const symbol=()=>el("mt5SymbolSelect")?.value||"XAUUSD-STD";
  let busy=false,lastAlert="";
  const pct=v=>Number.isFinite(Number(v))?(Number(v)*100).toFixed(1)+"%":"—";
+ const JOURNAL_KEY="dars-ai-lab-signal-journal-v1";
+ let signalJournal=[];try{signalJournal=JSON.parse(localStorage.getItem(JOURNAL_KEY)||"[]");if(!Array.isArray(signalJournal))signalJournal=[];}catch(e){signalJournal=[];}
+ const saveSignalJournal=()=>{try{localStorage.setItem(JOURNAL_KEY,JSON.stringify(signalJournal.slice(-500)));}catch(e){}};
+ function renderSignalJournal(){
+  const body=el("signalJournalBody");if(!body)return;
+  const resolved=signalJournal.filter(s=>s.outcome==="UP"||s.outcome==="DOWN");
+  const directional=resolved.filter(s=>s.view==="UP"||s.view==="DOWN");
+  const wins=directional.filter(s=>s.view===s.outcome).length;
+  el("sjTracked").textContent=String(signalJournal.length);
+  el("sjPending").textContent=String(signalJournal.filter(s=>s.outcome==="PENDING").length);
+  el("sjHitRate").textContent=directional.length?(wins/directional.length*100).toFixed(1)+"%":"—";
+  el("signalJournalStatus").textContent=signalJournal.length?(directional.length+" scored · paper only"):"Waiting for signals";
+  body.innerHTML="";
+  const shown=signalJournal.slice(-10).reverse();
+  if(!shown.length){body.innerHTML='<tr><td colspan="5" class="empty">Waiting for real MT5 candles and model output.</td></tr>';return;}
+  shown.forEach(s=>{
+   const tr=document.createElement("tr");
+   const view=s.view==="UP"?"UP bias":s.view==="DOWN"?"DOWN bias":"NEUTRAL";
+   const outcome=s.outcome==="PENDING"?"Pending":s.outcome==="UP"?"Close rose":s.outcome==="DOWN"?"Close fell":"—";
+   [new Date(s.time).toLocaleString(),view,(Number(s.pUp)*100).toFixed(1)+"%",Number(s.entry).toFixed(2),outcome].forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;if(i===4&&s.outcome!=="PENDING")td.className=s.view===s.outcome?"tag-green":"tag-red";tr.appendChild(td);});
+   body.appendChild(tr);
+  });
+ }
+ async function updateSignalJournal(d){
+  if(!d||!d.ready||!d.latestClosedM5||!d.probabilities)return;
+  const sym=d.symbol||symbol();
+  const r=await fetch("/api/mt5-candles?symbol="+encodeURIComponent(sym)+"&timeframe=M5&limit=200",{cache:"no-store",headers:{Accept:"application/json"}});
+  const cd=await r.json();if(!r.ok||!cd.ok||!Array.isArray(cd.candles))return;
+  const candles=cd.candles;
+  const bar=candles.find(c=>new Date(c.bar_time).getTime()===new Date(d.latestClosedM5).getTime());
+  if(!bar)return;
+  const key=sym+"|"+d.latestClosedM5;
+  if(!signalJournal.some(s=>s.key===key)){
+   const pUp=Number(d.probabilities.up);
+   signalJournal.push({key,symbol:sym,time:d.latestClosedM5,view:pUp>=.5?"UP":"DOWN",pUp,entry:Number(bar.close),outcome:"PENDING",targetTime:null,targetClose:null,scoredAt:null,modelSignal:d.signal||"WAIT"});
+   signalJournal=signalJournal.slice(-500);
+  }
+  const byTime=new Map(candles.map(c=>[new Date(c.bar_time).getTime(),c]));
+  signalJournal.forEach(s=>{
+   if(s.symbol!==sym||s.outcome!=="PENDING")return;
+   const t=new Date(s.time).getTime();
+   // Score against the close of the third subsequent M5 candle, matching the model horizon.
+   const entryIdx=candles.findIndex(c=>new Date(c.bar_time).getTime()===t);
+   if(entryIdx<0||entryIdx+3>=candles.length)return;
+   const target=candles[entryIdx+3];
+   s.targetTime=target.bar_time;s.targetClose=Number(target.close);s.outcome=s.targetClose>Number(s.entry)?"UP":s.targetClose<Number(s.entry)?"DOWN":"FLAT";s.scoredAt=new Date().toISOString();
+  });
+  saveSignalJournal();renderSignalJournal();
+ }
+
  async function refreshLearning(){
   if(busy)return;busy=true;
   el("learningStatus").textContent="Training…";
@@ -606,6 +657,7 @@ calculateSetup();
    el("learningSplit").textContent=(d.trainSamples||0)+" train / "+(d.holdoutSamples||0)+" holdout";
    el("learningUpdated").textContent=new Date(d.trainedAt).toLocaleTimeString();
    el("learningExplanation").textContent="Latest closed M5: "+new Date(d.latestClosedM5).toLocaleString()+". "+(d.validationMessage||"")+" "+d.caution;
+   try{await updateSignalJournal(d);}catch(journalError){el("sjNote").textContent="Journal could not refresh: "+journalError.message+". It will retry next model refresh.";}
    const key=d.symbol+"|"+d.signal+"|"+d.latestClosedM5;
    if((d.signal==="BUY BIAS"||d.signal==="SELL BIAS")&&key!==lastAlert){
     lastAlert=key;
@@ -620,6 +672,18 @@ calculateSetup();
   }finally{busy=false;}
  }
  el("refreshLearning")?.addEventListener("click",refreshLearning);
+ el("exportSignalJournal")?.addEventListener("click",()=>{
+  const rows=[["symbol","signal_time","view","up_probability","entry_close","outcome","target_time","target_close","model_signal"]];
+  signalJournal.forEach(s=>rows.push([s.symbol,s.time,s.view,s.pUp,s.entry,s.outcome,s.targetTime||"",s.targetClose??"",s.modelSignal||""]));
+  const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="dars-signal-journal.csv";a.click();URL.revokeObjectURL(a.href);
+ });
+ el("clearSignalJournal")?.addEventListener("click",()=>{
+  if(!confirm("Clear the signal journal saved in this browser?"))return;
+  signalJournal=[];saveSignalJournal();renderSignalJournal();
+ });
+ renderSignalJournal();
+
  el("mt5SymbolSelect")?.addEventListener("change",refreshLearning);
  refreshLearning();setInterval(refreshLearning,60000);
 })();
