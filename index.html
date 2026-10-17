@@ -98,13 +98,13 @@
 </div>
 </section>
 <section class="panel" id="setupBuilder">
-<div class="row"><h2>Trade Setup Builder</h2><span class="tag">MANUAL INPUTS</span></div>
-<p class="note">Ilagay ang presyo mula sa live MT5 chart. Hindi ito live signal; kalkulasyon lang ito mula sa sarili mong inputs.</p>
+<div class="row"><h2>Trade Setup Builder</h2><span class="tag">AUTOMATIC · READ-ONLY</span></div>
+<p class="note">Awtomatikong kumukuha ng live MT5 quote, closed candles, ATR at validated model bias. Walang manual entry/stop input. Kapag hindi valid o walang malinaw na setup, WAIT ang resulta.</p>
 <div class="fields">
-<div><label for="setupSymbol">Symbol</label><select id="setupSymbol"><option>XAUUSD-STD</option><option>EURUSD</option><option>GBPUSD</option><option>BTCUSD</option></select></div>
-<div><label for="setupSide">Direction</label><select id="setupSide"><option value="BUY">BUY</option><option value="SELL">SELL</option></select></div>
-<div><label for="setupEntry">Entry price from MT5</label><input id="setupEntry" type="number" step="any" placeholder="Enter live chart price"></div>
-<div><label for="setupDistance">Stop distance (price units)</label><input id="setupDistance" type="number" min="0" step="any" placeholder="Enter distance"></div>
+<div><label for="setupSymbol">Broker symbol</label><select id="setupSymbol"><option value="XAUUSD-STD">XAUUSD-STD</option><option value="EURUSD">EURUSD</option><option value="GBPUSD">GBPUSD</option><option value="BTCUSD">BTCUSD</option></select></div>
+<div><label>Automatic direction</label><input id="setupSide" readonly value="WAIT"></div>
+<div><label>Live entry price</label><input id="setupEntry" readonly value="—"></div>
+<div><label>ATR / stop distance</label><input id="setupDistance" readonly value="—"></div>
 </div>
 <div class="fields" style="margin-top:12px">
 <div><label>ENTRY</label><input id="setupOutEntry" readonly value="—"></div>
@@ -112,8 +112,8 @@
 <div><label>TP1 (1R)</label><input id="setupOutTP1" readonly value="—"></div>
 <div><label>TP2 (2R)</label><input id="setupOutTP2" readonly value="—"></div>
 </div>
-<p class="note" id="setupNote">Hindi maglalagay ng sample price. I-verify ang spread, market structure at lot size sa MT5.</p>
-<div class="row" style="margin-top:10px"><button class="btn primary" id="setupCopy" type="button">Copy setup</button><button class="btn" id="setupReset" type="button">Clear</button></div>
+<p class="note" id="setupNote" role="status" aria-live="polite">Connecting to MT5 quote and validated model. No orders are sent.</p>
+<div class="row" style="margin-top:10px"><button class="btn primary" id="setupCopy" type="button">Copy setup</button><button class="btn" id="setupReset" type="button">Refresh automatic setup</button></div>
 </section>
 <section class="panel"><div class="row"><h2>Trade journal & performance</h2><span class="tag">LOCAL BROWSER SAVE</span></div>
 <div class="fields"><div><label for="jSymbol">Symbol</label><select id="jSymbol"><option>XAUUSD</option><option>EURUSD</option><option>GBPUSD</option><option>BTCUSD</option><option>Other</option></select></div><div><label for="jSide">Side</label><select id="jSide"><option>BUY</option><option>SELL</option></select></div><div><label for="jOutcome">Outcome</label><select id="jOutcome"><option value="open">Open / pending</option><option value="win">Win</option><option value="loss">Loss</option><option value="breakeven">Breakeven</option></select></div><div><label for="jPnl">P/L amount (account currency)</label><input id="jPnl" type="number" step="0.01" placeholder="e.g. 12.50"></div></div>
@@ -279,25 +279,39 @@ $("clearJournal").addEventListener("click",()=>{if(confirm("Delete all locally s
 $("exportJournal").addEventListener("click",()=>{const rows=[["date","symbol","side","outcome","pnl","notes"],...journal.map(t=>[t.date,t.symbol,t.side,t.outcome,t.pnl===null?"":t.pnl,t.note])];const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="dars-ai-lab-journal.csv";a.click();URL.revokeObjectURL(url)});
 renderWatch();drawChart();refreshLiveChart();chartFetchTimer=setInterval(refreshLiveChart,5000);updateRisk();updateScore();renderJournal();
 
-function calculateSetup(){
- const side=$("setupSide").value,e=Number($("setupEntry").value),d=Number($("setupDistance").value);
- const ok=$("setupEntry").value.trim()!==""&&$("setupDistance").value.trim()!==""&&Number.isFinite(e)&&Number.isFinite(d)&&e>0&&d>0;
- $("setupOutEntry").value=ok?String(Number(e.toFixed(8))):"—";
- $("setupOutSL").value=ok?String(Number((side==="BUY"?e-d:e+d).toFixed(8))):"—";
- $("setupOutTP1").value=ok?String(Number((side==="BUY"?e+d:e-d).toFixed(8))):"—";
- $("setupOutTP2").value=ok?String(Number((side==="BUY"?e+2*d:e-2*d).toFixed(8))):"—";
- $("setupNote").textContent=ok?"Calculated from your manual inputs only. Not a verified market signal; check the live chart before considering a trade.":"Enter a positive live MT5 entry price and stop distance.";
+const setupEl=id=>document.getElementById(id);
+let setupBusy=false,lastSetupSnapshot=null;
+function resetSetupOutputs(direction="WAIT"){setupEl("setupSide").value=direction;["setupEntry","setupDistance","setupOutEntry","setupOutSL","setupOutTP1","setupOutTP2"].forEach(id=>setupEl(id).value="—");lastSetupSnapshot=null;}
+function fmtSetup(v,d){return Number(v).toFixed(Math.max(0,Math.min(8,Number(d)||2)));}
+async function refreshAutomaticSetup(){
+ if(setupBusy)return;setupBusy=true;const sym=setupEl("setupSymbol").value;setupEl("setupNote").textContent="Kinukuha ang live quote, closed candles at validated model…";resetSetupOutputs();
+ try{
+  const [qr,cr,mr]=await Promise.all([fetch("/api/mt5-quote?symbol="+encodeURIComponent(sym),{cache:"no-store"}),fetch("/api/mt5-candles?symbol="+encodeURIComponent(sym)+"&timeframe=M5&limit=100",{cache:"no-store"}),fetch("/api/learning?symbol="+encodeURIComponent(sym),{cache:"no-store"})]);
+  const [qd,cd,md]=await Promise.all([qr.json(),cr.json(),mr.json()]);
+  if(!qr.ok||!qd.ok)throw new Error(qd.error||"Hindi mabasa ang MT5 quote.");
+  if(!qd.connected||!qd.quote)throw new Error("Walang fresh MT5 quote. Panatilihing bukas ang MT5 at running ang read-only bridge.");
+  if(!cr.ok||!cd.ok||!Array.isArray(cd.candles))throw new Error(cd.error||"Hindi mabasa ang MT5 candles.");
+  if(!mr.ok||!md.ok)throw new Error(md.error||"Hindi mabasa ang learning model.");
+  if(!md.ready||!md.validationPassed||!["BUY BIAS","SELL BIAS"].includes(md.signal))throw new Error("WAIT — hindi pumasa ang model validation o walang malinaw na directional bias.");
+  const bars=cd.candles.slice(0,-1);if(bars.length<30)throw new Error("Kulang ang closed M5 candles; kailangan ng hindi bababa sa 30.");
+  const q=qd.quote,digits=Number.isFinite(Number(q.digits))?Number(q.digits):2,side=md.signal==="BUY BIAS"?"BUY":"SELL",entry=side==="BUY"?Number(q.ask):Number(q.bid);
+  if(!(entry>0))throw new Error("Invalid live bid/ask.");
+  const trs=[];for(let i=1;i<bars.length;i++){const b=bars[i],p=bars[i-1];trs.push(Math.max(Number(b.high)-Number(b.low),Math.abs(Number(b.high)-Number(p.close)),Math.abs(Number(b.low)-Number(p.close))));}
+  const atrs=trs.slice(-14);if(atrs.length<14)throw new Error("Kulang ang ATR data.");const atr=atrs.reduce((a,b)=>a+b,0)/atrs.length;if(!(atr>0))throw new Error("Invalid ATR; setup cancelled.");
+  const recent=bars.slice(-10),swingLow=Math.min(...recent.map(b=>Number(b.low))),swingHigh=Math.max(...recent.map(b=>Number(b.high)));
+  const stop=side==="BUY"?Math.min(entry-1.5*atr,swingLow-.1*atr):Math.max(entry+1.5*atr,swingHigh+.1*atr),risk=Math.abs(entry-stop);
+  if(!(risk>0&&Number.isFinite(risk)))throw new Error("Hindi makalkula ang structural stop.");
+  const tp1=side==="BUY"?entry+risk:entry-risk,tp2=side==="BUY"?entry+2*risk:entry-2*risk;
+  setupEl("setupSide").value=side;setupEl("setupEntry").value=fmtSetup(entry,digits);setupEl("setupDistance").value=fmtSetup(risk,digits)+" (ATR14 "+fmtSetup(atr,digits)+")";
+  setupEl("setupOutEntry").value=fmtSetup(entry,digits);setupEl("setupOutSL").value=fmtSetup(stop,digits);setupEl("setupOutTP1").value=fmtSetup(tp1,digits);setupEl("setupOutTP2").value=fmtSetup(tp2,digits);
+  setupEl("setupNote").textContent="AUTO RESEARCH SETUP · "+sym+" · "+side+" · Up "+(Number(md.probabilities.up)*100).toFixed(1)+"% / Down "+(Number(md.probabilities.down)*100).toFixed(1)+"% · quote "+qd.age_seconds+"s old. Stop uses M5 ATR14 and recent 10-bar swing; TP1=1R, TP2=2R. Check spread, news, margin and position size. Paper test only; no order is sent.";
+  lastSetupSnapshot={symbol:sym,side,entry,stop,tp1,tp2,digits,probabilities:md.probabilities,bar:md.latestClosedM5};
+ }catch(e){resetSetupOutputs("WAIT");setupEl("setupNote").textContent=e.message+" Walang setup na ginawa. Check MT5 bridge, candle history at model validation.";}finally{setupBusy=false;}
 }
-["setupSide","setupEntry","setupDistance","setupSymbol"].forEach(id=>$(id).addEventListener("input",calculateSetup));
-$("setupCopy").addEventListener("click",async()=>{
- calculateSetup();
- if($("setupOutEntry").value==="—"){ $("setupNote").textContent="Enter a valid entry price and stop distance first.";return;}
- const txt="DARS AI LAB SETUP\nSymbol: "+$("setupSymbol").value+"\nDirection: "+$("setupSide").value+"\nEntry: "+$("setupOutEntry").value+"\nSL: "+$("setupOutSL").value+"\nTP1 (1R): "+$("setupOutTP1").value+"\nTP2 (2R): "+$("setupOutTP2").value+"\nManual calculation only; not a live signal.";
- try{await navigator.clipboard.writeText(txt);$("setupCopy").textContent="Copied!";}catch(e){$("setupNote").textContent=txt;}
-});
-$("setupReset").addEventListener("click",()=>{$("setupEntry").value="";$("setupDistance").value="";$("setupCopy").textContent="Copy setup";calculateSetup()});
-calculateSetup();
-
+setupEl("setupSymbol").addEventListener("change",refreshAutomaticSetup);
+setupEl("setupCopy").addEventListener("click",async()=>{if(!lastSetupSnapshot){setupEl("setupNote").textContent="Walang valid automatic setup na makokopya. Hintayin ang valid live data at model validation.";return;}const s=lastSetupSnapshot,txt="DARS AI LAB · AUTOMATIC RESEARCH SETUP\nSymbol: "+s.symbol+"\nDirection: "+s.side+"\nEntry: "+fmtSetup(s.entry,s.digits)+"\nSL: "+fmtSetup(s.stop,s.digits)+"\nTP1 (1R): "+fmtSetup(s.tp1,s.digits)+"\nTP2 (2R): "+fmtSetup(s.tp2,s.digits)+"\nModel: up "+(Number(s.probabilities.up)*100).toFixed(1)+"%, down "+(Number(s.probabilities.down)*100).toFixed(1)+"%\nClosed M5: "+s.bar+"\nResearch/paper only; no order sent.";try{await navigator.clipboard.writeText(txt);setupEl("setupCopy").textContent="Copied!";}catch(e){setupEl("setupNote").textContent=txt;}});
+setupEl("setupReset").addEventListener("click",refreshAutomaticSetup);
+refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
