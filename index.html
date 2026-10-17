@@ -27,7 +27,7 @@
 <p class="note" id="cloudMessage" role="status" aria-live="polite">Cloud journal is not connected yet.</p>
 </section>
 <div id="dashboardContent" class="hidden">
-<header class="top"><div><div class="brand">DARS <span>AI LAB</span></div><div class="sub">Advanced trading workspace · v0.3 · Pre-connection build</div></div><span class="pill">● DEMO MODE · MT5 OFFLINE</span></header>
+<header class="top"><div><div class="brand">DARS <span>AI LAB</span></div><div class="sub">Advanced trading workspace · v0.4 · Connection setup</div></div><div class="row" style="justify-content:flex-end"><button class="btn hidden" id="accountToggle" type="button">Account</button><span class="pill">● DEMO MODE · MT5 OFFLINE</span></div></header>
 <div class="notice"><b>IMPORTANT:</b> Wala pang live VT Markets feed o verified trading signals. Ang chart at prices sa Market Lab ay generated illustration lamang. Risk calculations use your inputs; journal data stays in this browser. No trades are sent.</div>
 <div class="metrics">
 <div class="metric"><div class="eyebrow">Broker connection</div><strong style="font-size:17px;color:var(--gold)">Not linked</strong><small>VT Markets · MT5</small></div>
@@ -135,6 +135,8 @@ renderWatch();drawChart();updateRisk();updateScore();renderJournal();
  togglePassword.addEventListener("click",()=>{const reveal=password.type==="password";password.type=reveal?"text":"password";togglePassword.textContent=reveal?"Hide":"Show";togglePassword.setAttribute("aria-pressed",String(reveal));password.focus();});
  const signIn=document.getElementById("cloudSignIn"), signUp=document.getElementById("cloudSignUp");
  const syncBtn=document.getElementById("cloudSync"), signOut=document.getElementById("cloudSignOut");
+ const accountToggle=document.getElementById("accountToggle");
+ accountToggle.addEventListener("click",()=>{document.getElementById("supabasePanel").classList.toggle("hidden");});
  let client=null, currentUser=null;
  const say=(text)=>{msg.textContent=text};
  function friendlyAuthError(error){
@@ -151,13 +153,18 @@ renderWatch();drawChart();updateRisk();updateScore();renderJournal();
  }
  function setSignedIn(user){
    currentUser=user||null;
-   document.getElementById("dashboardContent").classList.toggle("hidden",!user);
-   document.getElementById("supabasePanel").style.margin=user?"0 0 15px":"10vh auto 0";
-   document.getElementById("supabasePanel").style.maxWidth=user?"none":"520px";
-   status.textContent=user?"Signed in":"Not signed in";
+   const panel=document.getElementById("supabasePanel");
+   const dashboard=document.getElementById("dashboardContent");
+   const accountToggle=document.getElementById("accountToggle");
+   dashboard.classList.toggle("hidden",!user);
+   panel.classList.toggle("hidden",!!user);
+   panel.style.margin=user?"0 0 15px":"10vh auto 0";
+   panel.style.maxWidth=user?"none":"520px";
+   accountToggle.classList.toggle("hidden",!user);
+   status.textContent=user?"Account connected":"Not signed in";
    signIn.disabled=!!user; signUp.disabled=!!user;
    syncBtn.disabled=!user; signOut.disabled=!user;
-   if(user) say("Signed in as "+user.email+". Use Sync journal to back up this browser's journal.");
+   if(user) say("Account connected. Journal sync will start automatically.");
  }
  try{
    const cfgRes=await fetch("/api/supabase-config",{cache:"no-store"});
@@ -188,7 +195,7 @@ renderWatch();drawChart();updateRisk();updateScore();renderJournal();
    const {data,error}=await client.auth.signInWithPassword({email:email.value.trim(),password:password.value});
    signIn.disabled=false;
    if(error){say(error.message);return;}
-   setSignedIn(data.user);say("Signed in. Press Sync journal to load and back up your journal.");
+   setSignedIn(data.user);say("Account connected. Syncing your journal…");syncBtn.click();
  });
  signOut.addEventListener("click",async()=>{
    const {error}=await client.auth.signOut();
