@@ -137,6 +137,18 @@ renderWatch();drawChart();updateRisk();updateScore();renderJournal();
  const syncBtn=document.getElementById("cloudSync"), signOut=document.getElementById("cloudSignOut");
  let client=null, currentUser=null;
  const say=(text)=>{msg.textContent=text};
+ function friendlyAuthError(error){
+   const raw=String(error?.message||"Unknown authentication error");
+   if(/email rate limit exceeded|rate limit.*email/i.test(raw))
+     return "Supabase has reached its email-sending limit. Repeated attempts won't fix this. We need to connect a custom SMTP provider (such as Resend) in Supabase Authentication settings. Wait before retrying; do not keep clicking Create account.";
+   if(/invalid login credentials/i.test(raw))
+     return "Email or password is incorrect. If you just created the account, confirm your email first, then try again.";
+   if(/email not confirmed/i.test(raw))
+     return "Please confirm your email using the link sent to your inbox before signing in.";
+   if(/user already registered/i.test(raw))
+     return "An account may already exist for this email. Try Sign in instead of Create account.";
+   return raw;
+ }
  function setSignedIn(user){
    currentUser=user||null;
    document.getElementById("dashboardContent").classList.toggle("hidden",!user);
@@ -166,7 +178,7 @@ renderWatch();drawChart();updateRisk();updateScore();renderJournal();
    signUp.disabled=true;say("Creating account…");
    const {data,error}=await client.auth.signUp({email:email.value.trim(),password:password.value,options:{emailRedirectTo:window.location.origin + "/"}});
    signUp.disabled=false;
-   if(error){say(error.message);return;}
+   if(error){say(friendlyAuthError(error));return;}
    if(data.session){setSignedIn(data.user);say("Account created and signed in. Now you can sync the journal.");}
    else say("Account created. Check your email for the confirmation link, then sign in.");
  });
