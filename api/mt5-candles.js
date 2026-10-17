@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
     const rows = [];
     for (const [timeframe, candles] of Object.entries(body.frames)) {
       if (!FRAMES.has(timeframe) || !Array.isArray(candles)) return send(res,400,{ok:false,error:"Only M5, M15 and H1 frames are accepted."});
-      if (candles.length > 100) return send(res,400,{ok:false,error:"Maximum 100 candles per timeframe."});
+      if (candles.length > 500) return send(res,400,{ok:false,error:"Maximum 500 candles per timeframe per request."});
       for (const c of candles) {
         const t = Number(c.time), o=Number(c.open), h=Number(c.high), l=Number(c.low), close=Number(c.close), volume=Number(c.tick_volume || 0);
         if (!Number.isFinite(t)||t<=0||![o,h,l,close,volume].every(Number.isFinite)||h<Math.max(o,close,l)||l>Math.min(o,close,h)||l<=0) return send(res,400,{ok:false,error:"Invalid OHLC candle data."});
