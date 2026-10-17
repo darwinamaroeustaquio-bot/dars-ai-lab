@@ -752,7 +752,7 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
   $("candidateLabStatus").textContent="External history import";
   $("candidateLabMessage").textContent="Uses Twelve Data, not MT5. Vercel must have TWELVE_DATA_API_KEY plus the Supabase keys. Each click imports up to 10 bounded history segments.";
   try{
-   let to=new Date().toISOString(),from=new Date(Date.now()-3650*86400000).toISOString(),total=0,segments=0,last=null;
+   const cursorKey="darsExternalGoldCursor_"+tf;let to=localStorage.getItem(cursorKey)||new Date().toISOString(),from=new Date(Date.now()-3650*86400000).toISOString(),total=0,segments=0,last=null;
    while(segments<10){
     const r=await fetch("/api/twelvedata-import",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({timeframe:tf,from,to,symbol:"XAU/USD"})});
     const d=await r.json();
