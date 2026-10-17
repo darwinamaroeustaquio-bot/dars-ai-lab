@@ -67,14 +67,24 @@ string FrameJson(const string sym,const ENUM_TIMEFRAMES tf,const string frameNam
    }
    return out+"]";
 }
+void PostFrame(const string sym,const string frameName,const string frameJson)
+{
+   if(frameJson=="") return;
+   // FrameJson returns "M5":[...]; extract only the array for the single-frame API.
+   int colon=StringFind(frameJson,":");
+   if(colon<0) return;
+   string candles=StringSubstr(frameJson,colon+1);
+   string payload="{\"symbol\":\""+sym+"\",\"timeframe\":\""+frameName+"\",\"candles\":"+candles+"}";
+   PostJson(CandleEndpoint,payload,"candles "+sym+" "+frameName);
+}
 void SendCandles(const string sym)
 {
-   // Send each timeframe separately to stay below Vercel request-body limits and avoid losing all frames on one oversized payload.\n   string m5=FrameJson(sym,PERIOD_M5,"M5");
+   string m5=FrameJson(sym,PERIOD_M5,"M5");
    string m15=FrameJson(sym,PERIOD_M15,"M15");
    string h1=FrameJson(sym,PERIOD_H1,"H1");
-   if(m5==""||m15==""||h1=="")return;
-   string payload="{\"symbol\":\""+sym+"\",\"frames\":{"+m5+","+m15+","+h1+"}}";
-   PostJson(CandleEndpoint,payload,"candles "+sym);
+   PostFrame(sym,"M5",m5);
+   PostFrame(sym,"M15",m15);
+   PostFrame(sym,"H1",h1);
 }
 void OnTimer()
 {
