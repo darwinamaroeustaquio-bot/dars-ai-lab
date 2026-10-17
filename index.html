@@ -10,9 +10,8 @@
 @media(max-width:900px){.layout{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:13px}.panel{padding:15px}}@media(max-width:420px){.fields{grid-template-columns:1fr}.metric strong{font-size:19px}.top .pill{white-space:normal}}
 </style></head>
 <body><main class="wrap">
-<header class="top"><div><div class="brand">DARS <span>AI LAB</span></div><div class="sub">Advanced trading workspace · v0.3 · Pre-connection build</div></div><span class="pill">● DEMO MODE · MT5 OFFLINE</span></header>
-<div id="dashboardContent" class="hidden"><div class="notice"><b>IMPORTANT:</b> Wala pang live VT Markets feed o verified trading signals. Ang chart at prices sa Market Lab ay generated illustration lamang. Risk calculations use your inputs; journal data stays in this browser. No trades are sent.</div>
-<section class="panel" id="supabasePanel" style="margin:10vh auto 0;max-width:520px;padding:26px">
+<section class="panel" id="supabasePanel" style="margin:10vh auto 0;max-width:520px;padding:26px"><b>IMPORTANT:</b> Wala pang live VT Markets feed o verified trading signals. Ang chart at prices sa Market Lab ay generated illustration lamang. Risk calculations use your inputs; journal data stays in this browser. No trades are sent.</div>
+
 <div style="text-align:center;margin-bottom:20px"><div class="eyebrow">Welcome back</div><div class="brand" style="font-size:28px;margin:8px 0">DARS <span>AI LAB</span></div><h2 style="margin:5px 0 8px">Sign in to continue</h2><span class="tag" id="cloudStatus">Checking configuration…</span></div>
 <p class="note" style="text-align:center;margin-bottom:18px">Sign in to open your trading dashboard and sync your journal. Use your account password, not your VT Markets password.</p>
 <div class="fields">
@@ -27,7 +26,9 @@
 </div>
 <p class="note" id="cloudMessage" role="status" aria-live="polite">Cloud journal is not connected yet.</p>
 </section>
-<div class="metrics">
+<div id="dashboardContent" class="hidden">
+<header class="top"><div><div class="brand">DARS <span>AI LAB</span></div><div class="sub">Advanced trading workspace · v0.3 · Pre-connection build</div></div><span class="pill">● DEMO MODE · MT5 OFFLINE</span></header>
+<div class="notice"><b>IMPORTANT:</b>
 <div class="metric"><div class="eyebrow">Broker connection</div><strong style="font-size:17px;color:var(--gold)">Not linked</strong><small>VT Markets · MT5</small></div>
 <div class="metric"><div class="eyebrow">Journal trades</div><strong id="mTrades">0</strong><small>Saved in this browser</small></div>
 <div class="metric"><div class="eyebrow">Journal win rate</div><strong id="mWin">—</strong><small>Closed trades only</small></div>
