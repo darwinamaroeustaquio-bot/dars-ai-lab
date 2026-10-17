@@ -65,7 +65,7 @@
 <section class="panel" id="candidateLabPanel" style="margin-bottom:15px;border-color:#7b6639">
 <div class="row"><div><div class="eyebrow">GOLD ONLY · CANDIDATE GENERATOR</div><h2 style="margin:5px 0 8px">Strategy Candidate Lab</h2></div><span class="tag" id="candidateLabStatus">Not run yet</span></div>
 <p class="note">Generate and compare 12 rule-based Gold strategy variants from saved candles. Uses the first 70% for development and the final 30% as a holdout. This is historical research only; no orders are sent.</p>
-<div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn primary" id="runCandidateLab" type="button">Generate & test candidates</button><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
+<div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn" id="importHistoricalGold" type="button">Import 14 days of Gold data</button><button class="btn primary" id="runCandidateLab" type="button">Generate & test candidates</button><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
 <div class="metrics" style="margin-top:12px">
 <div class="metric"><div class="eyebrow">Candles used</div><strong id="candidateCandles">—</strong><small>Stored Gold history</small></div>
 <div class="metric"><div class="eyebrow">Candidates</div><strong id="candidateCount">—</strong><small>Rule variants generated</small></div>
@@ -745,6 +745,16 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
  let lastCandidates=[];
  const pct=v=>Number.isFinite(Number(v))?(Number(v)*100).toFixed(1)+"%":"—";
  function cell(tr,value){const td=document.createElement("td");td.textContent=String(value);td.style.padding="9px 6px";td.style.borderTop="1px solid var(--line)";td.style.textAlign="center";tr.appendChild(td);}
+ $("importHistoricalGold")?.addEventListener("click",async()=>{
+  const btn=$("importHistoricalGold");btn.disabled=true;btn.textContent="Downloading…";$("candidateLabStatus").textContent="Importing history";$("candidateLabMessage").textContent="Downloading recent historical XAUUSD candles from Dukascopy and saving them to Supabase. This is proxy data, not VT Markets quotes.";
+  try{
+   const r=await fetch("/api/historical-import",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({timeframe:$("candidateTimeframe").value})});
+   const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"Historical import failed");
+   $("candidateLabStatus").textContent="History imported";$("candidateLabMessage").textContent="Source: "+d.source+". Saved "+d.saved+" candles for "+d.timeframe+" from "+new Date(d.from).toLocaleDateString()+" to "+new Date(d.to).toLocaleDateString()+". Proxy market data; broker differences remain.";
+   $("candidateCandles").textContent=Number(d.saved).toLocaleString();
+  }catch(e){$("candidateLabStatus").textContent="Import unavailable";$("candidateLabMessage").textContent=e.message+" Confirm Vercel has SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY and check deployment logs.";}
+  finally{btn.disabled=false;btn.textContent="Import 14 days of Gold data";}
+ });
  $("runCandidateLab")?.addEventListener("click",async()=>{
   const btn=$("runCandidateLab");btn.disabled=true;btn.textContent="Testing…";$("candidateLabStatus").textContent="Running research";$("candidateLabMessage").textContent="Reading saved Gold candles and testing strategy variants…";
   try{
