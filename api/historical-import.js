@@ -34,7 +34,8 @@ module.exports = async (req, res) => {
 
   const now = new Date();
   const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const daysByTimeframe = { M5: 30, M15: 60, H1: 180 };
+  // Broader practical research ranges; keep requests segmented to reduce provider/serverless failures.
+  const daysByTimeframe = { M5: 90, M15: 180, H1: 365 };
   const days = daysByTimeframe[timeframe];
   const start = new Date(end.getTime() - days * 86400000);
 
@@ -91,13 +92,8 @@ module.exports = async (req, res) => {
       });
     }
     const rows = [...byTime.values()].sort((a, b) => a.bar_time.localeCompare(b.bar_time));
-    if (rows.length < 250) {
-      return send(res, 502, {
-        ok: false,
-        error: "Dukascopy returned only " + rows.length + " valid unique candles for " + timeframe + " across " + days + " days after downloading in 7-day windows. Nothing was saved. Check instrument availability or provider errors.",
-        downloadedRaw: rates.length, validUniqueCandles: rows.length, timeframe, days, chunkDays: 7, failedChunks: failedChunks.slice(0, 5),
-        from: start.toISOString(), to: end.toISOString()
-      });
+    if (!rows.length) {
+      return send(res, 502, { ok: false, error: "No valid unique candles were returned; nothing can be saved.", downloadedRaw: rates.length, validUniqueCandles: 0, timeframe, days, chunkDays: 7, failedChunks: failedChunks.slice(0, 5), from: start.toISOString(), to: end.toISOString() });
     }
 
     let saved = 0;
@@ -126,8 +122,8 @@ module.exports = async (req, res) => {
       ok: true, source: "Dukascopy historical XAUUSD BID candles",
       symbol: "XAUUSD-STD", timeframe, days,
       from: start.toISOString(), to: end.toISOString(),
-      downloaded: rows.length, saved, minimumRequired: 250, meetsMinimum: saved >= 250,
-      message: "Historical candles saved. This is proxy XAUUSD history, not VT Markets broker-specific pricing; validate later against VT Markets."
+      downloaded: rows.length, saved, minimumRequired: 250, meetsMinimum: saved >= 250, failedChunkCount: failedChunks.length, failedChunks: failedChunks.slice(0, 5),
+      message: "Historical candles saved. If fewer than 250 were saved, run the import again after checking failed chunks. This is proxy XAUUSD history, not VT Markets broker-specific pricing; validate later against VT Markets."
     });
   } catch (e) {
     return send(res, 502, {
