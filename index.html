@@ -48,7 +48,19 @@
 </div>
 <p class="note" id="adaptiveExplanation" role="status" aria-live="polite">Waiting for real M5, M15 and H1 candles from the MT5 bridge. This monitor does not send orders.</p>
 <div class="row" style="justify-content:flex-start"><button class="btn" id="enableSignalNotifications" type="button">Enable browser notifications</button><button class="btn" id="refreshAdaptive" type="button">Refresh analysis</button></div>
-<p class="note">Experimental rule-based monitoring only: trend alignment + M5 pullback/breakout checks. It does not self-train or guarantee profitable signals. Read-only; no trades are sent.</p>
+<p class="note">Rule-based setup alerts are separate from the historical learning model below. Experimental signals only; no profitability guarantee. Read-only; no trades are sent.</p>
+</section>
+<section class="panel" id="learningModelPanel" style="margin-bottom:15px;border-color:#4a6190">
+<div class="row"><div><div class="eyebrow">Historical training · walk-forward holdout</div><h2 style="margin:5px 0 8px">Self-learning research model</h2></div><span class="tag" id="learningStatus">Waiting for history</span></div>
+<div class="metrics" style="margin:12px 0 0">
+<div class="metric"><div class="eyebrow">Model bias</div><strong id="learningSignal" style="font-size:17px">WAIT</strong><small>Research only · not an order</small></div>
+<div class="metric"><div class="eyebrow">Up probability</div><strong id="learningUp">—</strong><small>Model estimate</small></div>
+<div class="metric"><div class="eyebrow">Down probability</div><strong id="learningDown">—</strong><small>Model estimate</small></div>
+<div class="metric"><div class="eyebrow">Holdout accuracy</div><strong id="learningAccuracy">—</strong><small id="learningHoldout">Untested</small></div>
+</div>
+<div class="row" style="justify-content:flex-start;margin-top:12px"><div class="metric" style="flex:1;min-width:150px"><div class="eyebrow">Labeled examples</div><strong id="learningSamples">0</strong><small id="learningSplit">Train / test split</small></div><div class="metric" style="flex:1;min-width:150px"><div class="eyebrow">Last model refresh</div><strong id="learningUpdated" style="font-size:14px">—</strong><small>Retrains from saved candles</small></div><button class="btn" id="refreshLearning" type="button">Train / refresh model</button></div>
+<p class="note" id="learningExplanation" role="status" aria-live="polite">The model will train from historical MT5 candles after enough data has been stored.</p>
+<p class="note">Experimental logistic-regression classifier. It retrains from stored candle history and reports a later holdout test, but this is not proof of profitability or guaranteed AI intelligence. Historical accuracy may change and may not persist in live markets. Paper-test only; read-only and no orders are sent.</p>
 </section>
 <div class="metrics">
 <div class="metric"><div class="eyebrow">Market data feed</div><strong id="brokerConnectionStatus" style="font-size:17px;color:var(--gold)">Checking…</strong><small>Read-only MT5 quotes</small></div>
@@ -516,4 +528,55 @@ calculateSetup();
  analyze();setInterval(analyze,30000);
 })();
 </script>
+
+<script>
+(function(){
+ const el=id=>document.getElementById(id);
+ const symbol=()=>el("mt5SymbolSelect")?.value||"XAUUSD-STD";
+ let busy=false,lastAlert="";
+ const pct=v=>Number.isFinite(Number(v))?(Number(v)*100).toFixed(1)+"%":"—";
+ async function refreshLearning(){
+  if(busy)return;busy=true;
+  el("learningStatus").textContent="Training…";
+  try{
+   const r=await fetch("/api/learning?symbol="+encodeURIComponent(symbol()),{cache:"no-store",headers:{Accept:"application/json"}});
+   const d=await r.json();
+   if(!r.ok||!d.ok)throw new Error(d.error||"Learning API unavailable");
+   if(!d.ready){
+    el("learningStatus").textContent="Collecting history";el("learningSignal").textContent="WAIT";
+    el("learningUp").textContent="—";el("learningDown").textContent="—";el("learningAccuracy").textContent="—";
+    el("learningSamples").textContent=String(d.labeledSamples||0);
+    el("learningSplit").textContent="Need "+(d.minimumSamples?.M5||"more")+" candles / samples";
+    el("learningExplanation").textContent=d.message||"Waiting for real candle history.";
+    return;
+   }
+   el("learningStatus").textContent="Model retrained";
+   el("learningSignal").textContent=d.signal;
+   el("learningSignal").style.color=d.signal==="BUY BIAS"?"var(--green)":d.signal==="SELL BIAS"?"var(--red)":"var(--text)";
+   el("learningUp").textContent=pct(d.probabilities?.up);el("learningDown").textContent=pct(d.probabilities?.down);
+   el("learningAccuracy").textContent=pct(d.holdoutAccuracy);
+   el("learningHoldout").textContent=(d.holdoutSamples||0)+" later samples · log loss "+(d.holdoutLogLoss??"—");
+   el("learningSamples").textContent=Number(d.labeledSamples||0).toLocaleString();
+   el("learningSplit").textContent=(d.trainSamples||0)+" train / "+(d.holdoutSamples||0)+" holdout";
+   el("learningUpdated").textContent=new Date(d.trainedAt).toLocaleTimeString();
+   el("learningExplanation").textContent="Latest closed M5: "+new Date(d.latestClosedM5).toLocaleString()+". "+d.caution;
+   const key=d.symbol+"|"+d.signal+"|"+d.latestClosedM5;
+   if((d.signal==="BUY BIAS"||d.signal==="SELL BIAS")&&key!==lastAlert){
+    lastAlert=key;
+    if(typeof Notification!=="undefined"&&Notification.permission==="granted"){
+     try{new Notification("Dars AI Lab · "+d.signal,{body:d.symbol+" · Up "+pct(d.probabilities.up)+" / Down "+pct(d.probabilities.down)+". Research signal only.",tag:"dars-learning-"+d.symbol+"-"+d.signal});}catch(e){}
+    }
+    if(typeof playSetupAlert==="function"&&typeof setupSoundEnabled!=="undefined"&&setupSoundEnabled){try{playSetupAlert();}catch(e){}}
+   }
+  }catch(e){
+   el("learningStatus").textContent="Not ready";el("learningSignal").textContent="WAIT";
+   el("learningExplanation").textContent=e.message+" Check Supabase candle table, server environment variables, and MT5 candle feed.";
+  }finally{busy=false;}
+ }
+ el("refreshLearning")?.addEventListener("click",refreshLearning);
+ el("mt5SymbolSelect")?.addEventListener("change",refreshLearning);
+ refreshLearning();setInterval(refreshLearning,60000);
+})();
+</script>
+
 </body></html>
