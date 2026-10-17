@@ -39,8 +39,8 @@ module.exports = async (req, res) => {
   const body = req.body || {};
   if (body.version !== 1 || !Array.isArray(body.candles) || !Array.isArray(body.deals))
     return send(res, 400, { ok: false, error: "Expected version:1, candles:[], deals:[]" });
-  if (body.candles.length > 1600 || body.deals.length > 300)
-    return send(res, 413, { ok: false, error: "Batch too large; maximum 1600 candles and 300 deals per request." });
+  if (body.candles.length > 4600 || body.deals.length > 300)
+    return send(res, 413, { ok: false, error: "Batch too large; maximum 4600 candles and 300 deals per request." });
 
   const account = String(body.account || "unknown");
   const fallbackSymbol = String(body.symbol || "unknown").slice(0, 32);
