@@ -13,7 +13,9 @@ function send(res, status, body) {
 
 module.exports = async (req, res) => {
   if (req.method === "OPTIONS") return send(res, 204, {});
-  // Accept either the Supabase project URL or a URL that already ends in /rest/v1.\n  // The route below appends /rest/v1 itself, so normalize to the project root.\n  const supabaseUrl = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
+  // Accept either the Supabase project URL or a URL ending in /rest/v1.
+  // Normalize to the project root because this API appends /rest/v1 below.
+  const supabaseUrl = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
   const serviceKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
   if (!supabaseUrl || !serviceKey) return send(res, 503, { ok: false, error: "Server setup incomplete: set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel." });
 
