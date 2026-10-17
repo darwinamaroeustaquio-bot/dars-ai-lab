@@ -9,9 +9,9 @@ alter table public.trade_journal
 alter table public.trading_settings
   add column if not exists user_id uuid references auth.users(id) on delete cascade;
 
-create unique index if not exists trade_journal_user_local_id_unique
-  on public.trade_journal(user_id, local_id)
-  where local_id is not null;
+drop index if exists public.trade_journal_user_local_id_unique;
+create unique index trade_journal_user_local_id_unique
+  on public.trade_journal(user_id, local_id);
 
 drop policy if exists "Users manage their own signals" on public.trading_signals;
 create policy "Users manage their own signals"
