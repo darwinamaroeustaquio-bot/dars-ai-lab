@@ -757,6 +757,21 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
  let lastCandidates=[];
  const pct=v=>Number.isFinite(Number(v))?(Number(v)*100).toFixed(1)+"%":"—";
  function cell(tr,value){const td=document.createElement("td");td.textContent=String(value);td.style.padding="9px 6px";td.style.borderTop="1px solid var(--line)";td.style.textAlign="center";tr.appendChild(td);}
+ function failureReason(c){
+  const reasons=[],dev=c.train||{},hold=c.afterCosts||c.holdout||{},checks=c.checks||{};
+  if(!checks.development){
+   if(Number(dev.trades||0)<30)reasons.push("Development trades <30");
+   else if(Number(dev.expectancyR||0)<=0)reasons.push("Development expectancy <=0");
+   if(Number(dev.profitFactor||0)<=1.05)reasons.push("Development PF <=1.05");
+  }
+  if(!checks.holdout){
+   if(Number(hold.trades||0)<30)reasons.push("Holdout trades <30");
+   else if(Number(hold.expectancyR||0)<=0)reasons.push("After-cost expectancy <=0");
+   if(Number(hold.profitFactor||0)<=1.10)reasons.push("After-cost PF <=1.10");
+  }
+  if(!checks.drawdown)reasons.push("Net return/drawdown filter failed");
+  return reasons.length?reasons.join("; "):"All filters passed";
+ }
 
  $("runCandidateLab")?.addEventListener("click",async()=>{
   const btn=$("runCandidateLab");btn.disabled=true;btn.textContent="Testing…";$("candidateLabStatus").textContent="Running research";$("candidateLabMessage").textContent="Reading saved Gold candles and testing strategy variants…";
