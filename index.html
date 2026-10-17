@@ -66,7 +66,11 @@
 <label class="check"><input type="checkbox" value="15"><span><b>Reward-to-risk is at least 1.5R</b><br><small>Target is realistic after spread and costs</small></span></label>
 </div>
 <div class="scorebar"><span id="scoreFill"></span></div><div class="row"><span class="note">Checklist completion score</span><span class="status" id="scoreText">0 / 100</span></div>
-<div class="notice" style="margin:12px 0 0" id="strategyAdvice">WAIT: live market data is not connected. This checklist cannot generate a live signal.</div>
+<div class="notice" style="margin:12px 0 0" id="strategyAdvice">WAIT: live candle data and verified strategy signals are not connected.</div>
+<div class="resultbox" id="setupAlertPanel" role="status" aria-live="polite" style="margin-top:12px;border-color:var(--line);background:#0b1827">
+ <div class="row"><div><div class="eyebrow">Setup readiness alert</div><strong id="setupAlertTitle" style="font-size:18px;margin:5px 0">WAITING FOR CONFIRMATION</strong></div><button class="btn" id="enableSetupSound" type="button">Enable sound alerts</button></div>
+ <p class="note" id="setupAlertMessage">A notification appears when your manual checklist reaches 85% or more and BUY/SELL is selected. This is not an automatic market signal.</p>
+</div>
 </section>
 <section class="panel" id="setupBuilder">
 <div class="row"><h2>Trade Setup Builder</h2><span class="tag">MANUAL INPUTS</span></div>
@@ -139,7 +143,58 @@ function drawChart(){const a=assets[selected],svg=$("chart"),data=a.samples.slic
 function renderWatch(){const el=$("watchlist");el.innerHTML="";Object.keys(assets).forEach(k=>{const a=assets[k],div=document.createElement("div");div.className="asset-row"+(selected===k?" selected":"");div.innerHTML='<div><b>'+k+'</b><small>'+a.name.split(" · ")[0]+'</small></div><div class="asset-price">'+a.price.toLocaleString(undefined,{maximumFractionDigits:5})+'</div><div class="change">'+a.change+'</div>';div.addEventListener("click",()=>selectAsset(k));el.appendChild(div)})}
 function selectAsset(k){selected=k;document.querySelectorAll("[data-asset]").forEach(b=>b.classList.toggle("active",b.dataset.asset===k));drawChart();renderWatch()}
 function updateRisk(){const bal=Math.max(0,Number($("balance").value)||0),risk=Number($("risk").value)||0,c=$("currency").value,amount=bal*risk/100;$("riskLabel").textContent=risk.toFixed(2).replace(/0$/,"")+"%";$("riskAmount").textContent=c+fmt(amount);$("mRisk").textContent=c+fmt(amount);const dist=Math.max(0,Number($("stopDistance").value)||0),value=Math.max(0,Number($("valuePerUnit").value)||0);if(dist>0&&value>0){const lots=amount/(dist*value);$("lotResult").textContent=lots.toFixed(4)+" lots";$("lotNote").textContent="Raw estimate only. Apply broker min/max lot, lot step, contract size, tick value, conversion, spread and fees before use."}else{$("lotResult").textContent="Enter broker values";$("lotNote").textContent="No tick/contract values are hard-coded. Confirm symbol specs and lot step in MT5 first."}}
-function updateScore(){const checks=[...document.querySelectorAll("#checks input[type=checkbox]")],score=checks.reduce((n,c)=>n+(c.checked?Number(c.value):0),0);$("scoreFill").style.width=score+"%";$("scoreText").textContent=score+" / 100";const dir=$("direction").value;let msg="WAIT: live market data is not connected. This checklist cannot generate a live signal.";if(dir!=="WAIT"){if(score>=85)msg="High checklist completion, but this is still not a verified signal. Confirm live chart, spread, entry, SL/TP and risk manually.";else if(score>=60)msg="Incomplete confluence. Wait for more confirmation; do not treat the score as a probability.";else msg="Weak checklist completion. Better to wait than force a trade."}$("strategyAdvice").textContent=msg}
+let setupSoundEnabled=false,setupAudioContext=null,lastSetupReady=false;
+function playSetupAlert(){
+ if(!setupSoundEnabled||!setupAudioContext)return;
+ try{
+  const now=setupAudioContext.currentTime;
+  [0,0.22,0.44].forEach((offset,i)=>{
+   const osc=setupAudioContext.createOscillator(),gain=setupAudioContext.createGain();
+   osc.type="sine";osc.frequency.value=i===1?1046:784;
+   gain.gain.setValueAtTime(0.0001,now+offset);gain.gain.exponentialRampToValueAtTime(0.16,now+offset+0.025);gain.gain.exponentialRampToValueAtTime(0.0001,now+offset+0.16);
+   osc.connect(gain);gain.connect(setupAudioContext.destination);osc.start(now+offset);osc.stop(now+offset+0.18);
+  });
+ }catch(e){}
+}
+function updateScore(){
+ const checks=[...document.querySelectorAll("#checks input[type=checkbox]")],score=checks.reduce((n,c)=>n+(c.checked?Number(c.value):0),0);
+ $("scoreFill").style.width=score+"%";$("scoreText").textContent=score+" / 100";
+ const dir=$("direction").value,ready=dir!=="WAIT"&&score>=85;
+ let msg="WAIT: this checklist cannot generate a live signal. Live candle data and automated strategy validation are not connected.";
+ if(dir!=="WAIT"){
+  if(score>=85)msg="Checklist threshold reached. Verify the actual MT5 candles, spread, entry, SL/TP and risk manually; this is not a verified BUY/SELL signal.";
+  else if(score>=60)msg="Checklist incomplete. Wait for more confirmation; the score is not a probability.";
+  else msg="Weak checklist completion. Better to wait than force a trade.";
+ }
+ $("strategyAdvice").textContent=msg;
+ const panel=$("setupAlertPanel"),title=$("setupAlertTitle"),message=$("setupAlertMessage");
+ if(ready){
+  panel.style.borderColor="var(--gold)";panel.style.background="#292317";
+  title.textContent="READY FOR SETUP REVIEW · "+dir;
+  title.style.color="var(--gold)";
+  message.textContent="Manual checklist is "+score+"%. Review the live MT5 chart and confirm the setup yourself. No order will be sent.";
+  if(!lastSetupReady)playSetupAlert();
+ }else{
+  panel.style.borderColor="var(--line)";panel.style.background="#0b1827";
+  title.textContent=dir==="WAIT"?"WAITING FOR CONFIRMATION":"CHECKLIST INCOMPLETE";
+  title.style.color="var(--text)";
+  message.textContent="A readiness alert appears when your manual checklist reaches 85% or more and BUY/SELL is selected. This is not an automatic market signal.";
+ }
+ lastSetupReady=ready;
+}
+$("enableSetupSound").addEventListener("click",async()=>{
+ try{
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtx){$("enableSetupSound").textContent="Sound unavailable";return;}
+  if(!setupAudioContext)setupAudioContext=new AudioCtx();
+  if(setupAudioContext.state==="suspended")await setupAudioContext.resume();
+  setupSoundEnabled=true;
+  $("enableSetupSound").textContent="Sound alerts enabled";
+  $("enableSetupSound").disabled=true;
+  const now=setupAudioContext.currentTime,osc=setupAudioContext.createOscillator(),gain=setupAudioContext.createGain();
+  osc.frequency.value=880;gain.gain.value=0.08;osc.connect(gain);gain.connect(setupAudioContext.destination);osc.start(now);osc.stop(now+0.12);
+ }catch(e){$("enableSetupSound").textContent="Tap to enable sound";}
+});
 function persist(){try{localStorage.setItem("dars-ai-lab-journal-v03",JSON.stringify(journal))}catch(e){alert("Hindi ma-save sa browser. Please export CSV to keep a copy.")}renderJournal()}
 function renderJournal(){const body=$("journalBody");body.innerHTML="";if(!journal.length)body.innerHTML='<tr><td colspan="6" class="empty">No trades saved yet.</td></tr>';journal.forEach(t=>{const tr=document.createElement("tr");const date=new Date(t.date).toLocaleDateString();const pnl=t.pnl===null?"—":($("currency").value+fmt(t.pnl));const outcome=t.outcome==="win"?"Win":t.outcome==="loss"?"Loss":t.outcome==="breakeven"?"Breakeven":"Open";[date,t.symbol+" / "+t.side,outcome,pnl,t.note||"—"].forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;if(i===2)td.className=t.outcome==="win"?"tag-green":t.outcome==="loss"?"tag-red":"";tr.appendChild(td)});const td=document.createElement("td"),del=document.createElement("button");del.className="btn";del.textContent="×";del.title="Delete entry";del.addEventListener("click",()=>{journal=journal.filter(x=>x.id!==t.id);persist()});td.appendChild(del);tr.appendChild(td);body.appendChild(tr)});const closed=journal.filter(t=>["win","loss","breakeven"].includes(t.outcome)),wins=closed.filter(t=>t.outcome==="win").length;$("mTrades").textContent=journal.length;$("mWin").textContent=closed.length?Math.round(wins/closed.length*100)+"%":"—"}
 document.querySelectorAll("[data-asset]").forEach(b=>b.addEventListener("click",()=>selectAsset(b.dataset.asset)));
