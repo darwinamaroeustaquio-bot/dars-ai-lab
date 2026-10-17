@@ -42,27 +42,42 @@ module.exports = async (req, res) => {
     // Download in bounded 7-day windows. A single large Dukascopy request can
     // silently return only a partial set of candles in serverless environments.
     const rates = [];
+    const failedChunks = [];
     const chunkDays = 7;
     for (let cursor = start.getTime(); cursor < end.getTime(); cursor += chunkDays * 86400000) {
       const chunkStart = new Date(cursor);
       const chunkEnd = new Date(Math.min(end.getTime(), cursor + chunkDays * 86400000));
-      const part = await getHistoricalRates({
-        instrument: "xauusd",
-        dates: { from: chunkStart, to: chunkEnd },
-        timeframe: TF[timeframe],
-        format: "json",
-        priceType: "bid",
-        batchSize: 3,
-        pauseBetweenBatchesMs: 250,
-        retryCount: 3,
-        retryOnEmpty: true,
-        pauseBetweenRetriesMs: 500,
-        failAfterRetryCount: true
-      });
+      let part = null;
+      let lastChunkError = "";
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          part = await getHistoricalRates({
+            instrument: "xauusd",
+            dates: { from: chunkStart, to: chunkEnd },
+            timeframe: TF[timeframe],
+            format: "json",
+            priceType: "bid",
+            batchSize: 1,
+            pauseBetweenBatchesMs: 250,
+            retryCount: 1,
+            retryOnEmpty: true,
+            pauseBetweenRetriesMs: 500,
+            failAfterRetryCount: true
+          });
+          if (Array.isArray(part) && part.length) break;
+          lastChunkError = "Provider returned no rows for this chunk.";
+        } catch (chunkError) {
+          lastChunkError = String(chunkError && chunkError.message || chunkError);
+        }
+        await new Promise(resolve => setTimeout(resolve, attempt * 1200));
+      }
       if (Array.isArray(part)) rates.push(...part);
+      if ((!Array.isArray(part) || !part.length) && lastChunkError) {
+        failedChunks.push({ from: chunkStart.toISOString(), to: chunkEnd.toISOString(), error: lastChunkError.slice(0, 180) });
+      }
     }
     if (!rates.length) {
-      return send(res, 502, { ok: false, error: "Dukascopy returned no historical candles for any 7-day window. Retry later or check Vercel function logs.", timeframe, days, chunkDays });
+      return send(res, 502, { ok: false, error: "Dukascopy returned no historical candles for any 7-day window. HTTP 202 may be transient; inspect failedChunks for provider details.", timeframe, days, chunkDays, failedChunks: failedChunks.slice(0, 5) });
     }
 
     const byTime = new Map();
@@ -80,7 +95,7 @@ module.exports = async (req, res) => {
       return send(res, 502, {
         ok: false,
         error: "Dukascopy returned only " + rows.length + " valid unique candles for " + timeframe + " across " + days + " days after downloading in 7-day windows. Nothing was saved. Check instrument availability or provider errors.",
-        downloadedRaw: rates.length, validUniqueCandles: rows.length, timeframe, days, chunkDays: 7,
+        downloadedRaw: rates.length, validUniqueCandles: rows.length, timeframe, days, chunkDays: 7, failedChunks: failedChunks.slice(0, 5),
         from: start.toISOString(), to: end.toISOString()
       });
     }
