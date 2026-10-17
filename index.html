@@ -38,6 +38,18 @@
 </div><p class="note" id="mt5LiveMessage" role="status">Connection status is based on the latest quote received from the read-only MT5 bridge. This dashboard does not send trades.</p>
 <div class="row" style="justify-content:flex-start"><label for="mt5SymbolSelect" class="muted">Broker symbol</label><select id="mt5SymbolSelect" aria-label="MT5 broker symbol"><option value="XAUUSD-STD">XAUUSD-STD</option><option value="XAUUSD">XAUUSD</option><option value="EURUSD">EURUSD</option><option value="GBPUSD">GBPUSD</option><option value="BTCUSD">BTCUSD</option></select><button class="btn" id="mt5Refresh" type="button">Refresh quote</button></div>
 </section>
+<section class="panel" id="newsRiskPanel" style="margin-bottom:15px;border-color:#806b3e">
+<div class="row"><div><div class="eyebrow">Economic calendar · trade safety</div><h2 style="margin:5px 0 8px">News Risk Filter</h2></div><span class="tag" id="newsFilterStatus">EA code configured · compile pending</span></div>
+<div class="metrics" style="margin:12px 0 0">
+<div class="metric"><div class="eyebrow">High-impact window</div><strong style="font-size:16px">20m before</strong><small>Configured EA default</small></div>
+<div class="metric"><div class="eyebrow">After event</div><strong style="font-size:16px">15m after</strong><small>Configured EA default</small></div>
+<div class="metric"><div class="eyebrow">Filter behavior</div><strong style="font-size:16px">WAIT</strong><small>Blocks new entry in event window</small></div>
+<div class="metric"><div class="eyebrow">Live execution</div><strong style="font-size:16px;color:var(--gold)">LOCKED</strong><small>Trading switches remain OFF</small></div>
+</div>
+<p class="note" id="newsFilterExplanation">The MT5 EA checks its built-in economic calendar for high-impact events affecting the symbol currencies (including USD events for XAU/XAG and BTC/ETH symbols). If the calendar query fails, it blocks new entries. This panel displays configured defaults only; it does not verify live calendar data or EA compilation.</p>
+<div class="row" style="justify-content:flex-start"><a class="btn" href="https://github.com/darwinamaroeustaquio-bot/dars-ai-lab/blob/main/mt5/Dars_AutoTrader_SafetyLocked.mq5" target="_blank" rel="noopener noreferrer" style="text-decoration:none">Open MT5 EA code</a><button class="btn" id="newsFilterInfo" type="button">Check setup notes</button></div>
+<p class="note" id="newsFilterInfoText" hidden>In MetaEditor, compile the EA and review the Errors tab. The built-in calendar filter must be validated on your MT5 terminal; do not enable live orders until compilation, calendar behavior, order sizing, SL/TP and stop controls are tested. Economic-calendar functions may not work in Strategy Tester the same way as a live terminal, so validate this limitation separately.</p>
+</section>
 <section class="panel" id="adaptiveSignalPanel" style="margin-bottom:15px;border-color:#356a61">
 <div class="row"><div><div class="eyebrow">Adaptive multi-timeframe monitor</div><h2 style="margin:5px 0 8px">Automatic setup watch</h2></div><span class="tag" id="adaptiveFeedStatus">Waiting for candle feed</span></div>
 <div class="metrics" style="margin:12px 0 0">
@@ -713,4 +725,11 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
 })();
 </script>
 
+<script>
+(function(){
+ const b=document.getElementById("newsFilterInfo");
+ const t=document.getElementById("newsFilterInfoText");
+ if(b&&t)b.addEventListener("click",()=>{const show=t.hidden;t.hidden=!show;b.textContent=show?"Hide setup notes":"Check setup notes";});
+})();
+</script>
 </body></html>
