@@ -30,6 +30,12 @@ input int    MaxSlippagePoints          = 20;
 input ulong  MagicNumber                = 26101701;
 input bool   OnePositionPerSymbol       = true;
 
+// ===== OPTIONAL READ-ONLY VERCEL QUOTE BRIDGE =====
+input bool   EnableQuoteBridge          = true;
+input string ApiEndpoint               = "https://dars-indol.vercel.app/api/mt5-quote";
+input string BridgeToken               = ""; // Enter the same secret configured in Vercel; do not share it.
+input int    BridgeTimeoutMs           = 3000;
+
 int fastHandle = INVALID_HANDLE;
 int slowHandle = INVALID_HANDLE;
 int rsiHandle  = INVALID_HANDLE;
@@ -38,6 +44,95 @@ datetime lastBarTime = 0;
 double dayStartEquity = 0.0;
 int trackedDay = -1;
 string dayKey = "";
+
+// ===== READ-ONLY QUOTE BRIDGE =====
+// Sends current quotes to the Vercel API. This does not send trading orders.
+datetime lastBridgeSend = 0;
+
+bool SendQuoteToBridge()
+{
+   if(!EnableQuoteBridge)
+      return false;
+
+   if(StringLen(ApiEndpoint) < 12 || StringLen(BridgeToken) < 24)
+   {
+      Comment("DARS EA: Quote bridge needs ApiEndpoint and a long BridgeToken in EA Inputs.");
+      return false;
+   }
+
+   datetime now = TimeCurrent();
+   if(now == lastBridgeSend)
+      return false;
+
+   MqlTick q;
+   if(!SymbolInfoTick(_Symbol, q) || q.bid <= 0.0 || q.ask <= 0.0)
+      return false;
+
+   if(_Symbol != "XAUUSD-STD" &&
+      _Symbol != "XAUUSD" &&
+      _Symbol != "EURUSD" &&
+      _Symbol != "GBPUSD" &&
+      _Symbol != "BTCUSD")
+   {
+      Comment("DARS EA: Bridge does not accept this symbol: ", _Symbol);
+      return false;
+   }
+
+   int digits = (int)SymbolInfoInteger(_Symbol, SYMBOL_DIGITS);
+   double last = q.last;
+   double point = SymbolInfoDouble(_Symbol, SYMBOL_POINT);
+   double spread = point > 0.0 ? (q.ask - q.bid) / point : 0.0;
+
+   string body = StringFormat(
+      "{\"symbol\":\"%s\",\"bid\":%s,\"ask\":%s,\"last\":%s,\"digits\":%d,\"spread\":%s}",
+      _Symbol,
+      DoubleToString(q.bid, digits),
+      DoubleToString(q.ask, digits),
+      DoubleToString(last, digits),
+      digits,
+      DoubleToString(spread, 1)
+   );
+
+   char data[];
+   char response[];
+   string responseHeaders;
+   int copied = StringToCharArray(body, data, 0, WHOLE_ARRAY, CP_UTF8);
+   if(copied <= 1)
+      return false;
+   ArrayResize(data, copied - 1);
+
+   string headers = "Content-Type: application/json\r\nX-Bridge-Token: " + BridgeToken + "\r\n";
+   ResetLastError();
+   int status = WebRequest(
+      "POST",
+      ApiEndpoint,
+      headers,
+      BridgeTimeoutMs,
+      data,
+      response,
+      responseHeaders
+   );
+
+   lastBridgeSend = now;
+
+   if(status == 200)
+   {
+      Print("DARS quote bridge: quote sent for ", _Symbol, ".");
+      return true;
+   }
+
+   if(status == -1)
+   {
+      Print("DARS quote bridge WebRequest failed. Error=", GetLastError(),
+            ". Check MT5 Tools > Options > Expert Advisors > allowed URL.");
+   }
+   else
+   {
+      Print("DARS quote bridge HTTP status=", status,
+            ". Check Vercel environment variables and BridgeToken.");
+   }
+   return false;
+}
 
 int DateKey(datetime t)
 {
@@ -244,6 +339,9 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
+   // Send read-only quote to Vercel even while trading is disabled.
+   SendQuoteToBridge();
+
    // Two explicit switches are required before any order can be sent.
    if(StopAll)
    {
