@@ -1,6 +1,6 @@
 // Read-only MT5 candle history bridge for Dars AI Lab.
 // Requires the mt5_candles table created from sql/mt5_candles.sql.
-const ALLOWED = new Set(["XAUUSD-STD", "XAUUSD", "EURUSD", "GBPUSD", "BTCUSD"]);
+const ALLOWED = new Set(["XAUUSD-STD", "XAUUSD"]);
 const FRAMES = new Set(["M5", "M15", "H1"]);
 function send(res, status, body) {
   res.status(status);
