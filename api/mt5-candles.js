@@ -33,7 +33,7 @@ module.exports = async (req, res) => {
       for (const c of candles) {
         const t = Number(c.time), o=Number(c.open), h=Number(c.high), l=Number(c.low), close=Number(c.close), volume=Number(c.tick_volume || 0);
         if (!Number.isFinite(t)||t<=0||![o,h,l,close,volume].every(Number.isFinite)||h<Math.max(o,close,l)||l>Math.min(o,close,h)||l<=0) return send(res,400,{ok:false,error:"Invalid OHLC candle data."});
-        rows.push({symbol,timeframe,bar_time:new Date(t*1000).toISOString(),open:o,high:h,low:l,close,tick_volume:Math.max(0,Math.trunc(volume)),received_at:new Date().toISOString()});
+        rows.push({symbol,timeframe,bar_time:new Date(t*1000).toISOString(),open:o,high:h,low:l,close,tick_volume:Math.max(0,Math.trunc(volume)),source:"mt5_bridge",received_at:new Date().toISOString()});
       }
     }
     if (!rows.length) return send(res,400,{ok:false,error:"No candle data received."});
@@ -41,7 +41,7 @@ module.exports = async (req, res) => {
       const upstream = await fetch(root+"/rest/v1/mt5_candles?on_conflict=symbol,timeframe,bar_time", {
         method:"POST", headers:{...headers,Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify(rows)
       });
-      if (!upstream.ok) return send(res,502,{ok:false,error:"Candle storage failed. Run sql/mt5_candles.sql in Supabase SQL Editor.",upstream_status:upstream.status});
+      if (!upstream.ok) return send(res,502,{ok:false,error:"Candle storage failed. Run sql/mt5_candles.sql and supabase/mt5_candle_source.sql in Supabase SQL Editor.",upstream_status:upstream.status});
       return send(res,200,{ok:true,symbol,rows_saved:rows.length,received_at:new Date().toISOString()});
     } catch (_) { return send(res,502,{ok:false,error:"Could not reach candle storage."}); }
   }
@@ -50,7 +50,7 @@ module.exports = async (req, res) => {
     const limit=Math.min(200,Math.max(10,Number.parseInt(req.query.limit||"100",10)||100));
     if(!ALLOWED.has(symbol)||!FRAMES.has(timeframe)) return send(res,400,{ok:false,error:"Unsupported symbol or timeframe."});
     try {
-      const q=new URLSearchParams({select:"symbol,timeframe,bar_time,open,high,low,close,tick_volume,received_at",symbol:"eq."+symbol,timeframe:"eq."+timeframe,order:"bar_time.desc",limit:String(limit)});
+      const q=new URLSearchParams({select:"symbol,timeframe,bar_time,open,high,low,close,tick_volume,source,received_at",symbol:"eq."+symbol,timeframe:"eq."+timeframe,order:"bar_time.desc",limit:String(limit)});
       const upstream=await fetch(root+"/rest/v1/mt5_candles?"+q.toString(),{headers:{apikey:key,Authorization:"Bearer "+key}});
       if(!upstream.ok) return send(res,502,{ok:false,error:"Could not read candle history. Check mt5_candles table.",upstream_status:upstream.status});
       const rows=await upstream.json();
