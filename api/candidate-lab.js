@@ -28,10 +28,10 @@ module.exports=async(req,res)=>{
  const root=String(process.env.SUPABASE_URL||"").trim().replace(/\/+$/,"").replace(/\/rest\/v1$/i,""),key=String(process.env.SUPABASE_SERVICE_ROLE_KEY||"").trim();
  if(!root||!key)return send(res,503,{ok:false,error:"Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel. The research engine needs stored candles."});
  try{
-  const q=new URLSearchParams({select:"bar_time,open,high,low,close",symbol:"eq."+symbol,timeframe:"eq."+timeframe,order:"bar_time.asc",limit:"5000"});
+  const q=new URLSearchParams({select:"bar_time,open,high,low,close",symbol:"eq."+symbol,timeframe:"eq."+timeframe,order:"bar_time.desc",limit:"5000"});
   const upstream=await fetch(root+"/rest/v1/mt5_candles?"+q,{headers:{apikey:key,Authorization:"Bearer "+key}});
   if(!upstream.ok)return send(res,502,{ok:false,error:"Could not read mt5_candles. Check the Supabase candle table.",upstream_status:upstream.status});
-  const rows=await upstream.json(),c=rows.map(x=>({...x,open:+x.open,high:+x.high,low:+x.low,close:+x.close}));
+  const rows=await upstream.json(),c=rows.reverse().map(x=>({...x,open:+x.open,high:+x.high,low:+x.low,close:+x.close}));
   if(c.length<250)return send(res,200,{ok:true,ready:false,symbol,timeframe,candleCount:c.length,minimumCandles:250,message:"Need at least 250 stored candles before candidate screening. Upload historical Gold candles or collect them through a feed."});
   const split=Math.floor(c.length*.7),configs=[];
   for(const kind of ["ema-trend","donchian","rsi-reversion","trend-pullback"])for(const pair of [[8,21],[12,30],[20,50]])configs.push({kind,fast:pair[0],slow:pair[1],sl:1.5,tp:2.2,horizon:12});
