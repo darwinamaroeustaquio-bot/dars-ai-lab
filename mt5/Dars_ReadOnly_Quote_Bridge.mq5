@@ -9,8 +9,8 @@ input string CandleEndpoint = "https://dars-indol.vercel.app/api/mt5-candles";
 input string BridgeToken = "SET_THE_SAME_RANDOM_TOKEN_IN_VERCEL";
 input string SymbolsCsv = "XAUUSD-STD,EURUSD,GBPUSD,BTCUSD";
 input int SendEverySeconds = 3;
-input int SendCandlesEverySeconds = 30;
-input int BarsPerTimeframe = 80;
+input int SendCandlesEverySeconds = 300;
+input int BarsPerTimeframe = 500;
 
 string symbols[];
 int candleTimer = 0;
@@ -55,7 +55,7 @@ void SendQuote(const string sym)
 string FrameJson(const string sym,const ENUM_TIMEFRAMES tf,const string frameName)
 {
    MqlRates rates[];ArraySetAsSeries(rates,false);
-   int wanted=MathMax(30,MathMin(100,BarsPerTimeframe));
+   int wanted=MathMax(30,MathMin(500,BarsPerTimeframe));
    int copied=CopyRates(sym,tf,0,wanted,rates);
    if(copied<10){Print("Dars waiting for enough ",frameName," bars on ",sym,". CopyRates=",copied," error=",GetLastError());return "";}
    string out="\""+frameName+"\":[";
