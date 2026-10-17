@@ -758,8 +758,8 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
     const d=await r.json();
     if(!r.ok||!d.ok)throw new Error([d.error,d.providerMessage,d.detail].filter(Boolean).join(" · ")||"External import failed (HTTP "+r.status+")");
     total+=Number(d.saved||0);segments++;last=d;
-    if(d.rangeComplete)break;
-    to=d.nextFrom;
+    if(d.rangeComplete){localStorage.removeItem(cursorKey);break;}
+    to=d.nextFrom;localStorage.setItem(cursorKey,to);
    }
    $("candidateLabStatus").textContent="External history imported";
    $("candidateLabMessage").textContent="Source: Twelve Data XAU/USD proxy. This run saved "+total.toLocaleString()+" candles across "+segments+" segments for "+tf+". Last range: "+(last?new Date(last.from).toLocaleDateString()+" to "+new Date(last.to).toLocaleDateString():"—")+". "+(last&&last.rangeComplete?"Requested range reached.":"Click again to continue farther back. Check your provider plan/rate limits. Not VT Markets broker-specific pricing.");
