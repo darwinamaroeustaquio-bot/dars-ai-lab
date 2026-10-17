@@ -65,15 +65,15 @@
 <section class="panel" id="candidateLabPanel" style="margin-bottom:15px;border-color:#7b6639">
 <div class="row"><div><div class="eyebrow">GOLD ONLY · CANDIDATE GENERATOR</div><h2 style="margin:5px 0 8px">Strategy Candidate Lab</h2></div><span class="tag" id="candidateLabStatus">Not run yet</span></div>
 <p class="note">Generate and compare 12 rule-based Gold strategy variants from saved candles. Uses the first 70% for development and the final 30% as a holdout. This is historical research only; no orders are sent.</p>
-<div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn" id="importExternalGold" type="button">Import external Gold history</button><button class="btn primary" id="runCandidateLab" type="button">Generate & test candidates</button><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
+<div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn" id="importExternalGold" type="button">Import external Gold history</button><button class="btn primary" id="runCandidateLab" type="button">Generate & test candidates</button><label class="note">Assumed round-trip cost (R) <input id="candidateCostR" type="number" min="0" max="1" step="0.05" value="0.10" style="width:100px;display:inline-block;margin-left:6px" title="Sensitivity assumption per completed trade, not a verified broker cost"></label><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
 <div class="metrics" style="margin-top:12px">
 <div class="metric"><div class="eyebrow">Candles used</div><strong id="candidateCandles">—</strong><small>Stored Gold history</small></div>
 <div class="metric"><div class="eyebrow">Candidates</div><strong id="candidateCount">—</strong><small>Rule variants generated</small></div>
-<div class="metric"><div class="eyebrow">Best holdout expectancy</div><strong id="candidateBestExpectancy">—</strong><small>R per trade · before costs</small></div>
+<div class="metric"><div class="eyebrow">Best holdout expectancy</div><strong id="candidateBestExpectancy">—</strong><small>R per trade · after assumed costs</small></div>
 <div class="metric"><div class="eyebrow">Review candidates</div><strong id="candidatePassed">—</strong><small>Requires human review</small></div>
 </div>
 <p class="note" id="candidateLabMessage" role="status" aria-live="polite">External historical import uses Twelve Data XAU/USD proxy candles. Coverage depends on your Twelve Data plan. Data is not VT Markets broker-specific pricing.</p>
-<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:720px"><thead><tr><th align="left">Candidate</th><th>Holdout trades</th><th>Win rate</th><th>Net R</th><th>Expectancy R</th><th>Profit factor</th><th>Max DD R</th><th>Status</th></tr></thead><tbody id="candidateResults"><tr><td colspan="8" class="muted">No research run yet.</td></tr></tbody></table></div>
+<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:720px"><thead><tr><th align="left">Candidate</th><th>Holdout trades</th><th>Win rate</th><th>Net R after costs</th><th>Expectancy after costs</th><th>PF after costs</th><th>Max DD R</th><th>Status</th></tr></thead><tbody id="candidateResults"><tr><td colspan="8" class="muted">No research run yet.</td></tr></tbody></table></div>
 <p class="note">Important: this first version is a transparent candidate screening engine, not self-modifying AI. It excludes real spread, commission and slippage, so no candidate is labelled profitable or automatically converted to an EA.</p>
 </section>
 <section class="panel" id="learningModelPanel" style="margin-bottom:15px;border-color:#4a6190">
@@ -773,24 +773,25 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
   const btn=$("runCandidateLab");btn.disabled=true;btn.textContent="Testing…";$("candidateLabStatus").textContent="Running research";$("candidateLabMessage").textContent="Reading saved Gold candles and testing strategy variants…";
   try{
    const tf=$("candidateTimeframe").value;
-   const r=await fetch("/api/candidate-lab?symbol="+encodeURIComponent((document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD")+"&timeframe="+encodeURIComponent(tf),{cache:"no-store",headers:{Accept:"application/json"}});
+   const costR=Math.max(0,Math.min(1,Number($("candidateCostR")?.value)||0));
+   const r=await fetch("/api/candidate-lab?symbol="+encodeURIComponent((document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD")+"&timeframe="+encodeURIComponent(tf)+"&costR="+encodeURIComponent(costR),{cache:"no-store",headers:{Accept:"application/json"}});
    const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"Candidate lab failed");
    $("candidateCandles").textContent=Number(d.candleCount||0).toLocaleString();
    if(!d.ready){$("candidateCount").textContent="0";$("candidateBestExpectancy").textContent="—";$("candidatePassed").textContent="0";$("candidateLabStatus").textContent="Waiting for data";$("candidateLabMessage").textContent=d.message||"More candle history is needed.";return;}
    lastCandidates=d.candidates||[];$("candidateCount").textContent=String(d.generated||lastCandidates.length);
-   const best=lastCandidates[0];$("candidateBestExpectancy").textContent=best?Number(best.holdout.expectancyR).toFixed(3)+"R":"—";
+   const best=lastCandidates[0];$("candidateBestExpectancy").textContent=best?Number((best.afterCosts||best.holdout).expectancyR).toFixed(3)+"R":"—";
    $("candidatePassed").textContent=String(lastCandidates.filter(x=>x.status==="REVIEW CANDIDATE").length);
    $("candidateLabStatus").textContent="Research complete · "+tf;
    $("candidateLabMessage").textContent=d.method+" "+d.warning;
    const body=$("candidateResults");body.replaceChildren();
-   lastCandidates.forEach(c=>{const tr=document.createElement("tr");cell(tr,c.id+" · "+c.name);cell(tr,c.holdout.trades);cell(tr,pct(c.holdout.winRate));cell(tr,c.holdout.netR+"R");cell(tr,c.holdout.expectancyR+"R");cell(tr,c.holdout.profitFactor);cell(tr,c.holdout.maxDrawdownR+"R");cell(tr,c.status);body.appendChild(tr);});
+   lastCandidates.forEach(c=>{const tr=document.createElement("tr");cell(tr,c.id+" · "+c.name);cell(tr,c.holdout.trades);cell(tr,pct(c.holdout.winRate));const net=c.afterCosts||c.holdout;cell(tr,net.netR+"R");cell(tr,net.expectancyR+"R");cell(tr,net.profitFactor);cell(tr,net.maxDrawdownR+"R");cell(tr,c.status);body.appendChild(tr);});
    $("exportCandidates").disabled=!lastCandidates.length;
   }catch(e){$("candidateLabStatus").textContent="Unavailable";$("candidateLabMessage").textContent=e.message+" Check that Supabase is configured and that historical candles exist."; }
   finally{btn.disabled=false;btn.textContent="Generate & test candidates";}
  });
  $("exportCandidates")?.addEventListener("click",()=>{
-  const rows=[["id","name","status","train_trades","train_net_R","holdout_trades","holdout_win_rate","holdout_net_R","expectancy_R","profit_factor","max_drawdown_R"]];
-  lastCandidates.forEach(c=>rows.push([c.id,c.name,c.status,c.train.trades,c.train.netR,c.holdout.trades,c.holdout.winRate,c.holdout.netR,c.holdout.expectancyR,c.holdout.profitFactor,c.holdout.maxDrawdownR]));
+  const rows=[["id","name","status","train_trades","train_net_R","holdout_trades","raw_holdout_net_R","raw_expectancy_R","assumed_round_trip_cost_R","net_after_costs_R","expectancy_after_costs_R","profit_factor_after_costs","max_drawdown_after_costs_R"]];
+  lastCandidates.forEach(c=>{const n=c.afterCosts||c.holdout;rows.push([c.id,c.name,c.status,c.train.trades,c.train.netR,c.holdout.trades,c.holdout.netR,c.holdout.expectancyR,$("candidateCostR")?.value||0,n.netR,n.expectancyR,n.profitFactor,n.maxDrawdownR]);});
   const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="dars-gold-candidate-results.csv";a.click();URL.revokeObjectURL(a.href);
  });
