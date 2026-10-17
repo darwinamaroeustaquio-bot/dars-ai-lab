@@ -39,8 +39,8 @@ module.exports = async (req, res) => {
   const body = req.body || {};
   if (body.version !== 1 || !Array.isArray(body.candles) || !Array.isArray(body.deals))
     return send(res, 400, { ok: false, error: "Expected version:1, candles:[], deals:[]" });
-  if (body.candles.length > 500 || body.deals.length > 300)
-    return send(res, 413, { ok: false, error: "Batch too large; maximum 500 candles and 300 deals per request." });
+  if (body.candles.length > 1600 || body.deals.length > 300)
+    return send(res, 413, { ok: false, error: "Batch too large; maximum 1600 candles and 300 deals per request." });
 
   const account = String(body.account || "unknown");
   const fallbackSymbol = String(body.symbol || "unknown").slice(0, 32);
@@ -56,7 +56,7 @@ module.exports = async (req, res) => {
         low <= 0 || high < Math.max(open, close, low) || low > Math.min(open, close, high)) {
       return send(res, 400, { ok: false, error: "Invalid candle payload." });
     }
-    candles.push({ symbol, timeframe, bar_time, open, high, low, close, tick_volume: Math.max(0, Math.trunc(tick_volume)), received_at: new Date().toISOString() });
+    candles.push({ symbol, timeframe, bar_time, open, high, low, close, tick_volume: Math.max(0, Math.trunc(tick_volume)), source: "mt5_bridge", received_at: new Date().toISOString() });
   }
 
   const deals = [];
@@ -77,7 +77,7 @@ module.exports = async (req, res) => {
       const r = await fetch(root + "/rest/v1/mt5_candles?on_conflict=symbol,timeframe,bar_time", {
         method: "POST", headers, body: JSON.stringify(candles)
       });
-      if (!r.ok) return send(res, 502, { ok: false, error: "Saving candles failed. Run sql/mt5_candles.sql in Supabase.", upstream_status: r.status, detail: (await r.text()).slice(0, 300) });
+      if (!r.ok) return send(res, 502, { ok: false, error: "Saving candles failed. Run sql/mt5_candles.sql and supabase/mt5_candle_source.sql in Supabase.", upstream_status: r.status, detail: (await r.text()).slice(0, 300) });
     }
     if (deals.length) {
       const r = await fetch(root + "/rest/v1/mt5_history?on_conflict=account,record_type,symbol,timeframe,record_time,payload", {
