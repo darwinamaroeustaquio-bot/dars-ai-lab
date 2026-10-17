@@ -12,6 +12,9 @@ CTrade trade;
 input bool   EnableTrading             = false;  // Master execution switch; OFF by default
 input bool   AllowLiveTrading           = false;  // Separate live-account lock; OFF by default
 input bool   StopAll                    = false;  // ON closes this EA's positions and blocks new entries
+input bool   EnableNewsFilter            = true;   // Block entries near high-impact economic calendar events
+input int    NewsMinutesBefore           = 20;     // Minutes before a high-impact event
+input int    NewsMinutesAfter            = 15;     // Minutes after a high-impact event
 input double RiskPercent               = 0.25;   // Risk per trade as % of equity
 input double DailyLossLimitPercent     = 1.00;   // Stop new entries after this daily equity loss
 input int    FastEMAPeriod              = 20;
@@ -139,10 +142,65 @@ double CalculateVolume(ENUM_ORDER_TYPE orderType,double entry,double stopLoss)
    return NormalizeVolume(riskMoney/oneLotLoss);
 }
 
+
+bool HasHighImpactNewsForCurrency(const string currency, const datetime fromTime, const datetime toTime)
+{
+   if(StringLen(currency) != 3) return false;
+   MqlCalendarValue values[];
+   int count = CalendarValueHistory(values, fromTime, toTime, NULL, currency);
+   if(count < 0)
+   {
+      Print("Dars EA NEWS FILTER: Calendar data unavailable for ",currency,
+            "; blocking this entry for safety. Error=",GetLastError());
+      return true;
+   }
+
+   for(int i=0; i<count; ++i)
+   {
+      MqlCalendarEvent event;
+      if(!CalendarEventById(values[i].event_id,event))
+      {
+         Print("Dars EA NEWS FILTER: Could not read event details; blocking entry.");
+         return true;
+      }
+      if(event.importance == CALENDAR_IMPORTANCE_HIGH)
+      {
+         Print("Dars EA NEWS FILTER: High-impact event window: ",event.name,
+               " currency=",currency," event_time=",TimeToString(values[i].time,TIME_DATE|TIME_MINUTES));
+         return true;
+      }
+   }
+   return false;
+}
+
+bool NewsWindowBlocked()
+{
+   if(!EnableNewsFilter) return false;
+   datetime now = TimeTradeServer();
+   if(now <= 0) now = TimeCurrent();
+   datetime fromTime = now - NewsMinutesBefore*60;
+   datetime toTime = now + NewsMinutesAfter*60;
+
+   string symbol = _Symbol;
+   string baseCurrency = SymbolInfoString(_Symbol,SYMBOL_CURRENCY_BASE);
+   string profitCurrency = SymbolInfoString(_Symbol,SYMBOL_CURRENCY_PROFIT);
+
+   if(StringFind(symbol,"XAU") >= 0 || StringFind(symbol,"XAG") >= 0 ||
+      StringFind(symbol,"BTC") >= 0 || StringFind(symbol,"ETH") >= 0)
+   {
+      if(HasHighImpactNewsForCurrency("USD",fromTime,toTime)) return true;
+   }
+   if(HasHighImpactNewsForCurrency(baseCurrency,fromTime,toTime)) return true;
+   if(profitCurrency != baseCurrency &&
+      HasHighImpactNewsForCurrency(profitCurrency,fromTime,toTime)) return true;
+   return false;
+}
+
 int OnInit()
 {
    if(RiskPercent <= 0.0 || RiskPercent > 0.5 ||
       DailyLossLimitPercent <= 0.0 || DailyLossLimitPercent > 2.0 ||
+      NewsMinutesBefore < 0 || NewsMinutesAfter < 0 ||
       FastEMAPeriod < 2 || SlowEMAPeriod <= FastEMAPeriod ||
       ATRStopMultiplier <= 0.0 || RewardRiskRatio <= 0.0 ||
       MaxSpreadPoints <= 0)
@@ -200,7 +258,7 @@ void OnTick()
       !TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)) return;
    if(DailyLossLimitHit())
    {
-      Comment("DARS DEMO EA: DAILY LOSS LIMIT HIT - NEW ENTRIES BLOCKED");
+      Comment("DARS EA: DAILY LOSS LIMIT HIT - NEW ENTRIES BLOCKED");
       return;
    }
    if(!IsNewBar()) return;
@@ -214,6 +272,11 @@ void OnTick()
       return;
    }
    if(OnePositionPerSymbol && HasOurPosition()) return;
+   if(NewsWindowBlocked())
+   {
+      Comment("DARS EA: NEWS FILTER - high-impact event nearby or calendar unavailable; no new entry.");
+      return;
+   }
 
    double fast[2],slow[2],rsi[1],atr[1];
    ArraySetAsSeries(fast,false); ArraySetAsSeries(slow,false);
@@ -228,7 +291,7 @@ void OnTick()
    bool bearishCross = fast[0] >= slow[0] && fast[1] < slow[1] && rsi[0] <= SellRSIMax;
    if(!bullishCross && !bearishCross)
    {
-      Comment("DARS DEMO EA: WAIT - no confirmed EMA cross + RSI setup");
+      Comment("DARS EA: WAIT - no confirmed EMA cross + RSI setup");
       return;
    }
 
@@ -245,7 +308,7 @@ void OnTick()
       double tp=NormalizeDouble(entry+stopDistance*RewardRiskRatio,digits);
       double volume=CalculateVolume(ORDER_TYPE_BUY,entry,sl);
       if(volume<=0.0) { Print("Dars EA: Calculated volume below broker minimum; no BUY."); return; }
-      sent=trade.Buy(volume,_Symbol,0.0,sl,tp,"Dars demo EMA/RSI BUY");
+      sent=trade.Buy(volume,_Symbol,0.0,sl,tp,"Dars EMA/RSI BUY");
       Print("Dars EA BUY result=",sent," retcode=",trade.ResultRetcode()," ",trade.ResultRetcodeDescription());
    }
    else if(bearishCross)
@@ -255,8 +318,8 @@ void OnTick()
       double tp=NormalizeDouble(entry-stopDistance*RewardRiskRatio,digits);
       double volume=CalculateVolume(ORDER_TYPE_SELL,entry,sl);
       if(volume<=0.0) { Print("Dars EA: Calculated volume below broker minimum; no SELL."); return; }
-      sent=trade.Sell(volume,_Symbol,0.0,sl,tp,"Dars demo EMA/RSI SELL");
+      sent=trade.Sell(volume,_Symbol,0.0,sl,tp,"Dars EMA/RSI SELL");
       Print("Dars EA SELL result=",sent," retcode=",trade.ResultRetcode()," ",trade.ResultRetcodeDescription());
    }
-   if(sent) Comment("DARS DEMO EA: ORDER SENT - verify fill, SL and TP in MT5 Trade tab.");
+   if(sent) Comment("DARS EA: ORDER SENT - verify fill, SL and TP in MT5 Trade tab.");
 }
