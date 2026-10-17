@@ -38,6 +38,18 @@
 </div><p class="note" id="mt5LiveMessage" role="status">Connection status is based on the latest quote received from the read-only MT5 bridge. This dashboard does not send trades.</p>
 <div class="row" style="justify-content:flex-start"><label for="mt5SymbolSelect" class="muted">Broker symbol</label><select id="mt5SymbolSelect" aria-label="MT5 broker symbol"><option value="XAUUSD-STD">XAUUSD-STD</option><option value="XAUUSD">XAUUSD</option><option value="EURUSD">EURUSD</option><option value="GBPUSD">GBPUSD</option><option value="BTCUSD">BTCUSD</option></select><button class="btn" id="mt5Refresh" type="button">Refresh quote</button></div>
 </section>
+<section class="panel" id="adaptiveSignalPanel" style="margin-bottom:15px;border-color:#356a61">
+<div class="row"><div><div class="eyebrow">Adaptive multi-timeframe monitor</div><h2 style="margin:5px 0 8px">Automatic setup watch</h2></div><span class="tag" id="adaptiveFeedStatus">Waiting for candle feed</span></div>
+<div class="metrics" style="margin:12px 0 0">
+<div class="metric"><div class="eyebrow">Market regime</div><strong id="adaptiveRegime" style="font-size:16px">—</strong><small>H1 + M15 context</small></div>
+<div class="metric"><div class="eyebrow">Setup status</div><strong id="adaptiveSignal" style="font-size:16px">WAIT</strong><small id="adaptiveDirection">No verified signal</small></div>
+<div class="metric"><div class="eyebrow">Latest closed M5 bar</div><strong id="adaptiveBarTime" style="font-size:14px">—</strong><small>Broker candle time</small></div>
+<div class="metric"><div class="eyebrow">Rule checks</div><strong id="adaptiveChecks" style="font-size:16px">0 / 4</strong><small>Transparent rule score, not win probability</small></div>
+</div>
+<p class="note" id="adaptiveExplanation" role="status" aria-live="polite">Waiting for real M5, M15 and H1 candles from the MT5 bridge. This monitor does not send orders.</p>
+<div class="row" style="justify-content:flex-start"><button class="btn" id="enableSignalNotifications" type="button">Enable browser notifications</button><button class="btn" id="refreshAdaptive" type="button">Refresh analysis</button></div>
+<p class="note">Experimental rule-based monitoring only: trend alignment + M5 pullback/breakout checks. It does not self-train or guarantee profitable signals. Read-only; no trades are sent.</p>
+</section>
 <div class="metrics">
 <div class="metric"><div class="eyebrow">Market data feed</div><strong id="brokerConnectionStatus" style="font-size:17px;color:var(--gold)">Checking…</strong><small>Read-only MT5 quotes</small></div>
 <div class="metric"><div class="eyebrow">Journal trades</div><strong id="mTrades">0</strong><small>Saved in this browser</small></div>
@@ -389,4 +401,119 @@ calculateSetup();
    setInterval(checkQuote,5000);
  })();
 
-</script></body></html>
+</script>
+<script>
+(function darsAdaptiveMonitor(){
+ const $a=id=>document.getElementById(id);
+ const symbolEl=$a("mt5SymbolSelect");
+ let notifyPermission=(typeof Notification!=="undefined"?Notification.permission:"unsupported");
+ let lastAlertKey="";
+ let lastStableState="";
+ let busy=false;
+ const n=(v)=>Number(v);
+ function ema(values,period){
+   if(values.length<period)return [];
+   const k=2/(period+1),out=[];
+   let e=values.slice(0,period).reduce((a,b)=>a+b,0)/period;
+   out[period-1]=e;
+   for(let i=period;i<values.length;i++){e=values[i]*k+e*(1-k);out[i]=e;}
+   return out;
+ }
+ function atr(candles,period=14){
+   if(candles.length<period+1)return 0;
+   const ranges=[];
+   for(let i=1;i<candles.length;i++){
+     const c=candles[i],p=candles[i-1];
+     ranges.push(Math.max(n(c.high)-n(c.low),Math.abs(n(c.high)-n(p.close)),Math.abs(n(c.low)-n(p.close))));
+   }
+   return ranges.slice(-period).reduce((a,b)=>a+b,0)/Math.min(period,ranges.length);
+ }
+ async function frame(symbol,timeframe){
+   const r=await fetch("/api/mt5-candles?symbol="+encodeURIComponent(symbol)+"&timeframe="+timeframe+"&limit=100",{cache:"no-store",headers:{Accept:"application/json"}});
+   const d=await r.json();
+   if(!r.ok||!d.ok)throw new Error(d.error||("Candle API failed for "+timeframe));
+   return d.candles||[];
+ }
+ function setStatus(state,direction,regime,checks,barTime,message){
+   $a("adaptiveFeedStatus").textContent="LIVE CANDLE ANALYSIS";
+   $a("adaptiveRegime").textContent=regime;
+   $a("adaptiveSignal").textContent=state;
+   $a("adaptiveSignal").style.color=state==="SETUP CONFIRMED"?"var(--green)":state==="POSSIBLE SETUP"?"var(--gold)":"var(--text)";
+   $a("adaptiveDirection").textContent=direction;
+   $a("adaptiveChecks").textContent=checks+" / 4";
+   $a("adaptiveBarTime").textContent=barTime?new Date(barTime).toLocaleTimeString():"—";
+   $a("adaptiveExplanation").textContent=message;
+ }
+ function notify(state,direction,barTime,message){
+   const key=state+"|"+direction+"|"+barTime;
+   if(key===lastAlertKey)return;
+   lastAlertKey=key;
+   if(typeof playSetupAlert==="function" && typeof setupSoundEnabled!=="undefined" && setupSoundEnabled)playSetupAlert();
+   if(typeof Notification!=="undefined"&&Notification.permission==="granted"){
+     try{new Notification("Dars AI Lab · "+state,{body:direction+" · "+message,tag:"dars-"+state+"-"+direction,renotify:false});}catch(e){}
+   }
+ }
+ async function analyze(){
+   if(busy)return;busy=true;
+   const symbol=symbolEl?.value||"XAUUSD-STD";
+   try{
+     const [m5raw,m15raw,h1raw]=await Promise.all([frame(symbol,"M5"),frame(symbol,"M15"),frame(symbol,"H1")]);
+     // Exclude the still-forming candle; decisions use closed bars only.
+     const m5=m5raw.slice(0,-1),m15=m15raw.slice(0,-1),h1=h1raw.slice(0,-1);
+     if(m5.length<30||m15.length<50||h1.length<50){
+       $a("adaptiveFeedStatus").textContent="Collecting candles";
+       setStatus("WAIT","Insufficient history","Not enough data",0,m5.at(-1)?.bar_time||null,"Need at least 31 closed M5 candles and 50 closed M15/H1 candles. Keep MT5 running while history loads.");
+       lastStableState="WAIT";return;
+     }
+     const m15c=m15.map(c=>n(c.close)),h1c=h1.map(c=>n(c.close)),m5c=m5.map(c=>n(c.close));
+     const e15fast=ema(m15c,20),e15slow=ema(m15c,50),e1fast=ema(h1c,20),e1slow=ema(h1c,50);
+     const last5=m5[m5.length-1],prev5=m5.slice(-6,-1),a5=atr(m5);
+     const lastClose=n(last5.close),fast5=ema(m5c,20).at(-1);
+     const up15=e15fast.at(-1)>e15slow.at(-1),up1=e1fast.at(-1)>e1slow.at(-1);
+     const down15=e15fast.at(-1)<e15slow.at(-1),down1=e1fast.at(-1)<e1slow.at(-1);
+     const bullish=up15&&up1, bearish=down15&&down1;
+     const priorHigh=Math.max(...prev5.map(c=>n(c.high))),priorLow=Math.min(...prev5.map(c=>n(c.low)));
+     const bullBreak=lastClose>priorHigh&&n(last5.close)>n(last5.open);
+     const bearBreak=lastClose<priorLow&&n(last5.close)<n(last5.open);
+     const nearEma=a5>0&&Math.abs(lastClose-fast5)<=a5*0.35;
+     const bullReject=nearEma&&lastClose>n(last5.open)&&n(last5.low)<fast5;
+     const bearReject=nearEma&&lastClose<n(last5.open)&&n(last5.high)>fast5;
+     let state="WAIT",direction="No setup",regime="Mixed / range",checks=0,reason="No aligned setup yet. Keep waiting; do not chase price.";
+     if(bullish||bearish){
+       direction=bullish?"BUY candidate":"SELL candidate";
+       regime=bullish?"Aligned uptrend":"Aligned downtrend";
+       checks=2+(nearEma?1:0)+((bullish&&bullBreak)||(bearish&&bearBreak)?1:0);
+       if((bullish&&bullBreak)||(bearish&&bearBreak)){
+         state="SETUP CONFIRMED";
+         reason="Closed M5 candle broke the recent 5-bar range in the same direction as M15/H1 EMA trend. Verify spread, nearby levels and risk manually.";
+       }else if((bullish&&bullReject)||(bearish&&bearReject)||nearEma){
+         state="POSSIBLE SETUP";
+         reason="M15/H1 trend is aligned and M5 is near EMA20. Watch for a closed-candle rejection or breakout; not an entry instruction.";
+       }else{
+         reason="M15/H1 trend is aligned, but M5 has not confirmed a pullback/rejection or range breakout. Wait.";
+       }
+     }
+     const barTime=last5.bar_time;
+     setStatus(state,direction,regime,checks,barTime,reason);
+     const stateKey=state+"|"+direction;
+     if((state==="POSSIBLE SETUP"||state==="SETUP CONFIRMED")&&stateKey!==lastStableState)notify(state,direction,barTime,reason);
+     lastStableState=stateKey;
+   }catch(e){
+     $a("adaptiveFeedStatus").textContent="Feed not ready";
+     $a("adaptiveRegime").textContent="—";$a("adaptiveSignal").textContent="WAIT";
+     $a("adaptiveDirection").textContent="No verified signal";
+     $a("adaptiveChecks").textContent="0 / 4";
+     $a("adaptiveExplanation").textContent=e.message+" Run the Supabase SQL in sql/mt5_candles.sql, deploy the API, then update/restart the MT5 bridge EA.";
+     lastStableState="ERROR";
+   }finally{busy=false;}
+ }
+ $a("enableSignalNotifications")?.addEventListener("click",async()=>{
+   if(typeof Notification==="undefined"){$a("enableSignalNotifications").textContent="Browser notifications unsupported";return;}
+   try{notifyPermission=await Notification.requestPermission();$a("enableSignalNotifications").textContent=notifyPermission==="granted"?"Browser notifications enabled": "Notifications: "+notifyPermission;}catch(e){$a("enableSignalNotifications").textContent="Allow notifications in browser settings";}
+ });
+ $a("refreshAdaptive")?.addEventListener("click",analyze);
+ symbolEl?.addEventListener("change",analyze);
+ analyze();setInterval(analyze,30000);
+})();
+</script>
+</body></html>
