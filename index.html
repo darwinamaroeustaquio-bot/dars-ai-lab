@@ -23,6 +23,7 @@
 <button class="btn" id="cloudSignUp" type="button">Create account</button>
 </div>
 <p class="note" id="cloudMessage" role="status" aria-live="polite">Cloud journal is not connected yet.</p>
+<div id="accountActions" class="hidden row" style="margin-top:11px;justify-content:flex-start"><button class="btn" id="cloudSync" type="button">Sync journal</button><button class="btn danger" id="cloudSignOut" type="button">Sign out</button></div>
 </section>
 <div id="dashboardContent" class="hidden">
 <header class="top"><div><div class="brand">DARS <span>AI LAB</span></div><div class="sub">Advanced trading workspace · v0.4 · Connection setup</div></div><div class="row" style="justify-content:flex-end"><button class="btn hidden" id="accountToggle" type="button">Account</button><span class="pill">● DEMO MODE · MT5 OFFLINE</span></div></header>
@@ -159,6 +160,7 @@ renderWatch();drawChart();updateRisk();updateScore();renderJournal();
    panel.style.margin=user?"0 0 15px":"10vh auto 0";
    panel.style.maxWidth=user?"none":"520px";
    accountToggle.classList.toggle("hidden",!user);
+   document.getElementById("accountActions").classList.toggle("hidden",!user);
    status.textContent=user?"Account connected":"Not signed in";
    signIn.disabled=!!user; signUp.disabled=!!user;
    syncBtn.disabled=!user; signOut.disabled=!user;
