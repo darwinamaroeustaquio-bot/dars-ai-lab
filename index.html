@@ -65,14 +65,14 @@
 <section class="panel" id="candidateLabPanel" style="margin-bottom:15px;border-color:#7b6639">
 <div class="row"><div><div class="eyebrow">GOLD ONLY · CANDIDATE GENERATOR</div><h2 style="margin:5px 0 8px">Strategy Candidate Lab</h2></div><span class="tag" id="candidateLabStatus">Not run yet</span></div>
 <p class="note">Generate and compare 12 rule-based Gold strategy variants from saved candles. Uses the first 70% for development and the final 30% as a holdout. This is historical research only; no orders are sent.</p>
-<div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn" id="importExternalGold" type="button">Import external Gold history</button><button class="btn primary" id="runCandidateLab" type="button">Generate & test candidates</button><label class="note">Assumed round-trip cost (R) <input id="candidateCostR" type="number" min="0" max="1" step="0.05" value="0.10" style="width:100px;display:inline-block;margin-left:6px" title="Sensitivity assumption per completed trade, not a verified broker cost"></label><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
+<div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn primary" id="runCandidateLab" type="button">Generate & test candidates</button><label class="note">Assumed round-trip cost (R) <input id="candidateCostR" type="number" min="0" max="1" step="0.05" value="0.10" style="width:100px;display:inline-block;margin-left:6px" title="Sensitivity assumption per completed trade, not a verified broker cost"></label><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
 <div class="metrics" style="margin-top:12px">
 <div class="metric"><div class="eyebrow">Candles used</div><strong id="candidateCandles">—</strong><small>Stored Gold history</small></div>
 <div class="metric"><div class="eyebrow">Candidates</div><strong id="candidateCount">—</strong><small>Rule variants generated</small></div>
 <div class="metric"><div class="eyebrow">Best holdout expectancy</div><strong id="candidateBestExpectancy">—</strong><small>R per trade · after assumed costs</small></div>
 <div class="metric"><div class="eyebrow">Review candidates</div><strong id="candidatePassed">—</strong><small>Requires human review</small></div>
 </div>
-<p class="note" id="candidateLabMessage" role="status" aria-live="polite">External historical import uses Twelve Data XAU/USD proxy candles. Coverage depends on your Twelve Data plan. Data is not VT Markets broker-specific pricing.</p>
+<p class="note" id="candidateLabMessage" role="status" aria-live="polite">Research uses saved VT Markets MT5 broker candles from Supabase. External market-data providers are disabled.</p>
 <div class="resultbox" id="proSelectorCard" style="border-color:#806b3e;background:#211d13">
  <div class="eyebrow">PRO SELECTOR · RESEARCH ONLY</div>
  <strong id="proSelectedName" style="font-size:20px">NO STRATEGY SELECTED</strong>
@@ -756,29 +756,6 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
  let lastCandidates=[];
  const pct=v=>Number.isFinite(Number(v))?(Number(v)*100).toFixed(1)+"%":"—";
  function cell(tr,value){const td=document.createElement("td");td.textContent=String(value);td.style.padding="9px 6px";td.style.borderTop="1px solid var(--line)";td.style.textAlign="center";tr.appendChild(td);}
-
- $("importExternalGold")?.addEventListener("click",async()=>{
-  const btn=$("importExternalGold"),tf=$("candidateTimeframe").value;
-  btn.disabled=true;btn.textContent="Importing external data…";
-  $("candidateLabStatus").textContent="External history import";
-  $("candidateLabMessage").textContent="Uses Twelve Data, not MT5. Vercel must have TWELVE_DATA_API_KEY plus the Supabase keys. Each click imports up to 10 bounded history segments.";
-  try{
-   const cursorKey="darsExternalGoldCursor_"+tf;let to=localStorage.getItem(cursorKey)||new Date().toISOString(),from=new Date(Date.now()-3650*86400000).toISOString(),total=0,segments=0,last=null;
-   while(segments<10){
-    const r=await fetch("/api/twelvedata-import",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({timeframe:tf,from,to,symbol:"XAU/USD"})});
-    const d=await r.json();
-    if(!r.ok||!d.ok)throw new Error([d.error,d.providerMessage,d.detail].filter(Boolean).join(" · ")||"External import failed (HTTP "+r.status+")");
-    total+=Number(d.saved||0);segments++;last=d;
-    if(d.rangeComplete){localStorage.removeItem(cursorKey);break;}
-    to=d.nextFrom;localStorage.setItem(cursorKey,to);
-   }
-   $("candidateLabStatus").textContent="External history imported";
-   $("candidateLabMessage").textContent="Source: Twelve Data XAU/USD proxy. This run saved "+total.toLocaleString()+" candles across "+segments+" segments for "+tf+". Last range: "+(last?new Date(last.from).toLocaleDateString()+" to "+new Date(last.to).toLocaleDateString():"—")+". "+(last&&last.rangeComplete?"Requested range reached.":"Click again to continue farther back. Check your provider plan/rate limits. Not VT Markets broker-specific pricing.");
-   $("candidateCandles").textContent=Number(total).toLocaleString();
-  }catch(e){$("candidateLabStatus").textContent="External import unavailable";$("candidateLabMessage").textContent=e.message+" Add TWELVE_DATA_API_KEY in Vercel Environment Variables; do not paste it in chat.";}
-  finally{btn.disabled=false;btn.textContent="Import external Gold history";}
- });
-
 
  $("runCandidateLab")?.addEventListener("click",async()=>{
   const btn=$("runCandidateLab");btn.disabled=true;btn.textContent="Testing…";$("candidateLabStatus").textContent="Running research";$("candidateLabMessage").textContent="Reading saved Gold candles and testing strategy variants…";
