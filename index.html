@@ -11,10 +11,10 @@
 </style></head>
 <body><main class="wrap">
 <header class="top"><div><div class="brand">DARS <span>AI LAB</span></div><div class="sub">Advanced trading workspace · v0.3 · Pre-connection build</div></div><span class="pill">● DEMO MODE · MT5 OFFLINE</span></header>
-<div class="notice"><b>IMPORTANT:</b> Wala pang live VT Markets feed o verified trading signals. Ang chart at prices sa Market Lab ay generated illustration lamang. Risk calculations use your inputs; journal data stays in this browser. No trades are sent.</div>
-<section class="panel" id="supabasePanel" style="margin-bottom:15px">
-<div class="row"><div><div class="eyebrow">Cloud storage</div><h2 style="margin:5px 0">Supabase account & journal sync</h2></div><span class="tag" id="cloudStatus">Checking configuration…</span></div>
-<p class="note">Sign in to sync your journal to your Supabase account. Use your own account; never enter your VT Markets password here.</p>
+<div id="dashboardContent" class="hidden"><div class="notice"><b>IMPORTANT:</b> Wala pang live VT Markets feed o verified trading signals. Ang chart at prices sa Market Lab ay generated illustration lamang. Risk calculations use your inputs; journal data stays in this browser. No trades are sent.</div>
+<section class="panel" id="supabasePanel" style="margin:10vh auto 0;max-width:520px;padding:26px">
+<div style="text-align:center;margin-bottom:20px"><div class="eyebrow">Welcome back</div><div class="brand" style="font-size:28px;margin:8px 0">DARS <span>AI LAB</span></div><h2 style="margin:5px 0 8px">Sign in to continue</h2><span class="tag" id="cloudStatus">Checking configuration…</span></div>
+<p class="note" style="text-align:center;margin-bottom:18px">Sign in to open your trading dashboard and sync your journal. Use your account password, not your VT Markets password.</p>
 <div class="fields">
 <div><label for="cloudEmail">Email</label><input id="cloudEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
 <div><label for="cloudPassword">Supabase account password</label><input id="cloudPassword" type="password" autocomplete="current-password" placeholder="Use a strong password"></div>
@@ -93,7 +93,7 @@
 <div class="check"><span><b>04 · Human approval</b><br><small>Manual review before any order</small></span></div>
 </div><p class="note">Advanced interface first; real broker integration is a separate secured step.</p></section>
 </aside></div>
-<footer class="footer">Dars AI Lab · Educational planning workspace, not financial advice. Sample chart values are generated and must not be used to place trades. No live data, verified signal, win rate guarantee, or order execution is provided in this build.</footer>
+<footer class="footer">Dars AI Lab · Educational planning workspace, not financial advice. Sample chart values are generated and must not be used to place trades. No live data, verified signal, win rate guarantee, or order execution is provided in this build.</footer></div>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -135,6 +135,9 @@ renderWatch();drawChart();updateRisk();updateScore();renderJournal();
  const say=(text)=>{msg.textContent=text};
  function setSignedIn(user){
    currentUser=user||null;
+   document.getElementById("dashboardContent").classList.toggle("hidden",!user);
+   document.getElementById("supabasePanel").style.margin=user?"0 0 15px":"10vh auto 0";
+   document.getElementById("supabasePanel").style.maxWidth=user?"none":"520px";
    status.textContent=user?"Signed in":"Not signed in";
    signIn.disabled=!!user; signUp.disabled=!!user;
    syncBtn.disabled=!user; signOut.disabled=!user;
