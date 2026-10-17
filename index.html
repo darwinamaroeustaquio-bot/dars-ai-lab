@@ -596,16 +596,16 @@ calculateSetup();
     el("learningExplanation").textContent=d.message||"Waiting for real candle history.";
     return;
    }
-   el("learningStatus").textContent="Model retrained";
+   el("learningStatus").textContent=d.validationPassed?"Validation passed · experimental":"Signal filter active";
    el("learningSignal").textContent=d.signal;
    el("learningSignal").style.color=d.signal==="BUY BIAS"?"var(--green)":d.signal==="SELL BIAS"?"var(--red)":"var(--text)";
    el("learningUp").textContent=pct(d.probabilities?.up);el("learningDown").textContent=pct(d.probabilities?.down);
    el("learningAccuracy").textContent=pct(d.holdoutAccuracy);
-   el("learningHoldout").textContent=(d.holdoutSamples||0)+" later samples · log loss "+(d.holdoutLogLoss??"—");
+   el("learningHoldout").textContent=(d.holdoutSamples||0)+" holdout · baseline "+pct(d.majorityBaselineAccuracy)+" · balanced "+pct(d.balancedAccuracy);
    el("learningSamples").textContent=Number(d.labeledSamples||0).toLocaleString();
    el("learningSplit").textContent=(d.trainSamples||0)+" train / "+(d.holdoutSamples||0)+" holdout";
    el("learningUpdated").textContent=new Date(d.trainedAt).toLocaleTimeString();
-   el("learningExplanation").textContent="Latest closed M5: "+new Date(d.latestClosedM5).toLocaleString()+". "+d.caution;
+   el("learningExplanation").textContent="Latest closed M5: "+new Date(d.latestClosedM5).toLocaleString()+". "+(d.validationMessage||"")+" "+d.caution;
    const key=d.symbol+"|"+d.signal+"|"+d.latestClosedM5;
    if((d.signal==="BUY BIAS"||d.signal==="SELL BIAS")&&key!==lastAlert){
     lastAlert=key;
