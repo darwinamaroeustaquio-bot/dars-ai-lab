@@ -36,7 +36,7 @@
 <div class="metric"><div class="eyebrow">Ask</div><strong id="mt5Ask">—</strong><small>Latest received quote</small></div>
 <div class="metric"><div class="eyebrow">Last update</div><strong style="font-size:16px" id="mt5Age">Not connected</strong><small id="mt5Spread">Spread: —</small></div>
 </div><p class="note" id="mt5LiveMessage" role="status">Connection status is based on the latest quote received from the read-only MT5 bridge. This dashboard does not send trades.</p>
-<div class="row" style="justify-content:flex-start"><button class="btn" id="mt5Refresh" type="button">Check connection</button><button class="btn" id="mt5SwitchSymbol" type="button">Check EURUSD</button></div>
+<div class="row" style="justify-content:flex-start"><label for="mt5SymbolSelect" class="muted">Broker symbol</label><select id="mt5SymbolSelect" aria-label="MT5 broker symbol"><option value="XAUUSD-STD">XAUUSD-STD</option><option value="XAUUSD">XAUUSD</option><option value="EURUSD">EURUSD</option><option value="GBPUSD">GBPUSD</option><option value="BTCUSD">BTCUSD</option></select><button class="btn" id="mt5Refresh" type="button">Refresh quote</button></div>
 </section>
 <div class="metrics">
 <div class="metric"><div class="eyebrow">Market data feed</div><strong id="brokerConnectionStatus" style="font-size:17px;color:var(--gold)">Checking…</strong><small>Read-only MT5 quotes</small></div>
@@ -284,9 +284,11 @@ calculateSetup();
  (function(){
    const status=document.getElementById("mt5LiveStatus");
    if(!status) return;
-   let activeSymbol="XAUUSD-STD";
+   const symbolSelect=document.getElementById("mt5SymbolSelect");
+   let activeSymbol=symbolSelect?.value||"XAUUSD-STD";
    const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
    async function checkQuote(){
+     activeSymbol=symbolSelect?.value||activeSymbol;
      setText("mt5Symbol",activeSymbol);
      setText("mt5LiveMessage","Checking the latest quote…");
      try{
@@ -307,6 +309,8 @@ calculateSetup();
          return;
        }
        const q=d.quote;
+       // Display the exact symbol returned by the bridge, not a hard-coded label.
+       setText("mt5Symbol",q.symbol||activeSymbol);
        status.textContent="LIVE · MT5 quote";
        setText("mt5Bid",Number(q.bid).toFixed(Number(q.digits)||2));
        setText("mt5Ask",Number(q.ask).toFixed(Number(q.digits)||2));
@@ -321,9 +325,9 @@ calculateSetup();
      }
    }
    document.getElementById("mt5Refresh")?.addEventListener("click",checkQuote);
-   document.getElementById("mt5SwitchSymbol")?.addEventListener("click",()=>{
-     activeSymbol=activeSymbol==="XAUUSD-STD"?"EURUSD":"XAUUSD-STD";
-     document.getElementById("mt5SwitchSymbol").textContent=activeSymbol==="XAUUSD-STD"?"Check EURUSD":"Check XAUUSD-STD";
+   symbolSelect?.addEventListener("change",()=>{
+     activeSymbol=symbolSelect.value;
+     setText("mt5Symbol",activeSymbol);
      checkQuote();
    });
    checkQuote();
