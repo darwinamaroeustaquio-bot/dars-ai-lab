@@ -39,23 +39,30 @@ module.exports = async (req, res) => {
   const start = new Date(end.getTime() - days * 86400000);
 
   try {
-    const rates = await getHistoricalRates({
-      instrument: "xauusd",
-      dates: { from: start, to: end },
-      timeframe: TF[timeframe],
-      format: "json",
-      priceType: "bid",
-      // Retry empty/failed daily artifacts; the old zero-retry default could silently
-      // leave large gaps and result in too few candles for the screening minimum.
-      batchSize: 3,
-      pauseBetweenBatchesMs: 500,
-      retryCount: 4,
-      retryOnEmpty: true,
-      pauseBetweenRetriesMs: 750,
-      failAfterRetryCount: true
-    });
-    if (!Array.isArray(rates) || !rates.length) {
-      return send(res, 502, { ok: false, error: "Dukascopy returned no historical candles for this range. Retry later or check Vercel function logs.", timeframe, days });
+    // Download in bounded 7-day windows. A single large Dukascopy request can
+    // silently return only a partial set of candles in serverless environments.
+    const rates = [];
+    const chunkDays = 7;
+    for (let cursor = start.getTime(); cursor < end.getTime(); cursor += chunkDays * 86400000) {
+      const chunkStart = new Date(cursor);
+      const chunkEnd = new Date(Math.min(end.getTime(), cursor + chunkDays * 86400000));
+      const part = await getHistoricalRates({
+        instrument: "xauusd",
+        dates: { from: chunkStart, to: chunkEnd },
+        timeframe: TF[timeframe],
+        format: "json",
+        priceType: "bid",
+        batchSize: 3,
+        pauseBetweenBatchesMs: 250,
+        retryCount: 3,
+        retryOnEmpty: true,
+        pauseBetweenRetriesMs: 500,
+        failAfterRetryCount: true
+      });
+      if (Array.isArray(part)) rates.push(...part);
+    }
+    if (!rates.length) {
+      return send(res, 502, { ok: false, error: "Dukascopy returned no historical candles for any 7-day window. Retry later or check Vercel function logs.", timeframe, days, chunkDays });
     }
 
     const byTime = new Map();
@@ -72,8 +79,8 @@ module.exports = async (req, res) => {
     if (rows.length < 250) {
       return send(res, 502, {
         ok: false,
-        error: "Dukascopy returned only " + rows.length + " valid candles for " + timeframe + " across " + days + " days after retries. Nothing was saved. Check the instrument/data provider or Vercel logs; the importer will not report success below 250.",
-        downloadedRaw: rates.length, validUniqueCandles: rows.length, timeframe, days,
+        error: "Dukascopy returned only " + rows.length + " valid unique candles for " + timeframe + " across " + days + " days after downloading in 7-day windows. Nothing was saved. Check instrument availability or provider errors.",
+        downloadedRaw: rates.length, validUniqueCandles: rows.length, timeframe, days, chunkDays: 7,
         from: start.toISOString(), to: end.toISOString()
       });
     }
