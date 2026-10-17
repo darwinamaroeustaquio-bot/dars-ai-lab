@@ -58,6 +58,24 @@
 <div class="scorebar"><span id="scoreFill"></span></div><div class="row"><span class="note">Checklist completion score</span><span class="status" id="scoreText">0 / 100</span></div>
 <div class="notice" style="margin:12px 0 0" id="strategyAdvice">WAIT: live market data is not connected. This checklist cannot generate a live signal.</div>
 </section>
+<section class="panel" id="setupBuilder">
+<div class="row"><h2>Trade Setup Builder</h2><span class="tag">MANUAL INPUTS</span></div>
+<p class="note">Ilagay ang presyo mula sa live MT5 chart. Hindi ito live signal; kalkulasyon lang ito mula sa sarili mong inputs.</p>
+<div class="fields">
+<div><label for="setupSymbol">Symbol</label><select id="setupSymbol"><option>XAUUSD-STD</option><option>EURUSD</option><option>GBPUSD</option><option>BTCUSD</option></select></div>
+<div><label for="setupSide">Direction</label><select id="setupSide"><option value="BUY">BUY</option><option value="SELL">SELL</option></select></div>
+<div><label for="setupEntry">Entry price from MT5</label><input id="setupEntry" type="number" step="any" placeholder="Enter live chart price"></div>
+<div><label for="setupDistance">Stop distance (price units)</label><input id="setupDistance" type="number" min="0" step="any" placeholder="Enter distance"></div>
+</div>
+<div class="fields" style="margin-top:12px">
+<div><label>ENTRY</label><input id="setupOutEntry" readonly value="—"></div>
+<div><label>STOP LOSS</label><input id="setupOutSL" readonly value="—"></div>
+<div><label>TP1 (1R)</label><input id="setupOutTP1" readonly value="—"></div>
+<div><label>TP2 (2R)</label><input id="setupOutTP2" readonly value="—"></div>
+</div>
+<p class="note" id="setupNote">Hindi maglalagay ng sample price. I-verify ang spread, market structure at lot size sa MT5.</p>
+<div class="row" style="margin-top:10px"><button class="btn primary" id="setupCopy" type="button">Copy setup</button><button class="btn" id="setupReset" type="button">Clear</button></div>
+</section>
 <section class="panel"><div class="row"><h2>Trade journal & performance</h2><span class="tag">LOCAL BROWSER SAVE</span></div>
 <div class="fields"><div><label for="jSymbol">Symbol</label><select id="jSymbol"><option>XAUUSD</option><option>EURUSD</option><option>GBPUSD</option><option>BTCUSD</option><option>Other</option></select></div><div><label for="jSide">Side</label><select id="jSide"><option>BUY</option><option>SELL</option></select></div><div><label for="jOutcome">Outcome</label><select id="jOutcome"><option value="open">Open / pending</option><option value="win">Win</option><option value="loss">Loss</option><option value="breakeven">Breakeven</option></select></div><div><label for="jPnl">P/L amount (account currency)</label><input id="jPnl" type="number" step="0.01" placeholder="e.g. 12.50"></div></div>
 <div style="margin-top:11px"><label for="jNote">Setup notes (optional)</label><input id="jNote" maxlength="180" placeholder="e.g. H1 retest, candle close confirmed"></div>
@@ -124,6 +142,26 @@ $("saveTrade").addEventListener("click",()=>{const pnlRaw=$("jPnl").value;const 
 $("clearJournal").addEventListener("click",()=>{if(confirm("Delete all locally saved journal entries? Export CSV first if you need a backup.")){journal=[];persist()}});
 $("exportJournal").addEventListener("click",()=>{const rows=[["date","symbol","side","outcome","pnl","notes"],...journal.map(t=>[t.date,t.symbol,t.side,t.outcome,t.pnl===null?"":t.pnl,t.note])];const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="dars-ai-lab-journal.csv";a.click();URL.revokeObjectURL(url)});
 renderWatch();drawChart();updateRisk();updateScore();renderJournal();
+
+function calculateSetup(){
+ const side=$("setupSide").value,e=Number($("setupEntry").value),d=Number($("setupDistance").value);
+ const ok=$("setupEntry").value.trim()!==""&&$("setupDistance").value.trim()!==""&&Number.isFinite(e)&&Number.isFinite(d)&&e>0&&d>0;
+ $("setupOutEntry").value=ok?String(Number(e.toFixed(8))):"—";
+ $("setupOutSL").value=ok?String(Number((side==="BUY"?e-d:e+d).toFixed(8))):"—";
+ $("setupOutTP1").value=ok?String(Number((side==="BUY"?e+d:e-d).toFixed(8))):"—";
+ $("setupOutTP2").value=ok?String(Number((side==="BUY"?e+2*d:e-2*d).toFixed(8))):"—";
+ $("setupNote").textContent=ok?"Calculated from your manual inputs only. Not a verified market signal; check the live chart before considering a trade.":"Enter a positive live MT5 entry price and stop distance.";
+}
+["setupSide","setupEntry","setupDistance","setupSymbol"].forEach(id=>$(id).addEventListener("input",calculateSetup));
+$("setupCopy").addEventListener("click",async()=>{
+ calculateSetup();
+ if($("setupOutEntry").value==="—"){ $("setupNote").textContent="Enter a valid entry price and stop distance first.";return;}
+ const txt="DARS AI LAB SETUP\nSymbol: "+$("setupSymbol").value+"\nDirection: "+$("setupSide").value+"\nEntry: "+$("setupOutEntry").value+"\nSL: "+$("setupOutSL").value+"\nTP1 (1R): "+$("setupOutTP1").value+"\nTP2 (2R): "+$("setupOutTP2").value+"\nManual calculation only; not a live signal.";
+ try{await navigator.clipboard.writeText(txt);$("setupCopy").textContent="Copied!";}catch(e){$("setupNote").textContent=txt;}
+});
+$("setupReset").addEventListener("click",()=>{$("setupEntry").value="";$("setupDistance").value="";$("setupCopy").textContent="Copy setup";calculateSetup()});
+calculateSetup();
+
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
