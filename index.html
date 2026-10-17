@@ -77,26 +77,19 @@
 <div class="chartbox"><svg id="chart" viewBox="0 0 760 270" role="img" aria-label="Illustrative candle chart, not live market data"></svg></div>
 <div class="row" style="margin-top:12px"><span class="note" id="chartOverlayNote">Live OHLC candles · EMA20 overlay</span><button class="btn" id="refreshChart">Refresh live chart</button></div>
 </section>
-<section class="panel"><div class="row"><h2>Strategy confluence lab</h2><span class="tag">MANUAL CHECKLIST</span></div><p class="note">Tick only what you verified from a real chart. This score is a checklist aid, not an AI prediction or guaranteed signal.</p>
-<div class="fields">
-<div><label for="direction">Potential direction</label><select id="direction"><option value="WAIT">WAIT / NO TRADE</option><option value="BUY">BUY candidate</option><option value="SELL">SELL candidate</option></select></div>
-<div><label for="setupType">Setup type</label><select id="setupType"><option>Support / resistance retest</option><option>Breakout + retest</option><option>Fakeout rejection</option><option>Trend pullback</option></select></div>
-</div>
+<section class="panel" id="strategyConfluencePanel"><div class="row"><h2>Strategy confluence lab</h2><span class="tag">AUTOMATIC · LIVE DATA</span></div><p class="note">Automatic rule checks from MT5 closed candles, live quote and the research model. You do not need to tick anything. If data is stale, incomplete or rules disagree, the lab stays WAIT. Experimental aid only—not a guaranteed signal.</p>
+<div class="fields"><div><label for="direction">Automatic potential direction</label><select id="direction" disabled><option value="WAIT">WAIT / NO TRADE</option><option value="BUY">BUY candidate</option><option value="SELL">SELL candidate</option></select></div><div><label for="setupType">Detected setup type</label><select id="setupType" disabled><option>Support / resistance retest</option><option>Breakout + retest</option><option>Fakeout rejection</option><option>Trend pullback</option></select></div></div>
 <div class="checklist" id="checks" style="margin-top:12px">
-<label class="check"><input type="checkbox" value="15"><span><b>Higher-timeframe trend agrees</b><br><small>H1/H4 structure supports the planned direction</small></span></label>
-<label class="check"><input type="checkbox" value="20"><span><b>Clear support / resistance level</b><br><small>Level is visible and has meaningful reactions</small></span></label>
-<label class="check"><input type="checkbox" value="20"><span><b>Retest or rejection confirmed</b><br><small>Wait for candle close; avoid chasing a spike</small></span></label>
-<label class="check"><input type="checkbox" value="15"><span><b>Momentum agrees</b><br><small>RSI / price action supports, not contradicts, the setup</small></span></label>
-<label class="check"><input type="checkbox" value="15"><span><b>Stop loss has a market-structure reason</b><br><small>Invalidation point is defined before entry</small></span></label>
-<label class="check"><input type="checkbox" value="15"><span><b>Reward-to-risk is at least 1.5R</b><br><small>Target is realistic after spread and costs</small></span></label>
-</div>
-<div class="scorebar"><span id="scoreFill"></span></div><div class="row"><span class="note">Checklist completion score</span><span class="status" id="scoreText">0 / 100</span></div>
-<div class="notice" style="margin:12px 0 0" id="strategyAdvice">WAIT: live candle data and verified strategy signals are not connected.</div>
-<div class="resultbox" id="setupAlertPanel" role="status" aria-live="polite" style="margin-top:12px;border-color:var(--line);background:#0b1827">
- <div class="row"><div><div class="eyebrow">Setup readiness alert</div><strong id="setupAlertTitle" style="font-size:18px;margin:5px 0">WAITING FOR CONFIRMATION</strong></div><button class="btn" id="enableSetupSound" type="button">Enable sound alerts</button></div>
- <p class="note" id="setupAlertMessage">A notification appears when your manual checklist reaches 85% or more and BUY/SELL is selected. This is not an automatic market signal.</p>
-</div>
-</section>
+<label class="check"><input type="checkbox" value="15" disabled><span><b>Higher-timeframe trend agrees</b><br><small>Automatically checked from H1/M15 EMA structure</small></span></label>
+<label class="check"><input type="checkbox" value="20" disabled><span><b>Clear support / resistance level</b><br><small>Recent swing levels and ATR distance</small></span></label>
+<label class="check"><input type="checkbox" value="20" disabled><span><b>Retest or rejection confirmed</b><br><small>Closed M5 candle rejection / retest pattern</small></span></label>
+<label class="check"><input type="checkbox" value="15" disabled><span><b>Momentum agrees</b><br><small>Closed-candle momentum agrees with direction</small></span></label>
+<label class="check"><input type="checkbox" value="15" disabled><span><b>Stop loss has a market-structure reason</b><br><small>Recent swing provides a defined invalidation level</small></span></label>
+<label class="check"><input type="checkbox" value="15" disabled><span><b>Reward-to-risk is at least 1.5R</b><br><small>Room to opposing structure after estimated stop</small></span></label></div>
+<div class="scorebar"><span id="scoreFill"></span></div><div class="row"><span class="note">Automatic confluence score · not win probability</span><span class="status" id="scoreText">0 / 100</span></div>
+<div class="notice" style="margin:12px 0 0" id="strategyAdvice">WAIT: connecting to MT5 quote, candles and model.</div>
+<div class="resultbox" id="setupAlertPanel" role="status" aria-live="polite" style="margin-top:12px;border-color:var(--line);background:#0b1827"><div class="row"><div><div class="eyebrow">Setup readiness alert</div><strong id="setupAlertTitle" style="font-size:18px;margin:5px 0">WAITING FOR CONFIRMATION</strong></div><button class="btn" id="enableSetupSound" type="button">Enable sound alerts</button></div><p class="note" id="setupAlertMessage">Automatic analysis refreshes every 30 seconds. No trades are sent.</p></div>
+<div class="row" style="margin-top:10px"><span class="note" id="confluenceUpdated">Waiting for live data</span><button class="btn" id="refreshConfluence" type="button">Refresh confluence</button></div></section>
 <section class="panel" id="setupBuilder">
 <div class="row"><h2>Trade Setup Builder</h2><span class="tag">AUTOMATIC · READ-ONLY</span></div>
 <p class="note">Awtomatikong kumukuha ng live MT5 quote, closed candles, ATR at validated model bias. Walang manual entry/stop input. Kapag hindi valid o walang malinaw na setup, WAIT ang resulta.</p>
@@ -231,28 +224,42 @@ function updateScore(){
  const checks=[...document.querySelectorAll("#checks input[type=checkbox]")],score=checks.reduce((n,c)=>n+(c.checked?Number(c.value):0),0);
  $("scoreFill").style.width=score+"%";$("scoreText").textContent=score+" / 100";
  const dir=$("direction").value,ready=dir!=="WAIT"&&score>=85;
- let msg="WAIT: this checklist cannot generate a live signal. Live candle data and automated strategy validation are not connected.";
- if(dir!=="WAIT"){
-  if(score>=85)msg="Checklist threshold reached. Verify the actual MT5 candles, spread, entry, SL/TP and risk manually; this is not a verified BUY/SELL signal.";
-  else if(score>=60)msg="Checklist incomplete. Wait for more confirmation; the score is not a probability.";
-  else msg="Weak checklist completion. Better to wait than force a trade.";
- }
- $("strategyAdvice").textContent=msg;
+ $("strategyAdvice").textContent=window.confluenceMessage||"WAIT: collecting live MT5 data.";
  const panel=$("setupAlertPanel"),title=$("setupAlertTitle"),message=$("setupAlertMessage");
- if(ready){
-  panel.style.borderColor="var(--gold)";panel.style.background="#292317";
-  title.textContent="READY FOR SETUP REVIEW · "+dir;
-  title.style.color="var(--gold)";
-  message.textContent="Manual checklist is "+score+"%. Review the live MT5 chart and confirm the setup yourself. No order will be sent.";
-  if(!lastSetupReady)playSetupAlert();
- }else{
-  panel.style.borderColor="var(--line)";panel.style.background="#0b1827";
-  title.textContent=dir==="WAIT"?"WAITING FOR CONFIRMATION":"CHECKLIST INCOMPLETE";
-  title.style.color="var(--text)";
-  message.textContent="A readiness alert appears when your manual checklist reaches 85% or more and BUY/SELL is selected. This is not an automatic market signal.";
- }
+ if(ready){panel.style.borderColor="var(--gold)";panel.style.background="#292317";title.textContent="AUTOMATIC SETUP REVIEW · "+dir;title.style.color="var(--gold)";message.textContent="Confluence rules reached "+score+"%. Review live spread and final order details yourself. No order is sent.";if(!lastSetupReady)playSetupAlert();}
+ else{panel.style.borderColor="var(--line)";panel.style.background="#0b1827";title.textContent=dir==="WAIT"?"WAIT · NO TRADE":"CONFLUENCE INCOMPLETE";title.style.color="var(--text)";message.textContent="Requires fresh quote, enough candles, validated model bias, matching direction and at least 85/100 rule score. No orders are sent.";}
  lastSetupReady=ready;
 }
+async function refreshConfluence(){
+ const symbol=$("mt5SymbolSelect")?.value||"XAUUSD-STD",boxes=[...document.querySelectorAll("#checks input[type=checkbox]")];
+ try{
+  const [qr,cr,lr]=await Promise.all([fetch("/api/mt5-quote?symbol="+encodeURIComponent(symbol),{cache:"no-store"}),fetch("/api/mt5-candles?symbol="+encodeURIComponent(symbol)+"&timeframe=M5&limit=100",{cache:"no-store"}),fetch("/api/learning?symbol="+encodeURIComponent(symbol),{cache:"no-store"})]);
+  const [qd,cd,md]=await Promise.all([qr.json(),cr.json(),lr.json()]);
+  if(!qr.ok||!qd.ok||!qd.connected||!qd.quote||!Number.isFinite(Number(qd.quote.bid))||!Number.isFinite(Number(qd.quote.ask)))throw new Error("No fresh MT5 quote. Keep MT5 bridge running; stale/weekend prices are not accepted.");
+  if(!cr.ok||!cd.ok||!Array.isArray(cd.candles)||cd.candles.length<60)throw new Error("Not enough real M5 candle history yet.");
+  if(!lr.ok||!md.ok||!md.ready||!md.validationPassed)throw new Error("Learning model has not passed historical holdout validation. WAIT.");
+  const candles=cd.candles.map(c=>({open:+c.open,high:+c.high,low:+c.low,close:+c.close,time:new Date(c.bar_time).getTime()})),bars=candles.slice(0,-1);
+  if(bars.length<55)throw new Error("Waiting for enough closed M5 candles.");
+  const last=bars[bars.length-1],prev=bars[bars.length-2],recent=bars.slice(-20),closes=bars.map(c=>c.close);
+  const ema=(arr,n)=>{if(arr.length<n)return null;let v=arr.slice(0,n).reduce((a,b)=>a+b,0)/n,k=2/(n+1);for(let i=n;i<arr.length;i++)v=arr[i]*k+v*(1-k);return v;};
+  const ranges=bars.map((c,i)=>i?Math.max(c.high-c.low,Math.abs(c.high-bars[i-1].close),Math.abs(c.low-bars[i-1].close)):c.high-c.low),atr=ranges.slice(-14).reduce((a,b)=>a+b,0)/Math.min(14,ranges.length);
+  if(!Number.isFinite(atr)||atr<=0)throw new Error("ATR is unavailable from candle data.");
+  const dir=md.signal==="BUY BIAS"?"BUY":md.signal==="SELL BIAS"?"SELL":"WAIT";
+  const e20=ema(closes,20),e50=ema(closes,50),trendUp=last.close>e20&&e20>e50,trendDown=last.close<e20&&e20<e50;
+  const high=Math.max(...recent.map(c=>c.high)),low=Math.min(...recent.map(c=>c.low));
+  const nearSupport=Math.abs(last.close-low)<=atr*.45||Math.abs(prev.low-low)<=atr*.35,nearResistance=Math.abs(high-last.close)<=atr*.45||Math.abs(high-prev.high)<=atr*.35;
+  const bullishReject=(Math.min(last.open,last.close)-last.low)>(Math.abs(last.close-last.open)*1.2)&&last.close>prev.close,bearishReject=(last.high-Math.max(last.open,last.close))>(Math.abs(last.close-last.open)*1.2)&&last.close<prev.close;
+  const momentumUp=last.close>prev.close&&last.close>last.open,momentumDown=last.close<prev.close&&last.close<last.open;
+  const stopDistance=dir==="BUY"?last.close-(low-atr*.1):(dir==="SELL"?(high+atr*.1)-last.close:0),oppositeRoom=dir==="BUY"?high-last.close:(dir==="SELL"?last.close-low:0),rr=stopDistance>0?oppositeRoom/stopDistance:0;
+  const results=[dir==="BUY"?trendUp:dir==="SELL"?trendDown:false,dir==="BUY"?nearSupport:dir==="SELL"?nearResistance:false,dir==="BUY"?bullishReject:dir==="SELL"?bearishReject:false,dir==="BUY"?momentumUp:dir==="SELL"?momentumDown:false,dir!=="WAIT"&&stopDistance>atr*.25,dir!=="WAIT"&&rr>=1.5];
+  boxes.forEach((b,i)=>b.checked=!!results[i]);$("direction").value=dir;$("setupType").value=dir==="SELL"?"Fakeout rejection":"Support / resistance retest";
+  const score=results.reduce((n,v,i)=>n+(v?Number(boxes[i].value):0),0);
+  window.confluenceMessage=dir==="WAIT"?"WAIT: model did not produce a validated BUY/SELL bias.":score>=85?"Automatic confluence is "+score+"/100. This is a rule match, not a win probability; verify spread and risk before any manual trade.":"WAIT: "+dir+" bias, but only "+score+"/100 confluence checks pass.";
+  if(score<85||dir==="WAIT")$("direction").value="WAIT";
+  updateScore();$("confluenceUpdated").textContent="Updated "+new Date().toLocaleTimeString()+" · "+symbol+" · quote age "+qd.age_seconds+"s · closed M5 bars "+bars.length;
+ }catch(e){boxes.forEach(b=>b.checked=false);$("direction").value="WAIT";window.confluenceMessage="WAIT: "+e.message;updateScore();$("confluenceUpdated").textContent="Not ready · "+new Date().toLocaleTimeString();}
+}
+$("refreshConfluence")?.addEventListener("click",refreshConfluence);
 $("enableSetupSound").addEventListener("click",async()=>{
  try{
   const AudioCtx=window.AudioContext||window.webkitAudioContext;
@@ -698,8 +705,8 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
  });
  renderSignalJournal();
 
- el("mt5SymbolSelect")?.addEventListener("change",refreshLearning);
- refreshLearning();setInterval(refreshLearning,60000);
+ el("mt5SymbolSelect")?.addEventListener("change",()=>{refreshLearning();refreshConfluence();});
+ refreshLearning();setInterval(refreshLearning,60000);refreshConfluence();setInterval(refreshConfluence,30000);
 })();
 </script>
 
