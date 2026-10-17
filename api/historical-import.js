@@ -23,7 +23,9 @@ function normalizeRate(x) {
 }
 module.exports = async (req, res) => {
   if (req.method !== "POST") return send(res, 405, { ok: false, error: "POST only" });
-  const root = String(process.env.SUPABASE_URL || "").trim().replace(/\\/+$/, "").replace(/\\/rest\\/v1$/i, "");
+  let root = String(process.env.SUPABASE_URL || "").trim();
+  while (root.endsWith("/")) root = root.slice(0, -1);
+  if (root.toLowerCase().endsWith("/rest/v1")) root = root.slice(0, -8);
   const key = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
   if (!root || !key) return send(res, 503, { ok: false, error: "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel first." });
   const body = req.body || {};
