@@ -64,15 +64,16 @@
 </section>
 <section class="panel" id="candidateLabPanel" style="margin-bottom:15px;border-color:#7b6639">
 <div class="row"><div><div class="eyebrow">GOLD ONLY · CANDIDATE GENERATOR</div><h2 style="margin:5px 0 8px">Strategy Candidate Lab</h2></div><span class="tag" id="candidateLabStatus">Not run yet</span></div>
-<p class="note">Generate and compare 12 rule-based Gold strategy variants from saved candles. Uses the first 70% for development and the final 30% as a holdout. This is historical research only; no orders are sent.</p>
+<p class="note">Generate and compare 48 rule-based Gold strategy variants across EMA trend, Donchian breakout, RSI reversion and trend pullback families. Uses the first 70% for development and the final 30% as a holdout. This is historical research only; no orders are sent. Test M5, M15 and H1 separately; more candles improve sample size but cannot guarantee a passing strategy.</p>
 <div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn primary" id="runCandidateLab" type="button">Generate & test candidates</button><label class="note">Assumed round-trip cost (R) <input id="candidateCostR" type="number" min="0" max="1" step="0.05" value="0.10" style="width:100px;display:inline-block;margin-left:6px" title="Sensitivity assumption per completed trade, not a verified broker cost"></label><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
 <div class="metrics" style="margin-top:12px">
-<div class="metric"><div class="eyebrow">Candles used</div><strong id="candidateCandles">—</strong><small>Stored Gold history</small></div>
+<div class="metric"><div class="eyebrow">Candles used</div><strong id="candidateCandles">—</strong><small>Verified MT5 candles · selected timeframe</small></div>
 <div class="metric"><div class="eyebrow">Candidates</div><strong id="candidateCount">—</strong><small>Rule variants generated</small></div>
 <div class="metric"><div class="eyebrow">Best holdout expectancy</div><strong id="candidateBestExpectancy">—</strong><small>R per trade · after assumed costs</small></div>
 <div class="metric"><div class="eyebrow">Review candidates</div><strong id="candidatePassed">—</strong><small>Requires human review</small></div>
 </div>
 <p class="note" id="candidateLabMessage" role="status" aria-live="polite">Research uses saved VT Markets MT5 broker candles from Supabase. External market-data providers are disabled.</p>
+<p class="note" id="candidateSplitInfo" role="status" aria-live="polite">Data split and sample sufficiency will appear after a research run. Aim for several thousand verified candles per timeframe when available; do not loosen pass filters just to force a pass.</p>
 <div class="resultbox" id="proSelectorCard" style="border-color:#806b3e;background:#211d13">
  <div class="eyebrow">PRO SELECTOR · RESEARCH ONLY</div>
  <strong id="proSelectedName" style="font-size:20px">NO STRATEGY SELECTED</strong>
@@ -765,14 +766,14 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
    const r=await fetch("/api/candidate-lab?symbol="+encodeURIComponent((document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD")+"&timeframe="+encodeURIComponent(tf)+"&costR="+encodeURIComponent(costR),{cache:"no-store",headers:{Accept:"application/json"}});
    const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"Candidate lab failed");
    $("candidateCandles").textContent=Number(d.candleCount||0).toLocaleString();
-   if(!d.ready){$("candidateCount").textContent="0";$("candidateBestExpectancy").textContent="—";$("candidatePassed").textContent="0";$("candidateLabStatus").textContent="Waiting for data";$("candidateLabMessage").textContent=d.message||"More candle history is needed.";return;}
+   if(!d.ready){$("candidateCount").textContent="0";$("candidateBestExpectancy").textContent="—";$("candidatePassed").textContent="0";$("candidateLabStatus").textContent="Waiting for data";$("candidateLabMessage").textContent=d.message||"More candle history is needed.";$("candidateSplitInfo").textContent="Data check: "+tf+" has "+Number(d.candleCount||0).toLocaleString()+" verified candles; minimum required is "+Number(d.minimumCandles||250).toLocaleString()+". Keep the MT5 History Bridge running.";return;}
    lastCandidates=d.candidates||[];$("candidateCount").textContent=String(d.generated||lastCandidates.length);
    const passed=lastCandidates.filter(x=>x.status==="REVIEW CANDIDATE");
    const best=passed[0]||null;
    $("candidateBestExpectancy").textContent=best?Number((best.afterCosts||best.holdout).expectancyR).toFixed(3)+"R":"NO PASS";
    $("candidatePassed").textContent=String(passed.length);
    $("candidateLabStatus").textContent="Research complete · "+tf;
-   $("candidateLabMessage").textContent=d.method+" "+d.warning;
+   $("candidateLabMessage").textContent=d.method+" "+d.warning;$("candidateSplitInfo").textContent="Timeframe "+tf+" · "+Number(d.candleCount||0).toLocaleString()+" verified candles · development "+Number(d.trainCandles||0).toLocaleString()+" ("+Math.round(100*(Number(d.trainCandles||0)/Math.max(1,Number(d.candleCount||0))))+"%) · holdout "+Number(d.holdoutCandles||0).toLocaleString()+" ("+Math.round(100*(Number(d.holdoutCandles||0)/Math.max(1,Number(d.candleCount||0))))+"%). "+(Number(d.candleCount||0)<3000?"Sample is still small; collect more history if available.":"Larger sample available, but each candidate still needs enough holdout trades and robust results.");
    $("proSelectedName").textContent=best?(best.id+" · "+best.name):"NO STRATEGY PASSED";
    $("proDecision").textContent=best?"REVIEW ONLY":"WAIT / NO TRADE";
    if(best){
