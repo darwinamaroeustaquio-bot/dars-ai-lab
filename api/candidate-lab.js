@@ -28,15 +28,27 @@ module.exports=async(req,res)=>{
  const root=String(process.env.SUPABASE_URL||"").trim().replace(/\/+$/,"").replace(/\/rest\/v1$/i,""),key=String(process.env.SUPABASE_SERVICE_ROLE_KEY||"").trim();
  if(!root||!key)return send(res,503,{ok:false,error:"Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel. The research engine needs stored candles."});
  try{
-  const q=new URLSearchParams({select:"bar_time,open,high,low,close",symbol:"eq."+symbol,timeframe:"eq."+timeframe,order:"bar_time.desc",limit:"5000"});
-  const upstream=await fetch(root+"/rest/v1/mt5_candles?"+q,{headers:{apikey:key,Authorization:"Bearer "+key}});
-  if(!upstream.ok)return send(res,502,{ok:false,error:"Could not read mt5_candles. Check the Supabase candle table.",upstream_status:upstream.status});
-  const rows=await upstream.json(),c=rows.reverse().map(x=>({...x,open:+x.open,high:+x.high,low:+x.low,close:+x.close}));
-  if(c.length<250)return send(res,200,{ok:true,ready:false,symbol,timeframe,candleCount:c.length,minimumCandles:250,message:"Need at least 250 stored candles before candidate screening. Upload historical Gold candles or collect them through a feed."});
+  // Supabase/PostgREST commonly caps each response at 1,000 rows. Page through
+  // the table so research uses all available candles, not just the first page.
+  const rows=[];
+  const pageSize=1000;
+  const maxCandles=Math.max(250,Math.min(50000,Number(req.query.limit)||50000));
+  for(let offset=0;offset<maxCandles;offset+=pageSize){
+   const take=Math.min(pageSize,maxCandles-offset);
+   const q=new URLSearchParams({select:"bar_time,open,high,low,close",symbol:"eq."+symbol,timeframe:"eq."+timeframe,order:"bar_time.desc",limit:String(take),offset:String(offset)});
+   const upstream=await fetch(root+"/rest/v1/mt5_candles?"+q,{headers:{apikey:key,Authorization:"Bearer "+key,Prefer:"count=exact"}});
+   if(!upstream.ok)return send(res,502,{ok:false,error:"Could not read paginated mt5_candles. Check the Supabase candle table.",upstream_status:upstream.status,offset});
+   const page=await upstream.json();
+   if(!Array.isArray(page))return send(res,502,{ok:false,error:"Unexpected Supabase response while paging candles.",offset});
+   rows.push(...page);
+   if(page.length<take)break;
+  }
+  const c=rows.reverse().map(x=>({...x,open:+x.open,high:+x.high,low:+x.low,close:+x.close}));
+  if(c.length<250)return send(res,200,{ok:true,ready:false,symbol,timeframe,candleCount:c.length,minimumCandles:250,message:"Need at least 250 stored candles before candidate screening. Import historical Gold candles through Twelve Data."});
   const split=Math.floor(c.length*.7),configs=[];
   for(const kind of ["ema-trend","donchian","rsi-reversion","trend-pullback"])for(const pair of [[8,21],[12,30],[20,50]])configs.push({kind,fast:pair[0],slow:pair[1],sl:1.5,tp:2.2,horizon:12});
   const candidates=configs.map((cfg,n)=>{const train=evaluate(c,cfg,0,split),test=evaluate(c,cfg,split,c.length);const score=test.trades>=15?test.expectancyR*Math.min(test.trades/30,1)-test.maxDrawdownR*.03:-999;return {id:"GOLD-"+String(n+1).padStart(2,"0"),name:cfg.kind.replace(/-/g," ").replace(/\b\w/g,x=>x.toUpperCase())+" · "+cfg.fast+"/"+cfg.slow,config:cfg,train:{trades:train.trades,winRate:train.winRate,netR:train.netR,profitFactor:train.profitFactor,maxDrawdownR:train.maxDrawdownR},holdout:{trades:test.trades,winRate:test.winRate,netR:test.netR,expectancyR:test.expectancyR,profitFactor:test.profitFactor,maxDrawdownR:test.maxDrawdownR},status:test.trades>=30&&test.expectancyR>0&&test.profitFactor>1.1?"REVIEW CANDIDATE":"NOT PASSED",score:Number(score.toFixed(3)),recentTrades:test.results};});
   candidates.sort((a,b)=>b.score-a.score);
-  return send(res,200,{ok:true,ready:true,symbol,timeframe,candleCount:c.length,trainCandles:split,holdoutCandles:c.length-split,generated:candidates.length,method:"Fixed, transparent rule-family/parameter sweep. First 70% development; final 30% holdout. Same-candle SL/TP collisions are scored as stop-loss. Metrics are in R units and exclude real broker costs/slippage.",candidates,warning:"Historical OHLC simulation is not proof of profitability. Candle source quality, spread, slippage, and execution can materially change results. A candidate is for review only, not automatically an EA or a live trade."});
+  return send(res,200,{ok:true,ready:true,symbol,timeframe,candleCount:c.length,trainCandles:split,holdoutCandles:c.length-split,generated:candidates.length,method:"Fixed, transparent rule-family/parameter sweep. First 70% development; final 30% holdout. Same-candle SL/TP collisions are scored as stop-loss. Metrics are in R units and exclude real broker costs/slippage.",candidates,warning:"Historical OHLC simulation is not proof of profitability. Research loads up to 50,000 stored candles with pagination. Candle source quality, spread, slippage, and execution can materially change results. A candidate is for review only, not automatically an EA or a live trade."});
  }catch(e){return send(res,502,{ok:false,error:"Candidate research failed. Check Vercel logs and Supabase setup."});}
 };
