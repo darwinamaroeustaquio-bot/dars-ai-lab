@@ -1,7 +1,7 @@
 // Dars AI Lab - VT Markets MT5 Read-only Quote + Candle Bridge
 // Sends quote snapshots and M5/M15/H1 candle history. DOES NOT trade.
 #property strict
-#property version "1.10"
+#property version "1.20"
 #property description "Read-only quote and candle sender for Dars AI Lab"
 
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
@@ -10,7 +10,7 @@ input string BridgeToken = "SET_THE_SAME_RANDOM_TOKEN_IN_VERCEL";
 input string SymbolsCsv = "XAUUSD-STD,EURUSD,GBPUSD,BTCUSD";
 input int SendEverySeconds = 3;
 input int SendCandlesEverySeconds = 300;
-input int BarsPerTimeframe = 500;
+input int BarsPerTimeframe = 5000;
 
 string symbols[];
 int candleTimer = 0;
@@ -55,7 +55,7 @@ void SendQuote(const string sym)
 string FrameJson(const string sym,const ENUM_TIMEFRAMES tf,const string frameName)
 {
    MqlRates rates[];ArraySetAsSeries(rates,false);
-   int wanted=MathMax(30,MathMin(500,BarsPerTimeframe));
+   int wanted=MathMax(30,MathMin(5000,BarsPerTimeframe));
    int copied=CopyRates(sym,tf,0,wanted,rates);
    if(copied<10){Print("Dars waiting for enough ",frameName," bars on ",sym,". CopyRates=",copied," error=",GetLastError());return "";}
    string out="\""+frameName+"\":[";
@@ -69,7 +69,7 @@ string FrameJson(const string sym,const ENUM_TIMEFRAMES tf,const string frameNam
 }
 void SendCandles(const string sym)
 {
-   string m5=FrameJson(sym,PERIOD_M5,"M5");
+   // Send each timeframe separately to stay below Vercel request-body limits and avoid losing all frames on one oversized payload.\n   string m5=FrameJson(sym,PERIOD_M5,"M5");
    string m15=FrameJson(sym,PERIOD_M15,"M15");
    string h1=FrameJson(sym,PERIOD_H1,"H1");
    if(m5==""||m15==""||h1=="")return;
