@@ -23,11 +23,13 @@ module.exports = async (req, res) => {
     if (!expected || provided.length !== expected.length || provided !== expected) return send(res, 401, {ok:false,error:"Unauthorized bridge token."});
     const body = req.body || {};
     const symbol = String(body.symbol || "");
-    if (!ALLOWED.has(symbol) || !body.frames || typeof body.frames !== "object") return send(res,400,{ok:false,error:"Invalid symbol or candle frames."});
+    if (!ALLOWED.has(symbol)) return send(res,400,{ok:false,error:"Invalid symbol."});
+    const incomingFrames = body.timeframe && Array.isArray(body.candles) ? { [String(body.timeframe)]: body.candles } : body.frames;
+    if (!incomingFrames || typeof incomingFrames !== "object") return send(res,400,{ok:false,error:"Send timeframe + candles or frames object."});
     const rows = [];
-    for (const [timeframe, candles] of Object.entries(body.frames)) {
+    for (const [timeframe, candles] of Object.entries(incomingFrames)) {
       if (!FRAMES.has(timeframe) || !Array.isArray(candles)) return send(res,400,{ok:false,error:"Only M5, M15 and H1 frames are accepted."});
-      if (candles.length > 500) return send(res,400,{ok:false,error:"Maximum 500 candles per timeframe per request."});
+      if (candles.length > 5000) return send(res,400,{ok:false,error:"Maximum 5000 candles per timeframe per request."});
       for (const c of candles) {
         const t = Number(c.time), o=Number(c.open), h=Number(c.high), l=Number(c.low), close=Number(c.close), volume=Number(c.tick_volume || 0);
         if (!Number.isFinite(t)||t<=0||![o,h,l,close,volume].every(Number.isFinite)||h<Math.max(o,close,l)||l>Math.min(o,close,h)||l<=0) return send(res,400,{ok:false,error:"Invalid OHLC candle data."});
