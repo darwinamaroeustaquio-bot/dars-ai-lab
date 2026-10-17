@@ -290,9 +290,15 @@ calculateSetup();
      setText("mt5Symbol",activeSymbol);
      setText("mt5LiveMessage","Checking the latest quote…");
      try{
-       const r=await fetch("/api/mt5-quote?symbol="+encodeURIComponent(activeSymbol),{cache:"no-store"});
-       const d=await r.json();
-       if(!r.ok||!d.ok) throw new Error(d.error||"Quote API is not configured.");
+       const r=await fetch("/api/mt5-quote?symbol="+encodeURIComponent(activeSymbol),{cache:"no-store",headers:{"Accept":"application/json"}});
+       const raw=await r.text();
+       let d;
+       try { d=JSON.parse(raw); }
+       catch (_) {
+         const hint=raw.replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim().slice(0,180);
+         throw new Error("Vercel API returned a non-JSON response (HTTP "+r.status+"). "+(hint||"Check the latest deployment and Vercel Function Logs."));
+       }
+       if(!r.ok||!d.ok) throw new Error((d.error||"Quote API request failed.")+" (HTTP "+r.status+(d.upstream_status?"; Supabase HTTP "+d.upstream_status:"")+").");
        if(!d.connected||!d.quote){
          status.textContent="Waiting for MT5 bridge";
          setText("mt5Bid","—");setText("mt5Ask","—");setText("mt5Age","No quote");
