@@ -40,7 +40,9 @@ module.exports = async (req, res) => {
         headers: { apikey: serviceKey, Authorization: "Bearer " + serviceKey, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" },
         body: JSON.stringify([quote])
       });
-      if (!upstream.ok) return send(res, 502, { ok: false, error: "Quote storage failed. Check the mt5_quotes table and server environment." });
+      if (!upstream.ok) {
+        return send(res, 502, { ok: false, error: "Quote storage failed. Check the mt5_quotes table, Supabase URL, and service-role key.", upstream_status: upstream.status });
+      }
       return send(res, 200, { ok: true, symbol, received_at: quote.received_at });
     } catch (_) {
       return send(res, 502, { ok: false, error: "Could not reach quote storage." });
@@ -53,7 +55,9 @@ module.exports = async (req, res) => {
     try {
       const url = supabaseUrl + "/rest/v1/mt5_quotes?select=symbol,bid,ask,last,digits,spread,received_at&symbol=eq." + encodeURIComponent(symbol) + "&limit=1";
       const upstream = await fetch(url, { headers: { apikey: serviceKey, Authorization: "Bearer " + serviceKey } });
-      if (!upstream.ok) return send(res, 502, { ok: false, error: "Could not read quote storage." });
+      if (!upstream.ok) {
+        return send(res, 502, { ok: false, error: "Could not read quote storage. Check the mt5_quotes table, Supabase URL, and service-role key.", upstream_status: upstream.status });
+      }
       const rows = await upstream.json();
       if (!rows.length) return send(res, 200, { ok: true, connected: false, symbol, message: "No MT5 quote received yet." });
       const quote = rows[0];
