@@ -52,7 +52,7 @@ module.exports=async(req,res)=>{
  if(req.method!=="GET")return send(res,405,{ok:false,error:"GET only"});
  const symbol=String(req.query.symbol||"XAUUSD-STD"),timeframe=String(req.query.timeframe||"M5");
  if(!ALLOWED.has(symbol)||!["M5","M15","H1"].includes(timeframe))return send(res,400,{ok:false,error:"Gold XAUUSD-STD and M5/M15/H1 only."});
- const root=String(process.env.SUPABASE_URL||"").trim().replace(/\\/+$/,"").replace(/\\/rest\\/v1$/i,""),key=String(process.env.SUPABASE_SERVICE_ROLE_KEY||"").trim();
+ const root=String(process.env.SUPABASE_URL||"").trim().replace(/\/+$/,"").replace(/\/rest\/v1$/i,""),key=String(process.env.SUPABASE_SERVICE_ROLE_KEY||"").trim();
  if(!root||!key)return send(res,503,{ok:false,error:"Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel. The research engine needs stored candles."});
  try{
   const rows=[],pageSize=1000,maxCandles=Math.max(250,Math.min(50000,Number(req.query.limit)||50000));
@@ -73,7 +73,7 @@ module.exports=async(req,res)=>{
    const drawdownAcceptable=net.netR>0&&net.maxDrawdownR<=Math.max(10,net.netR*2.5);
    const passed=robustTrain&&robustHoldout&&drawdownAcceptable;
    const score=net.trades>=15?net.expectancyR*Math.min(net.trades/50,1)-net.maxDrawdownR*.03:-999;
-   const family=cfg.kind.replace(/-/g," ").replace(/\\b\\w/g,x=>x.toUpperCase());
+   const family=cfg.kind.replace(/-/g," ").replace(/\b\w/g,x=>x.toUpperCase());
    const params=cfg.kind==="donchian"?"Lookback "+cfg.lookback:cfg.kind==="rsi-reversion"?"RSI "+cfg.rsiPeriod+" · "+cfg.lower+"/"+cfg.upper:cfg.fast+"/"+cfg.slow;
    return {id:"GOLD-"+String(n+1).padStart(3,"0"),name:family+" · "+params+" · "+cfg.riskLabel,config:cfg,train:{trades:train.trades,winRate:train.winRate,netR:train.netR,expectancyR:train.expectancyR,profitFactor:train.profitFactor,maxDrawdownR:train.maxDrawdownR},holdout:{trades:raw.trades,winRate:raw.winRate,netR:raw.netR,expectancyR:raw.expectancyR,profitFactor:raw.profitFactor,maxDrawdownR:raw.maxDrawdownR},afterCosts:{trades:net.trades,winRate:net.winRate,netR:net.netR,expectancyR:net.expectancyR,profitFactor:net.profitFactor,maxDrawdownR:net.maxDrawdownR},checks:{development:robustTrain,holdout:robustHoldout,drawdown:drawdownAcceptable},status:passed?"REVIEW CANDIDATE":"NOT PASSED",score:Number(score.toFixed(3)),recentTrades:net.results};
   });
