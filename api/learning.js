@@ -1,7 +1,7 @@
 // Experimental walk-forward learning engine for Dars AI Lab.
 // Trains a small logistic model on historical closed M5 candles and tests on a later holdout.
 // It provides research probabilities only; it never sends orders.
-const SYMBOLS = new Set(["XAUUSD-STD","XAUUSD","EURUSD","GBPUSD","BTCUSD"]);
+const SYMBOLS = new Set(["XAUUSD-STD","XAUUSD"]);
 const FRAMES = ["M5","M15","H1"];
 function respond(res,status,body){res.status(status);res.setHeader("Content-Type","application/json; charset=utf-8");res.setHeader("Cache-Control","no-store, max-age=0");return res.json(body);}
 function ema(values,period){if(values.length<period)return Array(values.length).fill(null);const out=Array(values.length).fill(null);let e=values.slice(0,period).reduce((a,b)=>a+b,0)/period;out[period-1]=e;const k=2/(period+1);for(let i=period;i<values.length;i++){e=values[i]*k+e*(1-k);out[i]=e;}return out;}
