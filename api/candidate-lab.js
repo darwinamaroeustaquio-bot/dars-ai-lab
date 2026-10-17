@@ -35,16 +35,16 @@ module.exports=async(req,res)=>{
   const maxCandles=Math.max(250,Math.min(50000,Number(req.query.limit)||50000));
   for(let offset=0;offset<maxCandles;offset+=pageSize){
    const take=Math.min(pageSize,maxCandles-offset);
-   const q=new URLSearchParams({select:"bar_time,open,high,low,close",symbol:"eq."+symbol,timeframe:"eq."+timeframe,order:"bar_time.desc",limit:String(take),offset:String(offset)});
+   const q=new URLSearchParams({select:"bar_time,open,high,low,close,source",symbol:"eq."+symbol,timeframe:"eq."+timeframe,source:"eq.mt5_bridge",order:"bar_time.desc",limit:String(take),offset:String(offset)});
    const upstream=await fetch(root+"/rest/v1/mt5_candles?"+q,{headers:{apikey:key,Authorization:"Bearer "+key,Prefer:"count=exact"}});
-   if(!upstream.ok)return send(res,502,{ok:false,error:"Could not read paginated mt5_candles. Check the Supabase candle table.",upstream_status:upstream.status,offset});
+   if(!upstream.ok){const detail=await upstream.text();if(/source|column/i.test(detail))return send(res,503,{ok:false,error:"MT5 source tracking is not installed. Run supabase/mt5_candle_source.sql in the Supabase SQL Editor, then restart the MT5 history bridge.",upstream_status:upstream.status});return send(res,502,{ok:false,error:"Could not read paginated mt5_candles. Check the Supabase candle table.",upstream_status:upstream.status,offset});}
    const page=await upstream.json();
    if(!Array.isArray(page))return send(res,502,{ok:false,error:"Unexpected Supabase response while paging candles.",offset});
    rows.push(...page);
    if(page.length<take)break;
   }
   const c=rows.reverse().map(x=>({...x,open:+x.open,high:+x.high,low:+x.low,close:+x.close}));
-  if(c.length<250)return send(res,200,{ok:true,ready:false,symbol,timeframe,candleCount:c.length,minimumCandles:250,message:"Need at least 250 stored candles before candidate screening. Import historical Gold candles through Twelve Data."});
+  if(c.length<250)return send(res,200,{ok:true,ready:false,symbol,timeframe,candleCount:c.length,minimumCandles:250,message:"Need at least 250 verified MT5 bridge candles before candidate screening. Keep the MT5 History Bridge running so it can collect broker candles."});
   const split=Math.floor(c.length*.7),configs=[];
   // Broaden the transparent search across stop/target combinations, rather than tuning only EMA periods.
   const riskProfiles=[{sl:1,tp:1.5,label:"SL1.0 / TP1.5"},{sl:1.5,tp:2.2,label:"SL1.5 / TP2.2"},{sl:2,tp:3,label:"SL2.0 / TP3.0"},{sl:1.5,tp:1.5,label:"SL1.5 / TP1.5"}];
@@ -62,6 +62,6 @@ module.exports=async(req,res)=>{
   });
   // Put candidates that pass the screening gates first; rank each group by risk-aware score.
   candidates.sort((a,b)=>Number(b.status==="REVIEW CANDIDATE")-Number(a.status==="REVIEW CANDIDATE")||b.score-a.score);
-  return send(res,200,{ok:true,ready:true,symbol,timeframe,candleCount:c.length,trainCandles:split,holdoutCandles:c.length-split,generated:candidates.length,costAssumptionR:costR,method:"Expanded rule-family, EMA and stop/target sweep (48 variants). A candidate must show positive development expectancy and PF > 1.05, plus positive after-cost holdout expectancy, PF > 1.10, at least 30 holdout trades and bounded drawdown. First 70% development; final 30% holdout. Same-candle SL/TP collisions are scored as stop-loss. After-cost metrics subtract the user-entered round-trip cost assumption in R units from every trade; this is a sensitivity assumption, not a broker-calibrated spread/commission estimate.",candidates,warning:"Historical OHLC simulation is not proof of profitability. Cost assumption must be calibrated to the actual VT Markets spread, commission and slippage. Research loads up to 50,000 stored candles with pagination. Candle source quality and execution can materially change results. No orders are sent."});
+  return send(res,200,{ok:true,ready:true,symbol,timeframe,candleCount:c.length,trainCandles:split,holdoutCandles:c.length-split,generated:candidates.length,costAssumptionR:costR,method:"Expanded rule-family, EMA and stop/target sweep (48 variants). A candidate must show positive development expectancy and PF > 1.05, plus positive after-cost holdout expectancy, PF > 1.10, at least 30 holdout trades and bounded drawdown. First 70% development; final 30% holdout. Same-candle SL/TP collisions are scored as stop-loss. After-cost metrics subtract the user-entered round-trip cost assumption in R units from every trade; this is a sensitivity assumption, not a broker-calibrated spread/commission estimate.",candidates,warning:"Historical OHLC simulation is not proof of profitability. Cost assumption must be calibrated to the actual VT Markets spread, commission and slippage. Research loads up to 50,000 verified MT5 bridge candles with pagination. Legacy candles without verified source metadata are excluded. Candle source quality and execution can materially change results. No orders are sent."});
  }catch(e){return send(res,502,{ok:false,error:"Candidate research failed. Check Vercel logs and Supabase setup."});}
 };
