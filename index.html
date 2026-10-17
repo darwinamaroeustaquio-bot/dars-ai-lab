@@ -65,14 +65,14 @@
 <section class="panel" id="candidateLabPanel" style="margin-bottom:15px;border-color:#7b6639">
 <div class="row"><div><div class="eyebrow">GOLD ONLY · CANDIDATE GENERATOR</div><h2 style="margin:5px 0 8px">Strategy Candidate Lab</h2></div><span class="tag" id="candidateLabStatus">Not run yet</span></div>
 <p class="note">Generate and compare 12 rule-based Gold strategy variants from saved candles. Uses the first 70% for development and the final 30% as a holdout. This is historical research only; no orders are sent.</p>
-<div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn" id="importHistoricalGold" type="button">Import enough Gold history</button><button class="btn" id="importExternalGold" type="button">Import external Gold history</button><button class="btn primary" id="runCandidateLab" type="button">Generate & test candidates</button><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
+<div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn" id="importExternalGold" type="button">Import external Gold history</button><button class="btn primary" id="runCandidateLab" type="button">Generate & test candidates</button><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
 <div class="metrics" style="margin-top:12px">
 <div class="metric"><div class="eyebrow">Candles used</div><strong id="candidateCandles">—</strong><small>Stored Gold history</small></div>
 <div class="metric"><div class="eyebrow">Candidates</div><strong id="candidateCount">—</strong><small>Rule variants generated</small></div>
 <div class="metric"><div class="eyebrow">Best holdout expectancy</div><strong id="candidateBestExpectancy">—</strong><small>R per trade · before costs</small></div>
 <div class="metric"><div class="eyebrow">Review candidates</div><strong id="candidatePassed">—</strong><small>Requires human review</small></div>
 </div>
-<p class="note" id="candidateLabMessage" role="status" aria-live="polite">Historical import uses M5: 30 days, M15: 60 days, H1: 180 days. At least 250 valid candles are required. Imported Dukascopy prices are research proxy data, not VT Markets quotes.</p>
+<p class="note" id="candidateLabMessage" role="status" aria-live="polite">External historical import uses Twelve Data XAU/USD proxy candles. Coverage depends on your Twelve Data plan. Data is not VT Markets broker-specific pricing.</p>
 <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:720px"><thead><tr><th align="left">Candidate</th><th>Holdout trades</th><th>Win rate</th><th>Net R</th><th>Expectancy R</th><th>Profit factor</th><th>Max DD R</th><th>Status</th></tr></thead><tbody id="candidateResults"><tr><td colspan="8" class="muted">No research run yet.</td></tr></tbody></table></div>
 <p class="note">Important: this first version is a transparent candidate screening engine, not self-modifying AI. It excludes real spread, commission and slippage, so no candidate is labelled profitable or automatically converted to an EA.</p>
 </section>
@@ -768,16 +768,7 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
   finally{btn.disabled=false;btn.textContent="Import external Gold history";}
  });
 
- $("importHistoricalGold")?.addEventListener("click",async()=>{
-  const btn=$("importHistoricalGold");btn.disabled=true;btn.textContent="Downloading…";$("candidateLabStatus").textContent="Importing history";$("candidateLabMessage").textContent="Downloading a larger timeframe-specific history window from Dukascopy and saving it to Supabase. At least 250 candles are required. This is proxy data, not VT Markets quotes.";
-  try{
-   const r=await fetch("/api/historical-import",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({timeframe:$("candidateTimeframe").value})});
-   const d=await r.json();if(!r.ok||!d.ok){const detail=[d.error,d.timeframe?("TF "+d.timeframe):"",d.validUniqueCandles!=null?("valid candles "+d.validUniqueCandles):"",d.downloadedRaw!=null?("raw rows "+d.downloadedRaw):"",d.upstream_status?("Supabase HTTP "+d.upstream_status):"",d.failedChunks&&d.failedChunks.length?("Failed windows: "+d.failedChunks.map(x=>x.from+" → "+x.to+" ("+x.error+")").join("; ")):"",d.detail||""].filter(Boolean).join(" · ");throw new Error(detail||"Historical import failed (HTTP "+r.status+")");}
-   $("candidateLabStatus").textContent="History imported";$("candidateLabMessage").textContent="Source: "+d.source+". Saved "+d.saved+" candles for "+d.timeframe+" across "+d.days+" days, from "+new Date(d.from).toLocaleDateString()+" to "+new Date(d.to).toLocaleDateString()+". Minimum 250: "+(d.meetsMinimum?"met":"not met")+". Proxy market data; broker differences remain.";
-   $("candidateCandles").textContent=Number(d.saved).toLocaleString();
-  }catch(e){$("candidateLabStatus").textContent="Import unavailable";$("candidateLabMessage").textContent=e.message+" Confirm Vercel has SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY and check deployment logs.";}
-  finally{btn.disabled=false;btn.textContent="Import enough Gold history";}
- });
+
  $("runCandidateLab")?.addEventListener("click",async()=>{
   const btn=$("runCandidateLab");btn.disabled=true;btn.textContent="Testing…";$("candidateLabStatus").textContent="Running research";$("candidateLabMessage").textContent="Reading saved Gold candles and testing strategy variants…";
   try{
