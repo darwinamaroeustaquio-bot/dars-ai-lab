@@ -12,6 +12,21 @@
 <body><main class="wrap">
 <header class="top"><div><div class="brand">DARS <span>AI LAB</span></div><div class="sub">Advanced trading workspace · v0.3 · Pre-connection build</div></div><span class="pill">● DEMO MODE · MT5 OFFLINE</span></header>
 <div class="notice"><b>IMPORTANT:</b> Wala pang live VT Markets feed o verified trading signals. Ang chart at prices sa Market Lab ay generated illustration lamang. Risk calculations use your inputs; journal data stays in this browser. No trades are sent.</div>
+<section class="panel" id="supabasePanel" style="margin-bottom:15px">
+<div class="row"><div><div class="eyebrow">Cloud storage</div><h2 style="margin:5px 0">Supabase account & journal sync</h2></div><span class="tag" id="cloudStatus">Checking configuration…</span></div>
+<p class="note">Sign in to sync your journal to your Supabase account. Use your own account; never enter your VT Markets password here.</p>
+<div class="fields">
+<div><label for="cloudEmail">Email</label><input id="cloudEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
+<div><label for="cloudPassword">Supabase account password</label><input id="cloudPassword" type="password" autocomplete="current-password" placeholder="Use a strong password"></div>
+</div>
+<div class="row" style="margin-top:11px;justify-content:flex-start">
+<button class="btn primary" id="cloudSignIn" type="button">Sign in</button>
+<button class="btn" id="cloudSignUp" type="button">Create account</button>
+<button class="btn" id="cloudSync" type="button" disabled>Sync journal</button>
+<button class="btn" id="cloudSignOut" type="button" disabled>Sign out</button>
+</div>
+<p class="note" id="cloudMessage" role="status" aria-live="polite">Cloud journal is not connected yet.</p>
+</section>
 <div class="metrics">
 <div class="metric"><div class="eyebrow">Broker connection</div><strong style="font-size:17px;color:var(--gold)">Not linked</strong><small>VT Markets · MT5</small></div>
 <div class="metric"><div class="eyebrow">Journal trades</div><strong id="mTrades">0</strong><small>Saved in this browser</small></div>
@@ -108,4 +123,79 @@ $("saveTrade").addEventListener("click",()=>{const pnlRaw=$("jPnl").value;const 
 $("clearJournal").addEventListener("click",()=>{if(confirm("Delete all locally saved journal entries? Export CSV first if you need a backup.")){journal=[];persist()}});
 $("exportJournal").addEventListener("click",()=>{const rows=[["date","symbol","side","outcome","pnl","notes"],...journal.map(t=>[t.date,t.symbol,t.side,t.outcome,t.pnl===null?"":t.pnl,t.note])];const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="dars-ai-lab-journal.csv";a.click();URL.revokeObjectURL(url)});
 renderWatch();drawChart();updateRisk();updateScore();renderJournal();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(async function setupDarsCloud(){
+ const status=document.getElementById("cloudStatus"), msg=document.getElementById("cloudMessage");
+ const email=document.getElementById("cloudEmail"), password=document.getElementById("cloudPassword");
+ const signIn=document.getElementById("cloudSignIn"), signUp=document.getElementById("cloudSignUp");
+ const syncBtn=document.getElementById("cloudSync"), signOut=document.getElementById("cloudSignOut");
+ let client=null, currentUser=null;
+ const say=(text)=>{msg.textContent=text};
+ function setSignedIn(user){
+   currentUser=user||null;
+   status.textContent=user?"Signed in":"Not signed in";
+   signIn.disabled=!!user; signUp.disabled=!!user;
+   syncBtn.disabled=!user; signOut.disabled=!user;
+   if(user) say("Signed in as "+user.email+". Use Sync journal to back up this browser's journal.");
+ }
+ try{
+   const cfgRes=await fetch("/api/supabase-config",{cache:"no-store"});
+   const cfg=await cfgRes.json();
+   if(!cfgRes.ok||!cfg.configured) throw new Error(cfg.message||"Supabase configuration missing.");
+   if(!window.supabase||!window.supabase.createClient) throw new Error("Supabase library did not load. Refresh and try again.");
+   client=window.supabase.createClient(cfg.url,cfg.key);
+   const {data:{session}}=await client.auth.getSession();
+   setSignedIn(session?.user||null);
+   if(!session?.user){status.textContent="Configured · sign in required";say("Supabase configuration found. Sign in or create an account to enable private cloud sync.");}
+ }catch(e){status.textContent="Not configured";say(e.message+" Check Vercel environment variables and redeploy.");return;}
+ signUp.addEventListener("click",async()=>{
+   if(!email.value.trim()||!password.value){say("Enter your email and password first.");return;}
+   if(password.value.length<8){say("Use a password with at least 8 characters.");return;}
+   signUp.disabled=true;say("Creating account…");
+   const {data,error}=await client.auth.signUp({email:email.value.trim(),password:password.value});
+   signUp.disabled=false;
+   if(error){say(error.message);return;}
+   if(data.session){setSignedIn(data.user);say("Account created and signed in. Now you can sync the journal.");}
+   else say("Account created. Check your email for the confirmation link, then sign in.");
+ });
+ signIn.addEventListener("click",async()=>{
+   if(!email.value.trim()||!password.value){say("Enter your email and password first.");return;}
+   signIn.disabled=true;say("Signing in…");
+   const {data,error}=await client.auth.signInWithPassword({email:email.value.trim(),password:password.value});
+   signIn.disabled=false;
+   if(error){say(error.message);return;}
+   setSignedIn(data.user);say("Signed in. Press Sync journal to load and back up your journal.");
+ });
+ signOut.addEventListener("click",async()=>{
+   const {error}=await client.auth.signOut();
+   if(error){say(error.message);return;}
+   setSignedIn(null);status.textContent="Signed out";say("Signed out. Your existing browser journal remains on this device.");
+ });
+ syncBtn.addEventListener("click",async()=>{
+   if(!currentUser){say("Sign in first.");return;}
+   syncBtn.disabled=true;say("Syncing journal…");
+   try{
+     const {data:remote,error:readErr}=await client.from("trade_journal").select("id,local_id,symbol,direction,profit_loss,outcome,notes,opened_at").eq("user_id",currentUser.id);
+     if(readErr) throw readErr;
+     const merged=new Map();
+     (remote||[]).forEach(t=>{
+       const id=t.local_id||t.id;
+       merged.set(id,{id,date:t.opened_at,symbol:t.symbol,side:t.direction,outcome:String(t.outcome||"OPEN").toLowerCase(),pnl:t.profit_loss===null?null:Number(t.profit_loss),note:t.notes||""});
+     });
+     (Array.isArray(journal)?journal:[]).forEach(t=>merged.set(String(t.id),t));
+     journal=Array.from(merged.values()).sort((a,b)=>new Date(b.date)-new Date(a.date));
+     persist();
+     const rows=journal.map(t=>({user_id:currentUser.id,local_id:String(t.id),symbol:t.symbol||"XAUUSD",direction:t.side==="SELL"?"SELL":"BUY",profit_loss:t.pnl===null||t.pnl===""?null:Number(t.pnl),outcome:({win:"WIN",loss:"LOSS",breakeven:"BREAKEVEN",open:"OPEN"})[String(t.outcome).toLowerCase()]||"OPEN",notes:t.note||null,opened_at:t.date||new Date().toISOString(),closed_at:["win","loss","breakeven"].includes(String(t.outcome).toLowerCase())?(t.date||new Date().toISOString()):null}));
+     if(rows.length){
+       const {error:writeErr}=await client.from("trade_journal").upsert(rows,{onConflict:"user_id,local_id"});
+       if(writeErr) throw writeErr;
+     }
+     say("Sync complete: "+rows.length+" journal entr"+(rows.length===1?"y":"ies")+" synced to your Supabase account.");
+   }catch(e){say("Sync failed: "+e.message+" Check that supabase/setup.sql has been run in the Supabase SQL Editor.");}
+   finally{syncBtn.disabled=!currentUser;}
+ });
+ client.auth.onAuthStateChange((_event,session)=>{setSignedIn(session?.user||null);});
+})();
 </script></body></html>
