@@ -154,7 +154,7 @@ renderWatch();drawChart();updateRisk();updateScore();renderJournal();
    if(!email.value.trim()||!password.value){say("Enter your email and password first.");return;}
    if(password.value.length<8){say("Use a password with at least 8 characters.");return;}
    signUp.disabled=true;say("Creating account…");
-   const {data,error}=await client.auth.signUp({email:email.value.trim(),password:password.value});
+   const {data,error}=await client.auth.signUp({email:email.value.trim(),password:password.value,options:{emailRedirectTo:window.location.origin + "/"}});
    signUp.disabled=false;
    if(error){say(error.message);return;}
    if(data.session){setSignedIn(data.user);say("Account created and signed in. Now you can sync the journal.");}
