@@ -9,7 +9,7 @@
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-history";
 input string BridgeToken = "SET_THE_SAME_RANDOM_TOKEN_IN_VERCEL";
 input string SymbolsCSV = "XAUUSD-STD";
-input int CandlesPerTimeframe = 500;
+input int CandlesPerTimeframe = 1500;
 input int HistoryDays = 90;
 input int MaxDealsPerBatch = 100;
 input int SendEverySeconds = 300;
@@ -37,7 +37,7 @@ void AppendCandles(string &out, bool &first, const string symbol, ENUM_TIMEFRAME
 {
    MqlRates rates[];
    ArraySetAsSeries(rates,false);
-   int copied=CopyRates(symbol,tf,1,MathMax(10,MathMin(500,CandlesPerTimeframe)),rates);
+   int copied=CopyRates(symbol,tf,1,MathMax(10,MathMin(1500,CandlesPerTimeframe)),rates);
    if(copied<=0) { Print("No candles loaded for ",symbol," ",FrameName(tf),"; error=",GetLastError()); return; }
    int digits=(int)SymbolInfoInteger(symbol,SYMBOL_DIGITS);
    for(int i=0;i<copied;i++)
