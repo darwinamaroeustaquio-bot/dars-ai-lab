@@ -10,9 +10,15 @@ function buildSignal(c,cfg){
  const macdSignal=Array(c.length).fill(null);let macdSeed=null,macdCount=0,macdK=2/((cfg.signalPeriod||9)+1);
  for(let i=0;i<c.length;i++){if(macdLine[i]===null)continue;if(macdSeed===null){macdCount++;if(macdCount===(cfg.signalPeriod||9)){const vals=macdLine.slice(i-(cfg.signalPeriod||9)+1,i+1);macdSeed=vals.reduce((a,b)=>a+b,0)/vals.length;macdSignal[i]=macdSeed;}}else{macdSeed=macdLine[i]*macdK+macdSeed*(1-macdK);macdSignal[i]=macdSeed;}}
  const channelEma=ema(close,cfg.channelPeriod||20);
+ const emaMid=ema(close,cfg.midPeriod||20),emaLong=ema(close,cfg.longPeriod||50);
+ const rocAt=(i,p)=>i-p<0?null:(close[i-p]===0?0:(close[i]-close[i-p])/close[i-p]*100);
+ const williamsAt=(i,p)=>{if(i-p+1<0)return null;let hi=-Infinity,lo=Infinity;for(let j=i-p+1;j<=i;j++){hi=Math.max(hi,c[j].high);lo=Math.min(lo,c[j].low);}return hi===lo?-50:-100*(hi-close[i])/(hi-lo);};
+ const adxAt=(i,p)=>{if(i-p<1)return null;let plus=0,minus=0,tr=0;for(let j=i-p+1;j<=i;j++){const up=c[j].high-c[j-1].high,dn=c[j-1].low-c[j].low;plus+=up>dn&&up>0?up:0;minus+=dn>up&&dn>0?dn:0;tr+=Math.max(c[j].high-c[j].low,Math.abs(c[j].high-c[j-1].close),Math.abs(c[j].low-c[j-1].close));}if(tr===0)return 0;return 100*Math.abs(plus-minus)/(plus+minus||1);};
+ const rollingRange=(i,p)=>{let hi=-Infinity,lo=Infinity;for(let j=Math.max(0,i-p);j<i;j++){hi=Math.max(hi,c[j].high);lo=Math.min(lo,c[j].low);}return {hi,lo};};
+ const ichimoku=(i,p)=>{const mid=(n)=>{let hi=-Infinity,lo=Infinity;for(let j=i-n+1;j<=i;j++){if(j<0)return null;hi=Math.max(hi,c[j].high);lo=Math.min(lo,c[j].low);}return (hi+lo)/2;};return {conversion:mid(p),base:mid(p*2),span:mid(p*4)};};
  const stochasticAt=(idx,p)=>{if(idx-p+1<0)return null;let hi=-Infinity,lo=Infinity;for(let j=idx-p+1;j<=idx;j++){hi=Math.max(hi,c[j].high);lo=Math.min(lo,c[j].low);}return hi===lo?50:100*(c[idx].close-lo)/(hi-lo);};
  const cciAt=(idx,p)=>{if(idx-p+1<0)return null;const tp=[];for(let j=idx-p+1;j<=idx;j++)tp.push((c[j].high+c[j].low+c[j].close)/3);const mean=tp.reduce((x,y)=>x+y,0)/p,md=tp.reduce((x,y)=>x+Math.abs(y-mean),0)/p;return md===0?0:((c[idx].high+c[idx].low+c[idx].close)/3-mean)/(.015*md);};
- const warm=Math.max(cfg.slow||21,cfg.rsiPeriod||14,cfg.bandPeriod||20,cfg.channelPeriod||20,cfg.stochPeriod||14,cfg.cciPeriod||20,35);
+ const warm=Math.max(cfg.slow||21,cfg.rsiPeriod||14,cfg.bandPeriod||20,cfg.channelPeriod||20,cfg.stochPeriod||14,cfg.cciPeriod||20,cfg.lookback||20,cfg.period||14,cfg.midPeriod||20,cfg.longPeriod||50,35);
  for(let i=warm;i<c.length-1;i++){
   if(cfg.kind==="ema-trend"){
    if(ef[i]>es[i]&&close[i]>ef[i]&&ef[i-1]<=es[i-1])s[i]=1;
@@ -48,6 +54,51 @@ function buildSignal(c,cfg){
    const v=cciAt(i,cfg.cciPeriod||20),prevV=cciAt(i-1,cfg.cciPeriod||20);
    if(v!==null&&prevV!==null&&prevV< -cfg.cciLevel&&v> -cfg.cciLevel)s[i]=1;
    else if(v!==null&&prevV!==null&&prevV>cfg.cciLevel&&v<cfg.cciLevel)s[i]=-1;
+  } else if(cfg.kind==="adx-trend"){
+   const a=adxAt(i,cfg.period||14),prev=adxAt(i-1,cfg.period||14),up=c[i].high-c[i-1].high,dn=c[i-1].low-c[i].low;
+   if(a!==null&&prev!==null&&a>cfg.threshold&&a>=prev&&up>dn&&up>0)s[i]=1;
+   else if(a!==null&&prev!==null&&a>cfg.threshold&&a>=prev&&dn>up&&dn>0)s[i]=-1;
+  } else if(cfg.kind==="ichimoku"){
+   const z=ichimoku(i,cfg.period||9),p=ichimoku(i-1,cfg.period||9);
+   if(z.conversion!==null&&z.base!==null&&p.conversion!==null&&p.base!==null&&z.conversion>z.base&&p.conversion<=p.base&&close[i]>z.span)s[i]=1;
+   else if(z.conversion!==null&&z.base!==null&&p.conversion!==null&&p.base!==null&&z.conversion<z.base&&p.conversion>=p.base&&close[i]<z.span)s[i]=-1;
+  } else if(cfg.kind==="sr-retest"){
+   const r=rollingRange(i,cfg.lookback||20),tol=(aa[i]||0)*(cfg.tolerance||0.25);
+   if(c[i-1].close>r.hi&&c[i].low<=r.hi+tol&&close[i]>r.hi)s[i]=1;
+   else if(c[i-1].close<r.lo&&c[i].high>=r.lo-tol&&close[i]<r.lo)s[i]=-1;
+  } else if(cfg.kind==="atr-breakout"){
+   const mult=cfg.atrMult||1;
+   if(close[i]>close[i-1]+(aa[i-1]||0)*mult)s[i]=1;
+   else if(close[i]<close[i-1]-(aa[i-1]||0)*mult)s[i]=-1;
+  } else if(cfg.kind==="candle-reversal"){
+   const b=c[i],p=c[i-1],body=Math.abs(b.close-b.open),range=Math.max(1e-9,b.high-b.low);
+   const bullEngulf=b.close>b.open&&p.close<p.open&&b.open<=p.close&&b.close>=p.open;
+   const bearEngulf=b.close<b.open&&p.close>p.open&&b.open>=p.close&&b.close<=p.open;
+   if((bullEngulf||((Math.min(b.open,b.close)-b.low)/range>0.65&&body/range<0.4))&&rr[i]<55)s[i]=1;
+   else if((bearEngulf||((b.high-Math.max(b.open,b.close))/range>0.65&&body/range<0.4))&&rr[i]>45)s[i]=-1;
+  } else if(cfg.kind==="inside-bar"){
+   const p=c[i-1],b=c[i];
+   if(b.high<p.high&&b.low>p.low){if(close[i]>p.high)s[i]=1;else if(close[i]<p.low)s[i]=-1;}
+  } else if(cfg.kind==="roc-momentum"){
+   const v=rocAt(i,cfg.period||10),prev=rocAt(i-1,cfg.period||10);
+   if(v!==null&&prev!==null&&v>cfg.threshold&&prev<=cfg.threshold)s[i]=1;
+   else if(v!==null&&prev!==null&&v< -cfg.threshold&&prev>=-cfg.threshold)s[i]=-1;
+  } else if(cfg.kind==="williams-reversion"){
+   const v=williamsAt(i,cfg.period||14),prev=williamsAt(i-1,cfg.period||14);
+   if(v!==null&&prev!==null&&prev<cfg.lower&&v>prev)s[i]=1;
+   else if(v!==null&&prev!==null&&prev>cfg.upper&&v<prev)s[i]=-1;
+  } else if(cfg.kind==="triple-ema"){
+   const mid=emaMid[i],long=emaLong[i],prevMid=emaMid[i-1],prevLong=emaLong[i-1];
+   if(ef[i]>mid&&mid>long&&close[i]>ef[i]&&!(ef[i-1]>prevMid&&prevMid>prevLong))s[i]=1;
+   else if(ef[i]<mid&&mid<long&&close[i]<ef[i]&&!(ef[i-1]<prevMid&&prevMid<prevLong))s[i]=-1;
+  } else if(cfg.kind==="fib-pullback"){
+   const r=rollingRange(i,cfg.lookback||30),span=r.hi-r.lo;
+   if(span>0&&ef[i]>es[i]&&close[i]>es[i]&&close[i]<=r.hi-span*0.382&&close[i]>=r.hi-span*0.618&&close[i]>close[i-1])s[i]=1;
+   else if(span>0&&ef[i]<es[i]&&close[i]<es[i]&&close[i]>=r.lo+span*0.382&&close[i]<=r.lo+span*0.618&&close[i]<close[i-1])s[i]=-1;
+  } else if(cfg.kind==="supertrend"){
+   const band=(aa[i]||0)*(cfg.atrMult||2),prevBand=(aa[i-1]||0)*(cfg.atrMult||2);
+   if(close[i]>channelEma[i]+band&&close[i-1]<=channelEma[i-1]+prevBand)s[i]=1;
+   else if(close[i]<channelEma[i]-band&&close[i-1]>=channelEma[i-1]-prevBand)s[i]=-1;
   }
  }
  return {s,aa};
@@ -80,6 +131,17 @@ function makeCandidates(){
  for(const channelPeriod of [14,20,30])for(const channelMult of [1.5])for(const risk of riskProfiles)add({kind:"keltner-breakout",fast:channelPeriod,slow:channelPeriod,channelPeriod,channelMult},risk);
  for(const stochPeriod of [9,14,21])for(const [lower,upper] of [[20,80],[25,75],[30,70]])for(const risk of riskProfiles)add({kind:"stochastic-reversion",fast:stochPeriod,slow:stochPeriod,stochPeriod,lower,upper},risk);
  for(const cciPeriod of [14,20,30])for(const cciLevel of [100,150,200])for(const risk of riskProfiles)add({kind:"cci-reversion",fast:cciPeriod,slow:cciPeriod,cciPeriod,cciLevel},risk);
+ for(const period of [10,14,20])for(const threshold of [18,25])for(const risk of riskProfiles)add({kind:"adx-trend",fast:period,slow:period,period,threshold},risk);
+ for(const period of [7,9,12])for(const risk of riskProfiles)add({kind:"ichimoku",fast:period,slow:period,period},risk);
+ for(const lookback of [10,20,30])for(const risk of riskProfiles)add({kind:"sr-retest",fast:lookback,slow:lookback,lookback,tolerance:0.25},risk);
+ for(const atrMult of [0.75,1,1.5])for(const risk of riskProfiles)add({kind:"atr-breakout",fast:14,slow:14,period:14,atrMult},risk);
+ for(const risk of riskProfiles)add({kind:"candle-reversal",fast:14,slow:21},risk);
+ for(const risk of riskProfiles)add({kind:"inside-bar",fast:14,slow:21},risk);
+ for(const period of [5,10,14,20])for(const threshold of [0,0.1])for(const risk of riskProfiles)add({kind:"roc-momentum",fast:period,slow:period,period,threshold},risk);
+ for(const period of [10,14,21])for(const [lower,upper] of [[-80,-20],[-85,-15]])for(const risk of riskProfiles)add({kind:"williams-reversion",fast:period,slow:period,period,lower,upper},risk);
+ for(const [fast,midPeriod,longPeriod] of [[5,13,34],[8,21,50],[12,30,89]])for(const risk of riskProfiles)add({kind:"triple-ema",fast,slow:midPeriod,midPeriod,longPeriod},risk);
+ for(const lookback of [20,30,50])for(const risk of riskProfiles)add({kind:"fib-pullback",fast:20,slow:50,lookback},risk);
+ for(const atrMult of [1.5,2,2.5])for(const risk of riskProfiles)add({kind:"supertrend",fast:20,slow:20,channelPeriod:20,atrMult},risk);
  return out;
 }
 module.exports=async(req,res)=>{
@@ -118,11 +180,11 @@ module.exports=async(req,res)=>{
    const scoreBase=net.trades>=15?net.expectancyR*Math.min(net.trades/50,1)-net.maxDrawdownR*.03:-999;
    const score=scoreBase+(walkForwardInformative?(foldConsistency-.5)*.12:0);
    const family=cfg.kind.replace(/-/g," ").replace(/\b\w/g,x=>x.toUpperCase());
-   const params=cfg.kind==="donchian"?"Lookback "+cfg.lookback:cfg.kind==="rsi-reversion"?"RSI "+cfg.rsiPeriod+" · "+cfg.lower+"/"+cfg.upper:cfg.kind==="bollinger-reversion"?"BB "+cfg.bandPeriod+" · "+cfg.bandDev+"σ":cfg.kind==="macd-momentum"?"MACD "+cfg.fast+"/"+cfg.slow+"/"+cfg.signalPeriod:cfg.kind==="keltner-breakout"?"Keltner "+cfg.channelPeriod+" · "+cfg.channelMult+" ATR":cfg.kind==="stochastic-reversion"?"Stoch "+cfg.stochPeriod+" · "+cfg.lower+"/"+cfg.upper:cfg.kind==="cci-reversion"?"CCI "+cfg.cciPeriod+" · ±"+cfg.cciLevel:cfg.fast+"/"+cfg.slow;
+   const params=cfg.kind==="adx-trend"?"ADX "+cfg.period+" · threshold "+cfg.threshold:cfg.kind==="ichimoku"?"Ichimoku "+cfg.period:cfg.kind==="sr-retest"?"S/R retest "+cfg.lookback:cfg.kind==="atr-breakout"?"ATR impulse "+cfg.atrMult:cfg.kind==="candle-reversal"?"Engulfing/pin-bar":cfg.kind==="inside-bar"?"Inside-bar breakout":cfg.kind==="roc-momentum"?"ROC "+cfg.period+" · "+cfg.threshold:cfg.kind==="williams-reversion"?"Williams %R "+cfg.period+" · "+cfg.lower+"/"+cfg.upper:cfg.kind==="triple-ema"?"EMA "+cfg.fast+"/"+cfg.midPeriod+"/"+cfg.longPeriod:cfg.kind==="fib-pullback"?"Fib pullback "+cfg.lookback:cfg.kind==="supertrend"?"ATR band "+cfg.atrMult:cfg.kind==="donchian"?"Lookback "+cfg.lookback:cfg.kind==="rsi-reversion"?"RSI "+cfg.rsiPeriod+" · "+cfg.lower+"/"+cfg.upper:cfg.kind==="bollinger-reversion"?"BB "+cfg.bandPeriod+" · "+cfg.bandDev+"σ":cfg.kind==="macd-momentum"?"MACD "+cfg.fast+"/"+cfg.slow+"/"+cfg.signalPeriod:cfg.kind==="keltner-breakout"?"Keltner "+cfg.channelPeriod+" · "+cfg.channelMult+" ATR":cfg.kind==="stochastic-reversion"?"Stoch "+cfg.stochPeriod+" · "+cfg.lower+"/"+cfg.upper:cfg.kind==="cci-reversion"?"CCI "+cfg.cciPeriod+" · ±"+cfg.cciLevel:cfg.fast+"/"+cfg.slow;
    return {id:"GOLD-"+String(n+1).padStart(3,"0"),name:family+" · "+params+" · "+cfg.riskLabel,config:cfg,train:{trades:train.trades,winRate:train.winRate,netR:train.netR,expectancyR:train.expectancyR,profitFactor:train.profitFactor,maxDrawdownR:train.maxDrawdownR},holdout:{trades:raw.trades,winRate:raw.winRate,netR:raw.netR,expectancyR:raw.expectancyR,profitFactor:raw.profitFactor,maxDrawdownR:raw.maxDrawdownR},afterCosts:{trades:net.trades,winRate:net.winRate,netR:net.netR,expectancyR:net.expectancyR,profitFactor:net.profitFactor,maxDrawdownR:net.maxDrawdownR},walkForward:{folds,activeFolds:activeFolds.length,positiveFolds,consistency:Number(foldConsistency.toFixed(3)),netR:foldNetR,informative:walkForwardInformative,stable:walkForwardStable},checks:{development:robustTrain,holdout:robustHoldout,drawdown:drawdownAcceptable,walkForward:walkForwardStable},status:passed?"REVIEW CANDIDATE":"NOT PASSED",score:Number(score.toFixed(3)),recentTrades:net.results};
  });
   candidates.sort((a,b)=>Number(b.status==="REVIEW CANDIDATE")-Number(a.status==="REVIEW CANDIDATE")||b.score-a.score);
   const passedCount=candidates.filter(x=>x.status==="REVIEW CANDIDATE").length;
-  return send(res,200,{ok:true,ready:true,symbol,timeframe,candleCount:c.length,trainCandles:split,holdoutCandles:c.length-split,generated:candidates.length,passedCount,costAssumptionR:costR,method:"Expanded 236-variant search across EMA trend, Donchian breakout, RSI reversion, trend pullback, Bollinger-band reversion, MACD momentum, Keltner ATR-channel breakout, Stochastic reversion and CCI reversion. Requires positive development expectancy and PF > 1.05, positive after-cost holdout expectancy and PF > 1.10, at least 30 trades in both development and holdout, bounded drawdown, and (when each of three holdout subperiods has at least 10 trades) positive combined subperiod R with at least two of three subperiods positive. These subperiods reuse the final holdout and are diagnostics, not independent untouched tests. First 70% development; final 30% holdout. Same-candle SL/TP collisions are scored as stop-loss. Costs are a user-entered R sensitivity assumption, not broker-calibrated.",candidates,warning:"Expanded 236-candidate search increases multiple-testing/overfit risk. Walk-forward subperiods reuse the final holdout and are not independent tests. The holdout is not untouched if repeatedly used to select candidates. Any review candidate needs a fresh unseen period and realistic VT Markets spread, commission, swap and slippage checks. Historical OHLC results are not proof of profitability. Research uses up to 50,000 verified MT5 bridge candles. No orders are sent.",walkForwardNote:"Each candidate includes three chronological subperiod diagnostics from the final 30%. When each subperiod has at least 10 trades, at least two must be profitable and combined net R must be positive. This is a modest stability check, not proof of robustness."});
+  return send(res,200,{ok:true,ready:true,symbol,timeframe,candleCount:c.length,trainCandles:split,holdoutCandles:c.length-split,generated:candidates.length,passedCount,costAssumptionR:costR,method:"Expanded multi-family search across EMA trend, triple EMA, Donchian breakout, RSI reversion, trend pullback, Bollinger-band reversion, MACD momentum, Keltner ATR-channel breakout, Stochastic reversion, CCI reversion, ADX/DMI trend, Ichimoku, support/resistance retest, ATR impulse breakout, candlestick reversal, inside-bar breakout, ROC momentum, Williams %R reversion, Fibonacci pullback and ATR-band breakout. Requires positive development expectancy and PF > 1.05, positive after-cost holdout expectancy and PF > 1.10, at least 30 trades in both development and holdout, bounded drawdown, and (when each of three holdout subperiods has at least 10 trades) positive combined subperiod R with at least two of three subperiods positive. These subperiods reuse the final holdout and are diagnostics, not independent untouched tests. First 70% development; final 30% holdout. Same-candle SL/TP collisions are scored as stop-loss. Costs are a user-entered R sensitivity assumption, not broker-calibrated.",candidates,warning:"Expanded multi-family search increases multiple-testing/overfit risk. Walk-forward subperiods reuse the final holdout and are not independent tests. The holdout is not untouched if repeatedly used to select candidates. Any review candidate needs a fresh unseen period and realistic VT Markets spread, commission, swap and slippage checks. Historical OHLC results are not proof of profitability. Research uses up to 50,000 verified MT5 bridge candles. No orders are sent.",walkForwardNote:"Each candidate includes three chronological subperiod diagnostics from the final 30%. When each subperiod has at least 10 trades, at least two must be profitable and combined net R must be positive. This is a modest stability check, not proof of robustness."});
  }catch(e){return send(res,502,{ok:false,error:"Candidate research failed. Check Vercel logs and Supabase setup."});}
 };
