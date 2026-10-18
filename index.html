@@ -65,8 +65,8 @@
 <section class="panel" style="margin-bottom:15px;border-color:#356a61"><div class="row"><div><div class="eyebrow">SIMULATION · NO REAL ORDERS</div><h2 style="margin:5px 0 8px">Paper Trading Engine</h2><p class="note">Run simulated trades using verified MT5 candles and the validated research model while this page is open.</p></div><a class="btn primary" href="/paper-trading.html" style="text-decoration:none">Open Paper Trading</a></div></section>
 <section class="panel" id="candidateLabPanel" style="margin-bottom:15px;border-color:#7b6639">
 <div class="row"><div><div class="eyebrow">GOLD ONLY · CANDIDATE GENERATOR</div><h2 style="margin:5px 0 8px">Strategy Candidate Lab</h2></div><span class="tag" id="candidateLabStatus">Not run yet</span></div>
-<p class="note">Generate and compare about 396 Gold strategy variants across 20 families: EMA/triple-EMA trend, Donchian and ATR breakouts, RSI/Stochastic/CCI/Williams %R reversion, trend pullback, Bollinger bands, MACD/ROC momentum, Keltner/ATR-band, ADX/DMI, Ichimoku, support/resistance retest, candlestick reversal, inside-bar breakout and Fibonacci pullback. Uses chronological development/holdout testing, estimated costs and stability diagnostics; research only. Uses the first 70% for development and final 30% as holdout. The lab reports exactly which filters each near-miss fails; it will not lower thresholds to manufacture a pass. Expanded searches raise overfit risk; no orders are sent. Test M5, M15 and H1 separately.</p>
-<div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn primary" id="runCandidateLab" type="button">Generate & test candidates</button><label class="note">Assumed round-trip cost (R) <input id="candidateCostR" type="number" min="0" max="1" step="0.05" value="0.10" style="width:100px;display:inline-block;margin-left:6px" title="Sensitivity assumption per completed trade, not a verified broker cost"></label><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
+<p class="note">Generate and compare about 396 Gold strategy variants across 20 families: EMA/triple-EMA trend, Donchian and ATR breakouts, RSI/Stochastic/CCI/Williams %R reversion, trend pullback, Bollinger bands, MACD/ROC momentum, Keltner/ATR-band, ADX/DMI, Ichimoku, support/resistance retest, candlestick reversal, inside-bar breakout and Fibonacci pullback. Uses chronological development/holdout testing, estimated costs and stability diagnostics; research only. Uses the first 70% for development and final 30% as holdout. The lab reports exactly which filters each near-miss fails; it will not lower thresholds to manufacture a pass. Expanded searches raise overfit risk; no orders are sent. Test M1 and M5 together for scalping, or test M15/H1 separately. Historical research only; no orders are sent.</p>
+<div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M1">M1</option><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn primary" id="runCandidateLab" type="button">Generate & test selected</button><button class="btn primary" id="runScalpingLab" type="button">Test M1 + M5 scalping</button><label class="note">Assumed round-trip cost (R) <input id="candidateCostR" type="number" min="0" max="1" step="0.05" value="0.10" style="width:100px;display:inline-block;margin-left:6px" title="Sensitivity assumption per completed trade, not a verified broker cost"></label><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
 <div class="metrics" style="margin-top:12px">
 <div class="metric"><div class="eyebrow">Candles used</div><strong id="candidateCandles">—</strong><small>Verified MT5 candles · selected timeframe</small></div>
 <div class="metric"><div class="eyebrow">Candidates</div><strong id="candidateCount">—</strong><small>Rule variants generated</small></div>
@@ -765,6 +765,7 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
 (function(){
  const $=id=>document.getElementById(id);
  let lastCandidates=[];
+  let candidateRunLabel="";
  const pct=v=>Number.isFinite(Number(v))?(Number(v)*100).toFixed(1)+"%":"—";
  function cell(tr,value){const td=document.createElement("td");td.textContent=String(value);td.style.padding="9px 6px";td.style.borderTop="1px solid var(--line)";td.style.textAlign="center";tr.appendChild(td);}
  function failureReason(c){
@@ -812,18 +813,36 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
      $("proSelectedReason").textContent="No candidate met all current screening filters. Do not select the highest raw expectancy by default; keep WAIT, check data quality and cost assumptions, and validate on other periods.";
    }
    const body=$("candidateResults");body.replaceChildren();
-   lastCandidates.forEach(c=>{const tr=document.createElement("tr");cell(tr,c.id+" · "+c.name);cell(tr,c.holdout.trades);cell(tr,pct(c.holdout.winRate));const net=c.afterCosts||c.holdout;cell(tr,net.netR+"R");cell(tr,net.expectancyR+"R");cell(tr,net.profitFactor);cell(tr,net.maxDrawdownR+"R");cell(tr,c.status==="REVIEW CANDIDATE"?"—":failureReason(c));cell(tr,c.status);body.appendChild(tr);});
+   lastCandidates.forEach(c=>{const tr=document.createElement("tr");cell(tr,(c._timeframe?c._timeframe+" · ":"")+c.id+" · "+c.name);cell(tr,c.holdout.trades);cell(tr,pct(c.holdout.winRate));const net=c.afterCosts||c.holdout;cell(tr,net.netR+"R");cell(tr,net.expectancyR+"R");cell(tr,net.profitFactor);cell(tr,net.maxDrawdownR+"R");cell(tr,c.status==="REVIEW CANDIDATE"?"—":failureReason(c));cell(tr,c.status);body.appendChild(tr);});
    $("exportCandidates").disabled=!lastCandidates.length;
    $("copyCandidateReport").disabled=!lastCandidates.length;
    $("copyCandidateStatus").textContent="Ready to copy "+lastCandidates.length+" candidate results.";
   }catch(e){$("candidateLabStatus").textContent="Unavailable";$("candidateLabMessage").textContent=e.message+" Check that Supabase is configured and that historical candles exist."; }
   finally{btn.disabled=false;btn.textContent="Generate & test candidates";}
  });
- $("copyCandidateReport")?.addEventListener("click",async()=>{
+  $("runScalpingLab")?.addEventListener("click",async()=>{
+  const btn=$("runScalpingLab"),single=$("runCandidateLab");btn.disabled=true;single.disabled=true;btn.textContent="Testing M1 + M5…";$("candidateLabStatus").textContent="Running M1 + M5 research";
+  try{
+   const symbol=(document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD",costR=Math.max(0,Math.min(1,Number($("candidateCostR").value)||0));
+   const run=async function(tf){const r=await fetch("/api/candidate-lab?symbol="+encodeURIComponent(symbol)+"&timeframe="+tf+"&costR="+encodeURIComponent(costR),{cache:"no-store"});const d=await r.json();if(!r.ok||!d.ok)throw new Error(tf+": "+(d.error||"Candidate lab failed"));d._timeframe=tf;return d;};
+   const results=await Promise.all([run("M1"),run("M5")]),all=[];results.forEach(function(d){(d.candidates||[]).forEach(function(c){c._timeframe=d._timeframe;all.push(c);});});
+   lastCandidates=all.sort(function(a,b){return Number(b.status==="REVIEW CANDIDATE")-Number(a.status==="REVIEW CANDIDATE")||b.score-a.score;});candidateRunLabel="M1 + M5 scalping";
+   const passed=all.filter(function(c){return c.status==="REVIEW CANDIDATE";}),best=passed[0]||null;
+   $("candidateCandles").textContent=results.map(function(d){return d._timeframe+": "+Number(d.candleCount||0).toLocaleString();}).join(" · ");$("candidateCount").textContent=String(all.length);$("candidatePassed").textContent=String(passed.length);$("candidateBestExpectancy").textContent=best?best._timeframe+" · "+Number((best.afterCosts||best.holdout).expectancyR).toFixed(3)+"R":"NO PASS";
+   $("candidateLabStatus").textContent=results.every(function(d){return d.ready;})?"M1 + M5 research complete":"Need more timeframe data";$("candidateSplitInfo").textContent=results.map(function(d){return d._timeframe+": "+Number(d.candleCount||0).toLocaleString()+" candles; "+(d.ready?"70/30 split":"not ready — "+(d.message||"insufficient history"));}).join(" | ");
+   $("candidateLabMessage").textContent="Side-by-side M1/M5 historical research. "+results.map(function(d){return d._timeframe+" "+(d.ready?(d.passedCount||0)+" review candidate(s)":"not ready");}).join("; ")+". Assumed costs are not broker-calibrated. Paper test only; no orders are sent.";
+   $("proSelectedName").textContent=best?best._timeframe+" · "+best.id+" · "+best.name:"NO STRATEGY PASSED";$("proDecision").textContent=best?"REVIEW ONLY":"WAIT / NO TRADE";
+   if(best){const n=best.afterCosts||best.holdout;$("proExpectancy").textContent=Number(n.expectancyR).toFixed(3)+"R";$("proPF").textContent=Number(n.profitFactor).toFixed(2);$("proDD").textContent=Number(n.maxDrawdownR).toFixed(2)+"R";$("proSelectedReason").textContent="Best M1/M5 screening result only; not proof of profitability. Confirm unseen data and realistic VT costs.";}else{$("proExpectancy").textContent="—";$("proPF").textContent="—";$("proDD").textContent="—";$("proSelectedReason").textContent="No strategy passed all filters. Keep WAIT; do not loosen thresholds."; }
+   const body=$("candidateResults");body.replaceChildren();lastCandidates.forEach(function(c){const tr=document.createElement("tr");cell(tr,c._timeframe+" · "+c.id+" · "+c.name);cell(tr,c.holdout.trades);cell(tr,pct(c.holdout.winRate));const n=c.afterCosts||c.holdout;cell(tr,n.netR+"R");cell(tr,n.expectancyR+"R");cell(tr,n.profitFactor);cell(tr,n.maxDrawdownR+"R");cell(tr,c.status==="REVIEW CANDIDATE"?"—":failureReason(c));cell(tr,c.status);body.appendChild(tr);});
+   $("exportCandidates").disabled=!all.length;$("copyCandidateReport").disabled=!all.length;$("copyCandidateStatus").textContent="Ready to copy combined M1 + M5 report ("+all.length+" variants).";
+  }catch(e){$("candidateLabStatus").textContent="Unavailable";$("candidateLabMessage").textContent=e.message+" Check that MT5 M1/M5 candles have been uploaded.";}
+  finally{btn.disabled=false;single.disabled=false;btn.textContent="Test M1 + M5 scalping";}
+ });
+$("copyCandidateReport")?.addEventListener("click",async()=>{
   const summary=[
    "DARS AI LAB — CANDIDATE LAB REPORT",
    "Symbol: "+((document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD"),
-   "Timeframe: "+($("candidateTimeframe")?.value||"unknown"),
+   "Timeframe: "+(candidateRunLabel||$("candidateTimeframe")?.value||"unknown"),
    "Verified candles: "+($("candidateCandles")?.textContent||"unknown"),
    "Assumed cost per trade (R): "+($("candidateCostR")?.value||"0"),
    "Candidates generated: "+lastCandidates.length,
@@ -850,7 +869,7 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
  });
  $("exportCandidates")?.addEventListener("click",()=>{
   const rows=[["id","name","status","train_trades","train_net_R","holdout_trades","raw_holdout_net_R","raw_expectancy_R","assumed_round_trip_cost_R","net_after_costs_R","expectancy_after_costs_R","profit_factor_after_costs","max_drawdown_after_costs_R"]];
-  lastCandidates.forEach(c=>{const n=c.afterCosts||c.holdout;rows.push([c.id,c.name,c.status,c.train.trades,c.train.netR,c.holdout.trades,c.holdout.netR,c.holdout.expectancyR,$("candidateCostR")?.value||0,n.netR,n.expectancyR,n.profitFactor,n.maxDrawdownR]);});
+  lastCandidates.forEach(c=>{const n=c.afterCosts||c.holdout;rows.push([c._timeframe||candidateRunLabel||$("candidateTimeframe")?.value||"",c.id,c.name,c.status,c.train.trades,c.train.netR,c.holdout.trades,c.holdout.netR,c.holdout.expectancyR,$("candidateCostR")?.value||0,n.netR,n.expectancyR,n.profitFactor,n.maxDrawdownR]);});
   const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="dars-gold-candidate-results.csv";a.click();URL.revokeObjectURL(a.href);
  });
