@@ -77,8 +77,8 @@ function buildSignal(c,cfg){
    if((bullEngulf||((Math.min(b.open,b.close)-b.low)/range>0.65&&body/range<0.4))&&rr[i]<55)s[i]=1;
    else if((bearEngulf||((b.high-Math.max(b.open,b.close))/range>0.65&&body/range<0.4))&&rr[i]>45)s[i]=-1;
   } else if(cfg.kind==="inside-bar"){
-   const p=c[i-1],b=c[i];
-   if(b.high<p.high&&b.low>p.low){if(close[i]>p.high)s[i]=1;else if(close[i]<p.low)s[i]=-1;}
+   const mother=c[i-2],inside=c[i-1],b=c[i];
+   if(inside.high<mother.high&&inside.low>mother.low){if(close[i]>mother.high)s[i]=1;else if(close[i]<mother.low)s[i]=-1;}
   } else if(cfg.kind==="roc-momentum"){
    const v=rocAt(i,cfg.period||10),prev=rocAt(i-1,cfg.period||10);
    if(v!==null&&prev!==null&&v>cfg.threshold&&prev<=cfg.threshold)s[i]=1;
