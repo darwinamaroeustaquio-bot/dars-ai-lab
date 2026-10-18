@@ -1,42 +1,38 @@
-// Real article headlines from GDELT's global news database; no synthetic headlines or paid key.
-// Bias/impact labels are keyword heuristics, not an AI forecast or verified event classification.
+// Real publisher headlines via Google News RSS; no API key required.
+// Labels are simple keyword hints, not AI analysis or trade instructions.
 function send(res,status,body){res.status(status);res.setHeader("Content-Type","application/json; charset=utf-8");res.setHeader("Cache-Control","s-maxage=180, stale-while-revalidate=300");return res.json(body)}
-function label(title){
+function decode(s){return String(s||"").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,"$1").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").trim()}
+function tag(title){
  const t=String(title||"").toLowerCase();
  const bull=/(gold (surge|rall|rise|gain|jump|climb)|bullion (rise|gain|surge)|fed (cut|dovish)|rate cut|lower interest rates|dollar (falls|weakens|slips)|yields (fall|drop|slip)|inflation cools|cpi (slows|cool))/i.test(t);
  const bear=/(gold (falls|drop|slump|sink|slide)|fed (hike|hawkish)|rate hike|higher interest rates|dollar (rises|strengthens|jumps)|yields (rise|jump|climb)|inflation heats|hotter-than-expected cpi)/i.test(t);
- const macro=/(federal reserve|\\bfed\\b|\\bcpi\\b|\\bpce\\b|\\bnfp\\b|nonfarm payroll|jobs report|inflation|interest rate|fomc|powell|unemployment|treasury yields|dollar|central bank)/i.test(t);
+ const macro=/(federal reserve|\bfed\b|\bcpi\b|\bpce\b|\bnfp\b|nonfarm payroll|jobs report|inflation|interest rate|fomc|powell|unemployment|treasury yields|dollar|central bank)/i.test(t);
  return {bias:bull&&!bear?"Potentially bullish gold":bear&&!bull?"Potentially bearish gold":"Unclassified / mixed",impact:macro?"Macro-related headline (keyword tag)":"General market news",confidence:"Not assessed — headline alone is insufficient"};
 }
-function parseSeenAt(v){
- const m=String(v||"").match(/^(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})Z$/);
- return m?new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6])).toISOString():null;
-}
+function tagText(xml,name){const m=xml.match(new RegExp("<"+name+"(?:\\s[^>]*)?>([\\s\\S]*?)<\\/"+name+">","i"));return m?decode(m[1]):""}
 module.exports=async(req,res)=>{
  if(req.method!=="GET"){res.setHeader("Allow","GET");return send(res,405,{ok:false,error:"Method not allowed"})}
- // Try queries independently: one rejected/timeout query must not discard results from another.
- const queries=[
-  '(gold OR XAUUSD OR bullion) AND (Federal Reserve OR inflation OR dollar OR Treasury OR interest rates)',
-  '(gold price OR precious metals OR Federal Reserve OR US CPI OR PCE OR nonfarm payrolls)',
-  'gold bullion'
+ const searches=[
+  {q:'gold price Federal Reserve dollar inflation',hl:"en-US",gl:"US",ceid:"US:en"},
+  {q:'XAUUSD gold bullion market',hl:"en-US",gl:"US",ceid:"US:en"}
  ];
- const batches=[];
- const errors=[];
- for(const query of queries){
+ const articles=[],errors=[];
+ for(const s of searches){
   try{
-   const params=new URLSearchParams({query,mode:"ArtList",format:"json",sort:"DateDesc",maxrecords:"25",timespan:"7d"});
-   const r=await fetch("https://api.gdeltproject.org/api/v2/doc/doc?"+params.toString(),{headers:{"User-Agent":"Mozilla/5.0 DarsAILab/1.0"},signal:AbortSignal.timeout(7000)});
-   if(!r.ok){errors.push("provider HTTP "+r.status);continue}
-   const raw=await r.text();
-   let data;
-   try{data=JSON.parse(raw)}catch{errors.push("provider returned non-JSON");continue}
-   if(data.status&&String(data.status).toLowerCase()!=="ok"){errors.push("provider status unavailable");continue}
-   if(Array.isArray(data.articles))batches.push(...data.articles);
-   if(batches.length>=5)break;
-  }catch(e){errors.push(e&&e.name==="TimeoutError"?"provider timeout":"provider request failed")}
+   const url="https://news.google.com/rss/search?"+new URLSearchParams({q:s.q,hl:s.hl,gl:s.gl,ceid:s.ceid});
+   const r=await fetch(url,{headers:{"User-Agent":"Mozilla/5.0 (compatible; DarsAILab/1.0)","Accept":"application/rss+xml, application/xml, text/xml"},signal:AbortSignal.timeout(6500)});
+   if(!r.ok){errors.push("RSS provider HTTP "+r.status);continue}
+   const xml=await r.text();
+   if(!/<rss|<feed/i.test(xml)){errors.push("RSS provider returned unusable content");continue}
+   const blocks=[...xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)].map(m=>m[1]);
+   for(const b of blocks){
+    const title=tagText(b,"title"), link=tagText(b,"link"), pub=tagText(b,"pubDate"), source=tagText(b,"source");
+    if(!title||!/^https?:\/\//i.test(link))continue;
+    articles.push({title,link,seenAt:pub&&Number.isFinite(Date.parse(pub))?new Date(pub).toISOString():null,source:source||"Publisher via Google News RSS",language:"English",...tag(title)});
+   }
+  }catch(e){errors.push(e&&e.name==="TimeoutError"?"RSS provider timeout":"RSS provider request failed")}
  }
- const unique=[...new Map(batches.filter(a=>a&&a.title&&a.url).map(a=>[a.url,{title:String(a.title),link:String(a.url),seenAt:parseSeenAt(a.seendate),source:String(a.domain||a.sourcecountry||"News publisher"),language:String(a.language||"Unknown"),...label(a.title)}])).values()]
-  .sort((a,b)=>Date.parse(b.seenAt||0)-Date.parse(a.seenAt||0)).slice(0,25);
- if(!unique.length)return send(res,502,{ok:false,error:"Real-news feed temporarily unavailable.",details:"GDELT did not return usable headlines for the fallback searches. Refresh later; new paper entries remain blocked while required feeds are unavailable.",providerErrors:[...new Set(errors)]});
- return send(res,200,{ok:true,updatedAt:new Date().toISOString(),source:"GDELT global news database",method:"Real publisher articles; labels are keyword heuristics only",items:unique,warning:"These are links to real articles indexed by GDELT, not an official economic calendar. 'Seen' is when GDELT recorded the article, not necessarily its publication time. Verify article dates and event times at the publisher or official source. Bias tags are not predictions."});
+ const unique=[...new Map(articles.map(a=>[a.link,a])).values()].sort((a,b)=>Date.parse(b.seenAt||0)-Date.parse(a.seenAt||0)).slice(0,25);
+ if(!unique.length)return send(res,502,{ok:false,error:"Real-news feed temporarily unavailable.",details:"The public RSS provider did not return usable publisher headlines. Refresh later; new paper entries remain blocked while required feeds are unavailable.",providerErrors:[...new Set(errors)]});
+ return send(res,200,{ok:true,updatedAt:new Date().toISOString(),source:"Google News RSS (publisher articles)",method:"Real article headlines and links; labels are keyword heuristics only",items:unique,warning:"Headlines link to publishers through Google News RSS. Headline tags are not predictions or trade instructions. Verify article dates and claims at the original publisher or official source."});
 };
