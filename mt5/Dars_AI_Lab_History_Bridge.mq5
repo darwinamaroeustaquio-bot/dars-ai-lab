@@ -4,12 +4,12 @@
 //+------------------------------------------------------------------+
 #property strict
 #property version "1.10"
-#property description "Exports closed M5/M15/H1 candles and closed deal history; never trades."
+#property description "Exports closed M1/M5/M15/H1 candles and closed deal history; never trades."
 
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-history";
 input string BridgeToken = "SET_THE_SAME_RANDOM_TOKEN_IN_VERCEL";
 input string SymbolsCSV = "XAUUSD-STD";
-input int CandlesPerTimeframe = 1500;
+input int CandlesPerTimeframe = 3000;
 input int HistoryDays = 90;
 input int MaxDealsPerBatch = 100;
 input int SendEverySeconds = 300;
@@ -24,11 +24,12 @@ string EscapeJson(string s)
 }
 bool IsAllowedFrame(ENUM_TIMEFRAMES tf)
 {
-   return tf==PERIOD_M5 || tf==PERIOD_M15 || tf==PERIOD_H1;
+   return tf==PERIOD_M1 || tf==PERIOD_M5 || tf==PERIOD_M15 || tf==PERIOD_H1;
 }
 string FrameName(ENUM_TIMEFRAMES tf)
 {
-   if(tf==PERIOD_M5) return "M5";
+   if(tf==PERIOD_M1) return "M1";
+    if(tf==PERIOD_M5) return "M5";
    if(tf==PERIOD_M15) return "M15";
    if(tf==PERIOD_H1) return "H1";
    return "UNKNOWN";
@@ -37,7 +38,7 @@ void AppendCandles(string &out, bool &first, const string symbol, ENUM_TIMEFRAME
 {
    MqlRates rates[];
    ArraySetAsSeries(rates,false);
-   int copied=CopyRates(symbol,tf,1,MathMax(10,MathMin(1500,CandlesPerTimeframe)),rates);
+   int copied=CopyRates(symbol,tf,1,MathMax(10,MathMin(3000,CandlesPerTimeframe)),rates);
    if(copied<=0) { Print("No candles loaded for ",symbol," ",FrameName(tf),"; error=",GetLastError()); return; }
    int digits=(int)SymbolInfoInteger(symbol,SYMBOL_DIGITS);
    for(int i=0;i<copied;i++)
@@ -106,13 +107,13 @@ void ExportHistory()
    bool first=true;
    string symbols[];
    int n=StringSplit(SymbolsCSV,',',symbols);
-   ENUM_TIMEFRAMES frames[3]={PERIOD_M5,PERIOD_M15,PERIOD_H1};
+   ENUM_TIMEFRAMES frames[4]={PERIOD_M1,PERIOD_M5,PERIOD_M15,PERIOD_H1};
    for(int s=0;s<n;s++)
    {
       StringTrimLeft(symbols[s]); StringTrimRight(symbols[s]);
       if(symbols[s]=="") continue;
       if(!SymbolSelect(symbols[s],true)) { Print("Symbol not available: ",symbols[s]); continue; }
-      for(int f=0;f<3;f++) AppendCandles(candles,first,symbols[s],frames[f]);
+      for(int f=0;f<4;f++) AppendCandles(candles,first,symbols[s],frames[f]);
    }
    string deals="";
    first=true;
