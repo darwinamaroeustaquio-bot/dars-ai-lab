@@ -2,7 +2,7 @@
 // Candles are stored in the existing mt5_candles table used by the dashboard.
 // Closed deals are stored in mt5_history. Secrets remain server-side.
 const ALLOWED = new Set(["XAUUSD-STD", "XAUUSD", "EURUSD", "GBPUSD", "BTCUSD"]);
-const FRAMES = new Set(["M5", "M15", "H1"]);
+const FRAMES = new Set(["M1", "M5", "M15", "H1"]);
 
 function send(res, status, body) {
   res.status(status);
@@ -39,7 +39,7 @@ module.exports = async (req, res) => {
   const body = req.body || {};
   if (body.version !== 1 || !Array.isArray(body.candles) || !Array.isArray(body.deals))
     return send(res, 400, { ok: false, error: "Expected version:1, candles:[], deals:[]" });
-  if (body.candles.length > 4600 || body.deals.length > 300)
+  if (body.candles.length > 12500 || body.deals.length > 300)
     return send(res, 413, { ok: false, error: "Batch too large; maximum 4600 candles and 300 deals per request." });
 
   const account = String(body.account || "unknown");
