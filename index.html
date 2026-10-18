@@ -27,7 +27,7 @@
 </section>
 <div id="dashboardContent" class="hidden">
 <header class="top"><div><div class="brand">DARS <span>AI LAB</span></div><div class="sub">Advanced trading workspace · v0.4 · Connection setup</div></div><div class="row" style="justify-content:flex-end"><button class="btn hidden" id="accountToggle" type="button">Account</button><span class="pill" id="topConnectionStatus">● MT5 STATUS · CHECKING</span></div></header>
-<div class="notice"><b>IMPORTANT:</b> Wala pang live VT Markets feed o verified trading signals. Ang chart at prices sa Market Lab ay generated illustration lamang. Risk calculations use your inputs; journal data stays in this browser. No trades are sent.</div>
+<div class="notice" id="dashboardMainNotice"><b>LIVE CONNECTION:</b> Checking MT5 bridge status… This dashboard reads real VT Markets MT5 quotes and candles when the bridge is online. Paper trading / analysis only; no real orders are sent.</div>
 <section class="panel" id="mt5LivePanel" style="margin-bottom:15px">
 <div class="row"><div><div class="eyebrow">VT Markets · MT5 Bridge · GOLD ONLY</div><h2 style="margin:5px 0 8px">Gold live quote connection</h2></div><span class="tag" id="mt5LiveStatus">Waiting for MT5 bridge</span></div>
 <div class="metrics" style="margin:12px 0 0">
@@ -491,7 +491,10 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
        }
        if(!r.ok||!d.ok) throw new Error((d.error||"Quote API request failed.")+" (HTTP "+r.status+(d.upstream_status?"; Supabase HTTP "+d.upstream_status:"")+").");
        if(!d.connected||!d.quote){
-         status.textContent="Waiting for MT5 bridge";
+         status.textContent="WAITING · MT5 NOT CONNECTED";
+         const mainNotice=document.getElementById("dashboardMainNotice");
+         if(mainNotice)mainNotice.innerHTML="<b>WAITING FOR MT5:</b> Dashboard is online, but no fresh quote has arrived from your MT5 bridge. Open MT5 on your computer, enable Algo Trading, attach Dars_ReadOnly_Quote_Bridge, and keep MT5 + internet running. Paper/live broker orders remain OFF.";
+         setText("topConnectionStatus","● MT5 WAITING");
          setText("mt5Bid","—");setText("mt5Ask","—");setText("mt5Age","No quote");
          setText("mt5Spread","Spread: —");
          setText("mt5LiveMessage",d.message||"No fresh quote yet. Start the Dars read-only EA in MT5.");
@@ -500,14 +503,20 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
        const q=d.quote;
        // Display the exact symbol returned by the bridge, not a hard-coded label.
        setText("mt5Symbol",q.symbol||activeSymbol);
-       status.textContent="LIVE · MT5 quote";
+       status.textContent="● LIVE · MT5 CONNECTED";
+       const mainNotice=document.getElementById("dashboardMainNotice");
+       if(mainNotice)mainNotice.innerHTML="<b>CONNECTED TO MT5 · LIVE DATA:</b> Receiving real "+(q.symbol||activeSymbol)+" quotes from the MT5 bridge. Market analysis and signals use broker candles when available. Paper simulation only — live broker orders are OFF.";
+       setText("topConnectionStatus","● MT5 CONNECTED · LIVE");
        setText("mt5Bid",Number(q.bid).toFixed(Number(q.digits)||2));
        setText("mt5Ask",Number(q.ask).toFixed(Number(q.digits)||2));
        setText("mt5Age",d.age_seconds+"s ago");
        setText("mt5Spread","Spread: "+Number(q.spread||0).toFixed(1)+" points");
        setText("mt5LiveMessage","Quote received from the MT5 bridge at "+new Date(q.received_at).toLocaleTimeString()+". Read-only mode; no orders are sent.");
      }catch(e){
-       status.textContent="Setup required";
+       status.textContent="SETUP ERROR · MT5 FEED UNAVAILABLE";
+       const mainNotice=document.getElementById("dashboardMainNotice");
+       if(mainNotice)mainNotice.innerHTML="<b>MT5 FEED ERROR:</b> The dashboard cannot verify a fresh broker quote yet. Check the Vercel/Supabase bridge configuration and the MT5 EA Journal. No live broker orders are enabled.";
+       setText("topConnectionStatus","● MT5 FEED ERROR");
        setText("mt5Bid","—");setText("mt5Ask","—");setText("mt5Age","Unavailable");
        setText("mt5Spread","Spread: —");
        setText("mt5LiveMessage",e.message+" Confirm the Vercel environment variables and run supabase/mt5_quotes.sql.");
