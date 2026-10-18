@@ -7,10 +7,10 @@
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
 input string CandleEndpoint = "https://dars-indol.vercel.app/api/mt5-candles";
 input string BridgeToken = "SET_THE_SAME_RANDOM_TOKEN_IN_VERCEL";
-input string SymbolsCsv = "XAUUSD-STD,EURUSD,GBPUSD,BTCUSD";
+input string SymbolsCsv = "XAUUSD-STD";
 input int SendEverySeconds = 3;
 input int SendCandlesEverySeconds = 300;
-input int BarsPerTimeframe = 5000;
+input int BarsPerTimeframe = 500;
 
 string symbols[];
 int candleTimer = 0;
