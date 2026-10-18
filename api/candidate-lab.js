@@ -63,7 +63,7 @@ function buildSignal(c,cfg){
    if(z.conversion!==null&&z.base!==null&&p.conversion!==null&&p.base!==null&&z.conversion>z.base&&p.conversion<=p.base&&close[i]>z.span)s[i]=1;
    else if(z.conversion!==null&&z.base!==null&&p.conversion!==null&&p.base!==null&&z.conversion<z.base&&p.conversion>=p.base&&close[i]<z.span)s[i]=-1;
   } else if(cfg.kind==="sr-retest"){
-   const r=rollingRange(i,cfg.lookback||20),tol=(aa[i]||0)*(cfg.tolerance||0.25);
+   const r=rollingRange(i-1,cfg.lookback||20),tol=(aa[i]||0)*(cfg.tolerance||0.25);
    if(c[i-1].close>r.hi&&c[i].low<=r.hi+tol&&close[i]>r.hi)s[i]=1;
    else if(c[i-1].close<r.lo&&c[i].high>=r.lo-tol&&close[i]<r.lo)s[i]=-1;
   } else if(cfg.kind==="atr-breakout"){
