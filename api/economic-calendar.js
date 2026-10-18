@@ -1,63 +1,69 @@
-// US macro economic calendar for Gold research. Requires a Trading Economics API key in Vercel.
+// Gold research calendar using the public Forex Factory weekly JSON feed.
+// No paid API key required. Fail closed when the feed is unavailable or unusable.
 function send(res, status, body) {
   res.status(status);
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=300");
   return res.json(body);
 }
-function wallTimeToUtc(value, timeZone) {
-  const m = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
-  if (!m) return null;
-  const parts = m.slice(1).map(Number);
-  const wall = Date.UTC(parts[0], parts[1]-1, parts[2], parts[3], parts[4], parts[5] || 0);
-  const fmt = new Intl.DateTimeFormat("en-US", { timeZone, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit", hourCycle:"h23" });
-  let guess = wall;
-  for (let i=0;i<3;i++) {
-    const p = Object.fromEntries(fmt.formatToParts(new Date(guess)).filter(x=>x.type!=="literal").map(x=>[x.type,Number(x.value)]));
-    const asUtc = Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute,p.second);
-    guess += wall - asUtc;
-  }
-  return new Date(guess).toISOString();
-}
+const RELEVANT = /(CPI|consumer price|inflation|PCE|personal consumption|nonfarm|non-farm|payroll|employment situation|unemployment rate|FOMC|federal funds|interest rate|fed chair|powell|GDP|retail sales|PPI|producer price|ISM manufacturing|ISM services|jobless claims|JOLTS|core price|average hourly earnings|initial claims)/i;
 module.exports = async (req, res) => {
-  if (req.method !== "GET") { res.setHeader("Allow","GET"); return send(res,405,{ok:false,error:"Method not allowed"}); }
-  const key = String(process.env.TRADING_ECONOMICS_API_KEY || "").trim();
-  if (!key) return send(res,503,{ok:false,configured:false,source:"Trading Economics",error:"Economic calendar not connected yet. Add TRADING_ECONOMICS_API_KEY in Vercel Environment Variables to enable verified provider data."});
-  const now = new Date();
-  const from = new Date(now.getTime()-2*86400000).toISOString().slice(0,10);
-  const to = new Date(now.getTime()+14*86400000).toISOString().slice(0,10);
-  const url = "https://api.tradingeconomics.com/calendar/country/united%20states/"+from+"/"+to+"?c="+encodeURIComponent(key)+"&f=json&values=true";
+  if (req.method !== "GET") { res.setHeader("Allow", "GET"); return send(res, 405, {ok:false,error:"Method not allowed"}); }
+  const url = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
   try {
-    const upstream = await fetch(url,{headers:{"Accept":"application/json"},signal:AbortSignal.timeout(10000)});
-    if (!upstream.ok) return send(res,502,{ok:false,configured:true,source:"Trading Economics",error:"Calendar provider rejected the request (HTTP "+upstream.status+"). Check API access and key in Vercel."});
+    const upstream = await fetch(url, {
+      headers: {"Accept":"application/json", "User-Agent":"DARS-AI-LAB-economic-calendar/1.0"},
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!upstream.ok) return send(res, 502, {ok:false,configured:true,source:"Forex Factory public weekly calendar",error:"Calendar feed unavailable (HTTP "+upstream.status+"). Entry guard must remain blocked until a fresh calendar loads."});
     const data = await upstream.json();
-    if (!Array.isArray(data)) return send(res,502,{ok:false,configured:true,source:"Trading Economics",error:"Provider returned an unexpected response."});
-    const relevant = data.filter(x => {
-      const t = String(x.Event||x.Category||"");
-      return /(CPI|consumer price|inflation|PCE|personal consumption|nonfarm|non-farm|payroll|employment situation|unemployment rate|FOMC|federal funds|interest rate decision|fed chair|powell|GDP|retail sales|PPI|producer price|ISM manufacturing|ISM services|jobless claims|JOLTS)/i.test(t);
+    if (!Array.isArray(data) || data.length === 0) return send(res, 502, {ok:false,configured:true,source:"Forex Factory public weekly calendar",error:"Calendar feed returned no usable events. Entry guard must remain blocked."});
+    const now = Date.now();
+    const events = data.filter(x => {
+      const country = String(x.country || "").toUpperCase();
+      const title = String(x.title || "");
+      const time = Date.parse(String(x.date || ""));
+      return country === "USD" && Number.isFinite(time) && RELEVANT.test(title);
     }).map(x => {
-      const sourceTime = String(x.Date||"");
+      const sourceTime = String(x.date || "");
+      const time = Date.parse(sourceTime);
+      const impactText = String(x.impact || "");
+      const importance = /^high$/i.test(impactText) ? 3 : /^medium$/i.test(impactText) ? 2 : /^low$/i.test(impactText) ? 1 : 0;
       return {
-        id:String(x.CalendarId||x.Ticker||x.Event||sourceTime),
-        event:String(x.Event||x.Category||"Economic release"),
-        category:String(x.Category||""),
-        country:String(x.Country||"United States"),
+        id: [x.country, x.title, sourceTime].join("-"),
+        event: String(x.title || "U.S. economic release"),
+        category: "U.S. economic indicator",
+        country: "United States",
+        currency: "USD",
         sourceTime,
-        utc:wallTimeToUtc(sourceTime,"America/New_York"),
-        actual:String(x.Actual??""),
-        forecast:String(x.Forecast??""),
-        previous:String(x.Previous??""),
-        revised:String(x.Revised??""),
-        importance:Number(x.Importance)||0,
-        dateSpan:String(x.DateSpan??""),
-        updatedAt:String(x.LastUpdate||""),
-        source:String(x.Source||""),
-        sourceUrl:String(x.SourceURL||""),
-        providerUrl:x.URL?("https://tradingeconomics.com"+String(x.URL)):"https://tradingeconomics.com/calendar"
+        utc: new Date(time).toISOString(),
+        actual: String(x.actual ?? ""),
+        forecast: String(x.forecast ?? ""),
+        previous: String(x.previous ?? ""),
+        revised: "",
+        importance,
+        impact: impactText,
+        updatedAt: "",
+        source: "Forex Factory public weekly calendar",
+        sourceUrl: "https://www.forexfactory.com/calendar",
+        providerUrl: "https://www.forexfactory.com/calendar"
       };
-    }).sort((a,b)=>String(a.utc||a.sourceTime).localeCompare(String(b.utc||b.sourceTime))).slice(0,100);
-    return send(res,200,{ok:true,configured:true,source:"Trading Economics",sourceUrl:"https://docs.tradingeconomics.com/economic_calendar/schema/",timezone:"America/New_York converted to Asia/Manila",updatedAt:new Date().toISOString(),from,to,events:relevant,warning:"Release schedules can change. Event times are interpreted in U.S. Eastern time and converted to Manila time. Check the original source before trading; calendar data is context, not a signal."});
-  } catch (_) {
-    return send(res,502,{ok:false,configured:true,source:"Trading Economics",error:"Calendar feed temporarily unavailable. Try refreshing later."});
+    }).sort((a,b) => a.utc.localeCompare(b.utc)).slice(0,100);
+    if (!events.length) return send(res, 502, {ok:false,configured:true,source:"Forex Factory public weekly calendar",error:"No relevant U.S. events could be verified from the weekly feed. Entry guard must remain blocked."});
+    return send(res, 200, {
+      ok:true,
+      configured:true,
+      source:"Forex Factory public weekly calendar",
+      sourceUrl:"https://www.forexfactory.com/calendar",
+      timezone:"Event timestamps supplied with timezone offsets and normalized to UTC; display in Asia/Manila",
+      updatedAt:new Date().toISOString(),
+      from:new Date(Math.min(...events.map(e=>Date.parse(e.utc)))).toISOString().slice(0,10),
+      to:new Date(Math.max(...events.map(e=>Date.parse(e.utc)))).toISOString().slice(0,10),
+      coverage:"Current week only",
+      events,
+      warning:"Free third-party weekly feed; it may omit events or change availability. Verify major releases against official sources. If this endpoint is stale or unavailable, do not allow paper entries."
+    });
+  } catch (error) {
+    return send(res, 502, {ok:false,configured:true,source:"Forex Factory public weekly calendar",error:"Calendar feed temporarily unavailable or malformed. Entry guard must remain blocked."});
   }
 };
