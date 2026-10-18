@@ -65,7 +65,7 @@
 <section class="panel" style="margin-bottom:15px;border-color:#356a61"><div class="row"><div><div class="eyebrow">SIMULATION · NO REAL ORDERS</div><h2 style="margin:5px 0 8px">Paper Trading Engine</h2><p class="note">Run simulated trades using verified MT5 candles and the validated research model while this page is open.</p></div><a class="btn primary" href="/paper-trading.html" style="text-decoration:none">Open Paper Trading</a></div></section>
 <section class="panel" id="candidateLabPanel" style="margin-bottom:15px;border-color:#7b6639">
 <div class="row"><div><div class="eyebrow">GOLD ONLY · CANDIDATE GENERATOR</div><h2 style="margin:5px 0 8px">Strategy Candidate Lab</h2></div><span class="tag" id="candidateLabStatus">Not run yet</span></div>
-<p class="note">Generate and compare 152 Gold strategy variants across EMA trend, Donchian breakout, RSI reversion, trend pullback, Bollinger-band reversion and MACD momentum. Uses chronological development/holdout testing, estimated costs and stability diagnostics; research only. Uses the first 70% for development and final 30% as holdout. The lab reports exactly which filters each near-miss fails; it will not lower thresholds to manufacture a pass. Expanded searches raise overfit risk; no orders are sent. Test M5, M15 and H1 separately.</p>
+<p class="note">Generate and compare 236 Gold strategy variants across nine families: EMA trend, Donchian breakout, RSI reversion, trend pullback, Bollinger bands, MACD momentum, Keltner ATR-channel breakout, Stochastic reversion and CCI reversion. Uses chronological development/holdout testing, estimated costs and stability diagnostics; research only. Uses the first 70% for development and final 30% as holdout. The lab reports exactly which filters each near-miss fails; it will not lower thresholds to manufacture a pass. Expanded searches raise overfit risk; no orders are sent. Test M5, M15 and H1 separately.</p>
 <div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn primary" id="runCandidateLab" type="button">Generate & test candidates</button><label class="note">Assumed round-trip cost (R) <input id="candidateCostR" type="number" min="0" max="1" step="0.05" value="0.10" style="width:100px;display:inline-block;margin-left:6px" title="Sensitivity assumption per completed trade, not a verified broker cost"></label><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
 <div class="metrics" style="margin-top:12px">
 <div class="metric"><div class="eyebrow">Candles used</div><strong id="candidateCandles">—</strong><small>Verified MT5 candles · selected timeframe</small></div>
@@ -86,7 +86,7 @@
   <div class="metric"><div class="eyebrow">Maximum drawdown</div><strong id="proDD" style="font-size:16px">—</strong><small>Holdout R</small></div>
  </div>
 </div>
-<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:900px"><thead><tr><th align="left">Candidate</th><th>Holdout trades</th><th>Win rate</th><th>Net R after costs</th><th>Expectancy after costs</th><th>PF after costs</th><th>Max DD R</th><th>Why not passed</th><th>Status</th></tr></thead><tbody id="candidateResults"><tr><td colspan="9" class="muted">No research run yet.</td></tr></tbody></table></div>
+<div class="row" style="justify-content:flex-start;gap:8px;margin:12px 0"><button class="btn primary" id="copyCandidateReport" type="button" disabled>Copy result for ChatGPT</button><span class="note" id="copyCandidateStatus" aria-live="polite">Run the lab first.</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:900px"><thead><tr><th align="left">Candidate</th><th>Holdout trades</th><th>Win rate</th><th>Net R after costs</th><th>Expectancy after costs</th><th>PF after costs</th><th>Max DD R</th><th>Why not passed</th><th>Status</th></tr></thead><tbody id="candidateResults"><tr><td colspan="9" class="muted">No research run yet.</td></tr></tbody></table></div>
 <p class="note">Important: this is a transparent screening engine, not self-modifying AI. After-cost metrics use only the assumed R-cost input; actual VT Markets spread, commission, swap and slippage are not broker-calibrated. Passing means review candidate only—not proven profitable, not auto-selected for live trading, and never automatically converted to an EA.</p>
 </section>
 <section class="panel" id="learningModelPanel" style="margin-bottom:15px;border-color:#4a6190">
@@ -791,7 +791,7 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
    const r=await fetch("/api/candidate-lab?symbol="+encodeURIComponent((document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD")+"&timeframe="+encodeURIComponent(tf)+"&costR="+encodeURIComponent(costR),{cache:"no-store",headers:{Accept:"application/json"}});
    const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"Candidate lab failed");
    $("candidateCandles").textContent=Number(d.candleCount||0).toLocaleString();
-   if(!d.ready){$("candidateCount").textContent="0";$("candidateBestExpectancy").textContent="—";$("candidatePassed").textContent="0";$("candidateLabStatus").textContent="Waiting for data";$("candidateLabMessage").textContent=d.message||"More candle history is needed.";$("candidateSplitInfo").textContent="Data check: "+tf+" has "+Number(d.candleCount||0).toLocaleString()+" verified candles; minimum required is "+Number(d.minimumCandles||250).toLocaleString()+". Keep the MT5 History Bridge running.";return;}
+   if(!d.ready){$("candidateCount").textContent="0";$("candidateBestExpectancy").textContent="—";$("candidatePassed").textContent="0";$("candidateLabStatus").textContent="Waiting for data";$("copyCandidateReport").disabled=true;$("exportCandidates").disabled=true;$("copyCandidateStatus").textContent="Need more candles before a report can be copied.";$("candidateLabMessage").textContent=d.message||"More candle history is needed.";$("candidateSplitInfo").textContent="Data check: "+tf+" has "+Number(d.candleCount||0).toLocaleString()+" verified candles; minimum required is "+Number(d.minimumCandles||250).toLocaleString()+". Keep the MT5 History Bridge running.";return;}
    lastCandidates=d.candidates||[];$("candidateCount").textContent=String(d.generated||lastCandidates.length);
    const passed=lastCandidates.filter(x=>x.status==="REVIEW CANDIDATE");
    const best=passed[0]||null;
@@ -814,8 +814,39 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
    const body=$("candidateResults");body.replaceChildren();
    lastCandidates.forEach(c=>{const tr=document.createElement("tr");cell(tr,c.id+" · "+c.name);cell(tr,c.holdout.trades);cell(tr,pct(c.holdout.winRate));const net=c.afterCosts||c.holdout;cell(tr,net.netR+"R");cell(tr,net.expectancyR+"R");cell(tr,net.profitFactor);cell(tr,net.maxDrawdownR+"R");cell(tr,c.status==="REVIEW CANDIDATE"?"—":failureReason(c));cell(tr,c.status);body.appendChild(tr);});
    $("exportCandidates").disabled=!lastCandidates.length;
+   $("copyCandidateReport").disabled=!lastCandidates.length;
+   $("copyCandidateStatus").textContent="Ready to copy "+lastCandidates.length+" candidate results.";
   }catch(e){$("candidateLabStatus").textContent="Unavailable";$("candidateLabMessage").textContent=e.message+" Check that Supabase is configured and that historical candles exist."; }
   finally{btn.disabled=false;btn.textContent="Generate & test candidates";}
+ });
+ $("copyCandidateReport")?.addEventListener("click",async()=>{
+  const summary=[
+   "DARS AI LAB — CANDIDATE LAB REPORT",
+   "Symbol: "+((document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD"),
+   "Timeframe: "+($("candidateTimeframe")?.value||"unknown"),
+   "Verified candles: "+($("candidateCandles")?.textContent||"unknown"),
+   "Assumed cost per trade (R): "+($("candidateCostR")?.value||"0"),
+   "Candidates generated: "+lastCandidates.length,
+   "Review candidates: "+lastCandidates.filter(c=>c.status==="REVIEW CANDIDATE").length,
+   "Split: chronological 70% development / 30% holdout",
+   "WARNING: historical OHLC research only; not a live-trading recommendation. Costs are assumptions, not broker-calibrated.",
+   "",
+   "TOP 40 CANDIDATES (sorted by lab status/score):",
+   ...lastCandidates.slice(0,40).map(c=>{
+    const tr=c.train||{},ho=c.holdout||{},net=c.afterCosts||{},wf=c.walkForward||{},ck=c.checks||{};
+    return [c.id+" | "+c.name+" | "+c.status,
+     "DEV: trades="+tr.trades+", win="+pct(tr.winRate)+", netR="+tr.netR+", expR="+tr.expectancyR+", PF="+tr.profitFactor+", DD="+tr.maxDrawdownR,
+     "HOLDOUT raw: trades="+ho.trades+", win="+pct(ho.winRate)+", netR="+ho.netR+", expR="+ho.expectancyR+", PF="+ho.profitFactor+", DD="+ho.maxDrawdownR,
+     "HOLDOUT after costs: trades="+net.trades+", win="+pct(net.winRate)+", netR="+net.netR+", expR="+net.expectancyR+", PF="+net.profitFactor+", DD="+net.maxDrawdownR,
+     "CHECKS: development="+ck.development+", holdout="+ck.holdout+", drawdown="+ck.drawdown+", walkForward="+ck.walkForward+"; folds="+(wf.folds||[]).map(f=>"F"+f.fold+":trades"+f.trades+"/netR"+f.netR+"/PF"+f.profitFactor).join(", "),
+     "Failure reasons: "+(c.status==="REVIEW CANDIDATE"?"none — review only":failureReason(c)),""
+    ].join("\n");
+   }),
+   "Please analyze data sufficiency, pass/fail reasons, overfitting risk, and which candidates deserve further unseen-period testing. Do not infer live profitability."
+  ].join("\n");
+  try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(summary);$("copyCandidateStatus").textContent="Copied! Paste the report into ChatGPT.";}
+   else{const ta=document.createElement("textarea");ta.value=summary;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();const ok=document.execCommand("copy");ta.remove();$("copyCandidateStatus").textContent=ok?"Copied! Paste the report into ChatGPT.":"Copy blocked; use Export CSV.";if(!ok)window.prompt("Copy the report below:",summary);}
+  }catch(e){window.prompt("Copy the report below:",summary);$("copyCandidateStatus").textContent="If clipboard is blocked, copy from the prompt.";}
  });
  $("exportCandidates")?.addEventListener("click",()=>{
   const rows=[["id","name","status","train_trades","train_net_R","holdout_trades","raw_holdout_net_R","raw_expectancy_R","assumed_round_trip_cost_R","net_after_costs_R","expectancy_after_costs_R","profit_factor_after_costs","max_drawdown_after_costs_R"]];
