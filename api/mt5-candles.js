@@ -1,7 +1,7 @@
 // Read-only MT5 candle history bridge for Dars AI Lab.
 // Requires the mt5_candles table created from sql/mt5_candles.sql.
 const ALLOWED = new Set(["XAUUSD-STD", "XAUUSD"]);
-const FRAMES = new Set(["M5", "M15", "H1"]);
+const FRAMES = new Set(["M1", "M5", "M15", "H1"]);
 function send(res, status, body) {
   res.status(status);
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
     if (!incomingFrames || typeof incomingFrames !== "object") return send(res,400,{ok:false,error:"Send timeframe + candles or frames object."});
     const rows = [];
     for (const [timeframe, candles] of Object.entries(incomingFrames)) {
-      if (!FRAMES.has(timeframe) || !Array.isArray(candles)) return send(res,400,{ok:false,error:"Only M5, M15 and H1 frames are accepted."});
+      if (!FRAMES.has(timeframe) || !Array.isArray(candles)) return send(res,400,{ok:false,error:"Only M1, M5, M15 and H1 frames are accepted."});
       if (candles.length > 5000) return send(res,400,{ok:false,error:"Maximum 5000 candles per timeframe per request."});
       for (const c of candles) {
         const t = Number(c.time), o=Number(c.open), h=Number(c.high), l=Number(c.low), close=Number(c.close), volume=Number(c.tick_volume || 0);
