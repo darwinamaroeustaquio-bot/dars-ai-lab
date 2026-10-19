@@ -1,7 +1,7 @@
 -- Run once in Supabase SQL Editor to enable the read-only MT5 candle bridge.
 create table if not exists public.mt5_candles (
   symbol text not null,
-  timeframe text not null check (timeframe in ('M5','M15','H1')),
+  timeframe text not null check (timeframe in ('M1','M5','M15','H1')),
   bar_time timestamptz not null,
   open double precision not null,
   high double precision not null,
@@ -12,6 +12,8 @@ create table if not exists public.mt5_candles (
   constraint mt5_candles_symbol_timeframe_bar_key unique (symbol, timeframe, bar_time),
   constraint mt5_candles_ohlc_valid check (high >= greatest(open, close, low) and low <= least(open, close, high) and low > 0)
 );
+alter table public.mt5_candles drop constraint if exists mt5_candles_timeframe_check;
+alter table public.mt5_candles add constraint mt5_candles_timeframe_check check (timeframe in ('M1','M5','M15','H1'));
 create index if not exists mt5_candles_lookup_idx
   on public.mt5_candles (symbol, timeframe, bar_time desc);
 alter table public.mt5_candles enable row level security;
