@@ -1,7 +1,7 @@
 // Dars AI Lab - VT Markets MT5 Read-only Quote + Candle Bridge
 // Sends quote snapshots and M5/M15/H1 candle history. DOES NOT trade.
 #property strict
-#property version "1.21"
+#property version "1.22"
 #property description "Read-only quote and candle sender for Dars AI Lab"
 
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
@@ -94,7 +94,8 @@ void PostFrame(const string sym,const string frameName,const string frameJson)
    if(colon<0) return;
    string candles=StringSubstr(frameJson,colon+1);
    string payload="{\"symbol\":\""+sym+"\",\"timeframe\":\""+frameName+"\",\"candles\":"+candles+"}";
-   PostJson(CandleEndpoint,payload,"candles "+sym+" "+frameName);
+   if(PostJson(CandleEndpoint,payload,"candles "+sym+" "+frameName))
+      Print("Dars candles OK: ",sym," ",frameName," uploaded to API.");
 }
 void SendCandles(const string sym)
 {
