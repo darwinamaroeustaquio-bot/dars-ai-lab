@@ -1,7 +1,7 @@
 // Dars AI Lab - VT Markets MT5 Read-only Quote + Candle Bridge
 // Sends quote snapshots and M5/M15/H1 candle history. DOES NOT trade.
 #property strict
-#property version "1.20"
+#property version "1.21"
 #property description "Read-only quote and candle sender for Dars AI Lab"
 
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
@@ -14,6 +14,8 @@ input int BarsPerTimeframe = 500;
 
 string symbols[];
 int candleTimer = 0;
+int quoteSendCount = 0;
+int quoteTickMissCount = 0;
 
 int OnInit()
 {
@@ -38,19 +40,36 @@ bool PostJson(const string endpoint,const string payload,const string label)
    string headers="Content-Type: application/json\r\nX-Bridge-Token: "+BridgeToken+"\r\n";
    ResetLastError();
    int code=WebRequest("POST",endpoint,headers,10000,data,result,resultHeaders);
-   if(code==200){Print("Dars ",label," sent. ",CharArrayToString(result));return true;}
-   Print("Dars ",label," failed. HTTP=",code," MT5 error=",GetLastError(),". Check MT5 WebRequest allow-list, token and API setup.");
+   string responseText=CharArrayToString(result,0,-1,CP_UTF8);
+   if(code==200){return true;}
+   Print("Dars ",label," failed. HTTP=",code," MT5 error=",GetLastError()," response=",responseText,
+         ". Check MT5 WebRequest allow-list, exact BridgeToken, endpoint and Vercel Function Logs.");
    return false;
 }
 void SendQuote(const string sym)
 {
-   MqlTick tick;if(!SymbolInfoTick(sym,tick)||tick.bid<=0||tick.ask<=0)return;
+   MqlTick tick;
+   if(!SymbolInfoTick(sym,tick)||tick.bid<=0||tick.ask<=0){
+      quoteTickMissCount++;
+      if(quoteTickMissCount==1 || quoteTickMissCount%20==0)
+         Print("Dars quote waiting for valid tick: symbol=",sym,
+               " selected=",SymbolInfoInteger(sym,SYMBOL_SELECT),
+               " tick_misses=",quoteTickMissCount," MT5 error=",GetLastError(),
+               ". Confirm this exact broker symbol is visible in Market Watch and the market has a quote.");
+      return;
+   }
    int digits=(int)SymbolInfoInteger(sym,SYMBOL_DIGITS);
    double point=SymbolInfoDouble(sym,SYMBOL_POINT);
    double spread=point>0?(tick.ask-tick.bid)/point:0;
    string payload=StringFormat("{\"symbol\":\"%s\",\"bid\":%s,\"ask\":%s,\"last\":%s,\"digits\":%d,\"spread\":%s}",
       sym,DoubleToString(tick.bid,digits),DoubleToString(tick.ask,digits),DoubleToString(tick.last,digits),digits,DoubleToString(spread,1));
-   PostJson(ApiEndpoint,payload,"quote "+sym);
+   if(PostJson(ApiEndpoint,payload,"quote "+sym)){
+      quoteSendCount++;
+      if(quoteSendCount==1 || quoteSendCount%10==0)
+         Print("Dars quote OK: ",sym," Bid=",DoubleToString(tick.bid,digits),
+               " Ask=",DoubleToString(tick.ask,digits)," spread=",DoubleToString(spread,1),
+               " successful_posts=",quoteSendCount);
+   }
 }
 string FrameJson(const string sym,const ENUM_TIMEFRAMES tf,const string frameName)
 {
