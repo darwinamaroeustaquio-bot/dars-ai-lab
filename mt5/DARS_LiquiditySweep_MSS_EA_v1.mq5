@@ -3,7 +3,7 @@
 //| Gold-focused MT5 EA. Demo/Strategy Tester only by default.        |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "1.02"
+#property version   "1.03"
 #property description "XAUUSD-STD sweep + MSS + retest EA. Live mode uses strict small-account guardrails."
 
 #include <Trade/Trade.mqh>
@@ -22,7 +22,7 @@ input double          InpRewardRisk             = 1.5;
 input double          InpMaxSpreadPoints        = 500;
 input double          InpSLBufferPoints         = 100;
 input double          InpRetestTolerancePoints  = 150;
-input int             InpMaxTradesPerDay        = 1;
+input int             InpMaxTradesPerDay        = 10;
 input double          InpDailyLossLimitPercent  = 1.0;
 input ulong           InpMagic                  = 26102101;
 input bool            InpEnableOrders           = true;
@@ -64,9 +64,9 @@ int OnInit()
    // Small-account live guardrails: fail closed if the inputs are loosened.
    if(mode == ACCOUNT_TRADE_MODE_REAL && InpAllowLiveTrading)
    {
-      if(InpRiskPercent > 0.25 || InpMaxTradesPerDay > 1 || InpDailyLossLimitPercent > 1.0)
+      if(InpRiskPercent > 0.25 || InpMaxTradesPerDay > 10 || InpDailyLossLimitPercent > 1.0)
       {
-         Print("DARS EA BLOCKED: live safety limits exceeded. For this build, use risk <=0.25%, max 1 trade/day, daily loss limit <=1.0%.");
+         Print("DARS EA BLOCKED: live safety limits exceeded. For this build, use risk <=0.25%, max 10 trades/day, daily loss limit <=1.0%.");
          return INIT_FAILED;
       }
       Print("DARS EA LIVE MODE: enabled. Small-account guardrails active; trades may be skipped if broker minimum lot exceeds the 0.25% risk budget. Live trading can lose money.");
@@ -84,7 +84,7 @@ int OnInit()
    trade.SetDeviationInPoints(30);
    trade.SetTypeFillingBySymbol(symbol);
    ResetDayIfNeeded();
-   Print("DARS EA v1.02 ready. Symbol=", symbol, ", entry TF=", EnumToString(InpEntryTF),
+   Print("DARS EA v1.03 ready. Symbol=", symbol, ", entry TF=", EnumToString(InpEntryTF),
          ", risk=", DoubleToString(InpRiskPercent, 2), "%, max trades/day=", InpMaxTradesPerDay,
          ", daily loss limit=", DoubleToString(InpDailyLossLimitPercent, 2), "%, orders enabled=", (InpEnableOrders ? "true" : "false"),
          ", live trading allowed=", (InpAllowLiveTrading ? "true" : "false"), ".");
