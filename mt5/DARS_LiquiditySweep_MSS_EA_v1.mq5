@@ -3,8 +3,8 @@
 //| Gold-focused MT5 EA. Demo/Strategy Tester only by default.        |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "1.00"
-#property description "Liquidity sweep + MSS + retest EA for XAUUSD-STD. Demo/tester only unless explicitly enabled."
+#property version   "1.01"
+#property description "XAUUSD-STD sweep + MSS + retest EA. Live mode uses strict small-account guardrails."
 
 #include <Trade/Trade.mqh>
 CTrade trade;
@@ -22,11 +22,11 @@ input double          InpRewardRisk             = 1.5;
 input double          InpMaxSpreadPoints        = 500;
 input double          InpSLBufferPoints         = 100;
 input double          InpRetestTolerancePoints  = 150;
-input int             InpMaxTradesPerDay        = 3;
-input double          InpDailyLossLimitPercent  = 2.0;
+input int             InpMaxTradesPerDay        = 1;
+input double          InpDailyLossLimitPercent  = 1.0;
 input ulong           InpMagic                  = 26102101;
 input bool            InpEnableOrders           = true;
-input bool            InpAllowLiveTrading       = false;
+input bool            InpAllowLiveTrading       = true;
 input bool            InpOnePositionAtATime     = true;
 
 int fastHandle = INVALID_HANDLE;
@@ -58,8 +58,18 @@ int OnInit()
    ENUM_ACCOUNT_TRADE_MODE mode = (ENUM_ACCOUNT_TRADE_MODE)AccountInfoInteger(ACCOUNT_TRADE_MODE);
    if(mode == ACCOUNT_TRADE_MODE_REAL && !InpAllowLiveTrading)
    {
-      Print("DARS EA BLOCKED: real account detected. Set InpAllowLiveTrading=true only after extensive testing.");
+      Print("DARS EA BLOCKED: real account detected and InpAllowLiveTrading=false.");
       return INIT_FAILED;
+   }
+   // Small-account live guardrails: fail closed if the inputs are loosened.
+   if(mode == ACCOUNT_TRADE_MODE_REAL && InpAllowLiveTrading)
+   {
+      if(InpRiskPercent > 0.25 || InpMaxTradesPerDay > 1 || InpDailyLossLimitPercent > 1.0)
+      {
+         Print("DARS EA BLOCKED: live safety limits exceeded. For this build, use risk <=0.25%, max 1 trade/day, daily loss limit <=1.0%.");
+         return INIT_FAILED;
+      }
+      Print("DARS EA LIVE MODE: enabled. Small-account guardrails active; trades may be skipped if broker minimum lot exceeds the 0.25% risk budget. Live trading can lose money.");
    }
 
    fastHandle = iMA(symbol, InpBiasTF, InpFastEMA, 0, MODE_EMA, PRICE_CLOSE);
@@ -74,8 +84,10 @@ int OnInit()
    trade.SetDeviationInPoints(30);
    trade.SetTypeFillingBySymbol(symbol);
    ResetDayIfNeeded();
-   Print("DARS EA v1 ready. Symbol=", symbol, ", entry TF=", EnumToString(InpEntryTF),
-         ". Orders are blocked on real accounts by default.");
+   Print("DARS EA v1.01 ready. Symbol=", symbol, ", entry TF=", EnumToString(InpEntryTF),
+         ", risk=", DoubleToString(InpRiskPercent, 2), "%, max trades/day=", InpMaxTradesPerDay,
+         ", daily loss limit=", DoubleToString(InpDailyLossLimitPercent, 2), "%, orders enabled=", (InpEnableOrders ? "true" : "false"),
+         ", live trading allowed=", (InpAllowLiveTrading ? "true" : "false"), ".");
    return INIT_SUCCEEDED;
 }
 
