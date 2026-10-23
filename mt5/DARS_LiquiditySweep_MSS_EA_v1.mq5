@@ -3,7 +3,7 @@
 //| Gold-focused MT5 EA. Demo/Strategy Tester only by default.        |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "1.01"
+#property version   "1.02"
 #property description "XAUUSD-STD sweep + MSS + retest EA. Live mode uses strict small-account guardrails."
 
 #include <Trade/Trade.mqh>
@@ -84,7 +84,7 @@ int OnInit()
    trade.SetDeviationInPoints(30);
    trade.SetTypeFillingBySymbol(symbol);
    ResetDayIfNeeded();
-   Print("DARS EA v1.01 ready. Symbol=", symbol, ", entry TF=", EnumToString(InpEntryTF),
+   Print("DARS EA v1.02 ready. Symbol=", symbol, ", entry TF=", EnumToString(InpEntryTF),
          ", risk=", DoubleToString(InpRiskPercent, 2), "%, max trades/day=", InpMaxTradesPerDay,
          ", daily loss limit=", DoubleToString(InpDailyLossLimitPercent, 2), "%, orders enabled=", (InpEnableOrders ? "true" : "false"),
          ", live trading allowed=", (InpAllowLiveTrading ? "true" : "false"), ".");
@@ -110,7 +110,10 @@ void OnTick()
 
    if(DailyLossLimitReached())
    {
-      Print("DARS EA: daily equity loss limit reached. No new trades today.");
+      double lossPct = (dayStartEquity > 0 ? (dayStartEquity - AccountInfoDouble(ACCOUNT_EQUITY)) / dayStartEquity * 100.0 : 0.0);
+      Print("DARS EA: daily guard blocked new setup. tradesToday=", tradesToday,
+            "/", InpMaxTradesPerDay, ", equity drawdown=", DoubleToString(lossPct, 2),
+            "%/", DoubleToString(InpDailyLossLimitPercent, 2), "%.");
       return;
    }
 
@@ -118,7 +121,10 @@ void OnTick()
    if(!SpreadOK(symbol)) return;
 
    if(InpOnePositionAtATime && HasOpenPosition(symbol))
+   {
+      Print("DARS EA: blocked because this EA already has an open position on ", symbol, ".");
       return;
+   }
 
    MqlRates rates[];
    ArraySetAsSeries(rates, true);
@@ -136,6 +142,8 @@ void OnTick()
    if(setupState == STATE_IDLE)
    {
       DetectSweep(rates, symbol);
+      if(setupState == STATE_IDLE)
+         Print("DARS EA: no qualifying sweep on the last closed M5 candle; waiting.");
       return;
    }
 
@@ -332,7 +340,10 @@ void PlaceTrade(const string symbol, const int direction, const double sweepPric
    double volume = CalculateRiskVolume(symbol, direction, entry, sl);
    if(volume <= 0)
    {
-      Print("DARS EA: could not calculate a valid risk-sized volume.");
+      Print("DARS EA: order skipped by risk sizing. Equity=$", DoubleToString(AccountInfoDouble(ACCOUNT_EQUITY), 2),
+            ", risk budget=$", DoubleToString(AccountInfoDouble(ACCOUNT_EQUITY) * InpRiskPercent / 100.0, 4),
+            ", broker minimum lot=", DoubleToString(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN), 3),
+            ". EA will not round volume up to minimum lot.");
       return;
    }
 
