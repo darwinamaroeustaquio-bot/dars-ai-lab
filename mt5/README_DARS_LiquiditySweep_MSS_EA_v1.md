@@ -1,10 +1,10 @@
-# DARS Liquidity Sweep + MSS EA v1
+# DARS Liquidity Sweep + MSS EA v1.01
 
 ## Safety
 - Designed for Strategy Tester and demo accounts first.
-- EA refuses to initialize on a real account unless `InpAllowLiveTrading=true`.
-- Keep `InpAllowLiveTrading=false`. Do not enable live trading until the EA has been compiled, visually checked, backtested with realistic spread/commission, and forward-tested on demo.
-- Default risk is 0.25% of equity per trade. The EA skips trades if the calculated risk-sized lot would be below the broker minimum instead of rounding up and exceeding the risk cap.
+- This version defaults `InpAllowLiveTrading=true` because the user requested a live test. This is not a recommendation to trade live; the strategy is unproven.
+- Live guardrails: risk is capped at 0.25% per trade, maximum 1 trade/day, and daily equity-loss limit 1.0%. On real accounts, the EA refuses to initialize if inputs exceed those limits.
+- The EA skips trades if the calculated risk-sized lot is below the broker minimum instead of rounding up and exceeding the risk cap. With a $17 balance, this may mean no trade is placed; do not raise risk just to force a trade.
 - The strategy is experimental and is not a claim of profitability.
 
 ## Install
@@ -14,7 +14,7 @@
 4. Open MetaEditor, open the file, and press **Compile**.
 5. In MT5, refresh **Navigator → Expert Advisors**.
 6. Open a **XAUUSD-STD M5** chart and attach the EA.
-7. Confirm Algo Trading is enabled. Use a **demo account** for forward testing.
+7. Confirm Algo Trading is enabled and inspect the EA Inputs before attaching. Prefer demo forward testing; if using live despite the risk, monitor it and never assume a trade will be safe just because the account is small.
 
 ## Strategy outline
 - Entry timeframe: M5.
