@@ -66,7 +66,7 @@
 <section class="panel" id="candidateLabPanel" style="margin-bottom:15px;border-color:#7b6639">
 <div class="row"><div><div class="eyebrow">GOLD ONLY · CANDIDATE GENERATOR</div><h2 style="margin:5px 0 8px">Strategy Candidate Lab</h2></div><span class="tag" id="candidateLabStatus">Not run yet</span></div>
 <p class="note">Generate and compare about 396 Gold strategy variants across 20 families: EMA/triple-EMA trend, Donchian and ATR breakouts, RSI/Stochastic/CCI/Williams %R reversion, trend pullback, Bollinger bands, MACD/ROC momentum, Keltner/ATR-band, ADX/DMI, Ichimoku, support/resistance retest, candlestick reversal, inside-bar breakout and Fibonacci pullback. Uses chronological development/holdout testing, estimated costs and stability diagnostics; research only. Uses the first 70% for development and final 30% as holdout. The lab reports exactly which filters each near-miss fails; it will not lower thresholds to manufacture a pass. Expanded searches raise overfit risk; no orders are sent. Test M1 and M5 together for scalping, or test M15/H1 separately. Historical research only; no orders are sent.</p>
-<div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M1">M1</option><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn primary" id="runCandidateLab" type="button">Generate & test selected</button><button class="btn primary" id="runScalpingLab" type="button">Test M1 + M5 scalping</button><label class="note">Assumed round-trip cost (R) <input id="candidateCostR" type="number" min="0" max="1" step="0.05" value="0.10" style="width:100px;display:inline-block;margin-left:6px" title="Sensitivity assumption per completed trade, not a verified broker cost"></label><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
+<div class="row" style="justify-content:flex-start"><label class="note">Timeframe <select id="candidateTimeframe" class="btn"><option value="M1">M1</option><option value="M5">M5</option><option value="M15">M15</option><option value="H1">H1</option></select></label><button class="btn primary" id="runCandidateLab" type="button">Generate & test selected</button><button class="btn primary" id="runScalpingLab" type="button">Test M1 + M5 scalping</button><label class="note">Estimated total round-trip cost (R) <input id="candidateCostR" type="number" min="0" max="1" step="0.05" value="0.10" style="width:100px;display:inline-block;margin-left:6px" title="Convert estimated spread + commission + swap + slippage into R per completed trade; not a verified broker cash cost"></label><button class="btn" id="exportCandidates" type="button" disabled>Export results CSV</button></div>
 <div class="metrics" style="margin-top:12px">
 <div class="metric"><div class="eyebrow">Candles used</div><strong id="candidateCandles">—</strong><small>Verified MT5 candles · selected timeframe</small></div>
 <div class="metric"><div class="eyebrow">Candidates</div><strong id="candidateCount">—</strong><small>Rule variants generated</small></div>
@@ -76,7 +76,7 @@
 <p class="note" id="candidateLabMessage" role="status" aria-live="polite">Research uses saved VT Markets MT5 broker candles from Supabase. External market-data providers are disabled.</p>
 <p class="note" id="candidateSplitInfo" role="status" aria-live="polite">Data split and sample sufficiency will appear after a research run. Aim for several thousand verified candles per timeframe when available; do not loosen pass filters just to force a pass.</p>
 <div class="resultbox" id="proSelectorCard" style="border-color:#806b3e;background:#211d13">
- <div class="eyebrow">PRO SELECTOR · RESEARCH ONLY</div>
+ <div class="eyebrow">SELECTED CANDIDATE · AFTER-COST METRICS · RESEARCH ONLY</div>
  <strong id="proSelectedName" style="font-size:20px">NO STRATEGY SELECTED</strong>
  <p id="proSelectedReason" class="note">Run the candidate lab to rank the available strategies. The selector will not force a pick if none passes the filters.</p>
  <div class="metrics" style="margin:8px 0 0">
@@ -87,7 +87,7 @@
  </div>
 </div>
 <div class="row" style="justify-content:flex-start;gap:8px;margin:12px 0"><button class="btn primary" id="copyCandidateReport" type="button" disabled>Copy result for ChatGPT</button><span class="note" id="copyCandidateStatus" aria-live="polite">Run the lab first.</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:900px"><thead><tr><th align="left">Candidate</th><th>Holdout trades</th><th>Win rate</th><th>Net R after costs</th><th>Expectancy after costs</th><th>PF after costs</th><th>Max DD R</th><th>Why not passed</th><th>Status</th></tr></thead><tbody id="candidateResults"><tr><td colspan="9" class="muted">No research run yet.</td></tr></tbody></table></div>
-<p class="note">Important: this is a transparent screening engine, not self-modifying AI. After-cost metrics use only the assumed R-cost input; actual VT Markets spread, commission, swap and slippage are not broker-calibrated. Passing means review candidate only—not proven profitable, not auto-selected for live trading, and never automatically converted to an EA.</p>
+<p class="note">Tap/click any candidate row to inspect it in the selector above. This is a transparent screening engine, not self-modifying AI. After-cost metrics subtract the entered total round-trip cost in R from each completed trade; include spread, commission, swap and slippage in that estimate. It is not a verified VT Markets cash-cost calculation. Passing means review candidate only—not proven profitable, not auto-selected for live trading, and never automatically converted to an EA.</p>
 </section>
 <section class="panel" id="learningModelPanel" style="margin-bottom:15px;border-color:#4a6190">
 <div class="row"><div><div class="eyebrow">GOLD ONLY · HISTORICAL + LIVE FORWARD TEST</div><h2 style="margin:5px 0 8px">Gold strategy research engine</h2></div><span class="tag" id="learningStatus">Waiting for history</span></div>
@@ -783,6 +783,38 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
   if(!checks.drawdown)reasons.push("Net return/drawdown filter failed");
   return reasons.length?reasons.join("; "):"All filters passed";
  }
+ let selectedCandidateKey="";
+ function selectCandidate(c){
+  if(!c)return;
+  selectedCandidateKey=(c._timeframe||$("candidateTimeframe")?.value||"")+"/"+c.id;
+  const n=c.afterCosts||c.holdout||{};
+  $("proSelectedName").textContent=(c._timeframe?c._timeframe+" · ":"")+c.id+" · "+c.name;
+  $("proDecision").textContent=c.status==="REVIEW CANDIDATE"?"REVIEW ONLY":"NOT PASSED";
+  $("proExpectancy").textContent=Number.isFinite(Number(n.expectancyR))?Number(n.expectancyR).toFixed(3)+"R":"—";
+  $("proPF").textContent=Number.isFinite(Number(n.profitFactor))?Number(n.profitFactor).toFixed(2):"—";
+  $("proDD").textContent=Number.isFinite(Number(n.maxDrawdownR))?Number(n.maxDrawdownR).toFixed(2)+"R":"—";
+  $("proSelectedReason").textContent=(c.status==="REVIEW CANDIDATE"?"Passed current screening; still requires fresh unseen data and realistic broker-cost validation.":"Not passed: "+failureReason(c)+". Keep it as a comparison candidate only.")+" Metrics include the current assumed round-trip cost of "+(Number($("candidateCostR")?.value)||0).toFixed(2)+"R per trade. This is a cost sensitivity assumption, not a verified cash cost.";
+  document.querySelectorAll("#candidateResults tr[data-candidate-key]").forEach(tr=>{
+   const active=tr.dataset.candidateKey===selectedCandidateKey;
+   tr.style.background=active?"#193a43":"";
+   tr.style.outline=active?"1px solid var(--green)":"";
+   tr.setAttribute("aria-selected",active?"true":"false");
+  });
+ }
+ function makeCandidateRow(c){
+  const tr=document.createElement("tr");
+  const key=(c._timeframe||$("candidateTimeframe")?.value||"")+"/"+c.id;
+  tr.dataset.candidateKey=key;tr.tabIndex=0;tr.style.cursor="pointer";
+  tr.title="Tap/click to inspect this candidate";
+  cell(tr,(c._timeframe?c._timeframe+" · ":"")+c.id+" · "+c.name);
+  cell(tr,c.holdout.trades);cell(tr,pct(c.holdout.winRate));
+  const net=c.afterCosts||c.holdout;
+  cell(tr,net.netR+"R");cell(tr,net.expectancyR+"R");cell(tr,net.profitFactor);cell(tr,net.maxDrawdownR+"R");
+  cell(tr,c.status==="REVIEW CANDIDATE"?"—":failureReason(c));cell(tr,c.status);
+  tr.addEventListener("click",()=>selectCandidate(c));
+  tr.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();selectCandidate(c);}});
+  return tr;
+ }
 
  $("runCandidateLab")?.addEventListener("click",async()=>{
   const btn=$("runCandidateLab");btn.disabled=true;btn.textContent="Testing…";$("candidateLabStatus").textContent="Running research";$("candidateLabMessage").textContent="Reading saved Gold candles and testing strategy variants…";
@@ -813,7 +845,7 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
      $("proSelectedReason").textContent="No candidate met all current screening filters. Do not select the highest raw expectancy by default; keep WAIT, check data quality and cost assumptions, and validate on other periods.";
    }
    const body=$("candidateResults");body.replaceChildren();
-   lastCandidates.forEach(c=>{const tr=document.createElement("tr");cell(tr,(c._timeframe?c._timeframe+" · ":"")+c.id+" · "+c.name);cell(tr,c.holdout.trades);cell(tr,pct(c.holdout.winRate));const net=c.afterCosts||c.holdout;cell(tr,net.netR+"R");cell(tr,net.expectancyR+"R");cell(tr,net.profitFactor);cell(tr,net.maxDrawdownR+"R");cell(tr,c.status==="REVIEW CANDIDATE"?"—":failureReason(c));cell(tr,c.status);body.appendChild(tr);});
+   lastCandidates.forEach(c=>body.appendChild(makeCandidateRow(c)));if(best)selectCandidate(best);
    $("exportCandidates").disabled=!lastCandidates.length;
    $("copyCandidateReport").disabled=!lastCandidates.length;
    $("copyCandidateStatus").textContent="Ready to copy "+lastCandidates.length+" candidate results.";
@@ -833,7 +865,7 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
    $("candidateLabMessage").textContent="Side-by-side M1/M5 historical research. "+results.map(function(d){return d._timeframe+" "+(d.ready?(d.passedCount||0)+" review candidate(s)":"not ready");}).join("; ")+". Assumed costs are not broker-calibrated. Paper test only; no orders are sent.";
    $("proSelectedName").textContent=best?best._timeframe+" · "+best.id+" · "+best.name:"NO STRATEGY PASSED";$("proDecision").textContent=best?"REVIEW ONLY":"WAIT / NO TRADE";
    if(best){const n=best.afterCosts||best.holdout;$("proExpectancy").textContent=Number(n.expectancyR).toFixed(3)+"R";$("proPF").textContent=Number(n.profitFactor).toFixed(2);$("proDD").textContent=Number(n.maxDrawdownR).toFixed(2)+"R";$("proSelectedReason").textContent="Best M1/M5 screening result only; not proof of profitability. Confirm unseen data and realistic VT costs.";}else{$("proExpectancy").textContent="—";$("proPF").textContent="—";$("proDD").textContent="—";$("proSelectedReason").textContent="No strategy passed all filters. Keep WAIT; do not loosen thresholds."; }
-   const body=$("candidateResults");body.replaceChildren();lastCandidates.forEach(function(c){const tr=document.createElement("tr");cell(tr,c._timeframe+" · "+c.id+" · "+c.name);cell(tr,c.holdout.trades);cell(tr,pct(c.holdout.winRate));const n=c.afterCosts||c.holdout;cell(tr,n.netR+"R");cell(tr,n.expectancyR+"R");cell(tr,n.profitFactor);cell(tr,n.maxDrawdownR+"R");cell(tr,c.status==="REVIEW CANDIDATE"?"—":failureReason(c));cell(tr,c.status);body.appendChild(tr);});
+   const body=$("candidateResults");body.replaceChildren();lastCandidates.forEach(function(c){body.appendChild(makeCandidateRow(c));});if(best)selectCandidate(best);
    $("exportCandidates").disabled=!all.length;$("copyCandidateReport").disabled=!all.length;$("copyCandidateStatus").textContent="Ready to copy combined M1 + M5 report ("+all.length+" variants).";
   }catch(e){$("candidateLabStatus").textContent="Unavailable";$("candidateLabMessage").textContent=e.message+" Check that MT5 M1/M5 candles have been uploaded.";}
   finally{btn.disabled=false;single.disabled=false;btn.textContent="Test M1 + M5 scalping";}
