@@ -128,6 +128,14 @@ function makeCandidates(){
  const out=[],riskProfiles=[{sl:1,tp:1.5,label:"SL1.0 / TP1.5"},{sl:1.5,tp:2.2,label:"SL1.5 / TP2.2"},{sl:2,tp:3,label:"SL2.0 / TP3.0"},{sl:1.5,tp:1.5,label:"SL1.5 / TP1.5"}];
  const add=(base,risk)=>out.push({...base,...risk,horizon:12,riskLabel:risk.label});
  for(const [fast,slow] of [[5,13],[8,21],[12,30],[20,50],[34,89]])for(const risk of riskProfiles)add({kind:"ema-trend",fast,slow},risk);
+ // High reward/risk research track: target is at least 3R gross before costs.
+ // ATR multipliers are set so TP/SL = 3.0; all results still use the user-selected costR.
+ const highRR=[{sl:1,tp:3,label:"HIGH-RR SL1 ATR / TP3 ATR (3R)"},{sl:1.5,tp:4.5,label:"HIGH-RR SL1.5 ATR / TP4.5 ATR (3R)"},{sl:2,tp:6,label:"HIGH-RR SL2 ATR / TP6 ATR (3R)"}];
+ for(const [fast,slow] of [[8,21],[12,30],[20,50]])for(const risk of highRR)add({kind:"ema-trend",fast,slow},risk);
+ for(const [fast,slow] of [[20,50],[12,50]])for(const [rsiPeriod,longRsi,shortRsi] of [[14,45,55],[14,40,60],[21,45,55]])for(const risk of highRR)add({kind:"ema-rsi-pullback",fast,slow,rsiPeriod,longRsi,shortRsi},risk);
+ for(const [fast,slow] of [[8,21],[12,30],[20,50]])for(const risk of highRR)add({kind:"trend-pullback",fast,slow},risk);
+ for(const lookback of [10,20,30])for(const risk of highRR)add({kind:"donchian",fast:lookback,slow:lookback,lookback},risk);
+ for(const atrMult of [0.75,1,1.5])for(const risk of highRR)add({kind:"atr-breakout",fast:14,slow:14,period:14,atrMult},risk);
  // New challenger: EMA trend + RSI pullback/reclaim; all variants use the same cost-aware tests.
  for(const [fast,slow] of [[20,50],[12,50]])for(const [rsiPeriod,longRsi,shortRsi] of [[14,45,55],[14,40,60],[21,45,55]])for(const risk of riskProfiles)add({kind:"ema-rsi-pullback",fast,slow,rsiPeriod,longRsi,shortRsi},risk);
  for(const lookback of [10,20,30,50])for(const risk of riskProfiles)add({kind:"donchian",fast:lookback,slow:lookback,lookback},risk);
