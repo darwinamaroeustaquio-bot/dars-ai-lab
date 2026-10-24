@@ -20,7 +20,13 @@ function buildSignal(c,cfg){
  const cciAt=(idx,p)=>{if(idx-p+1<0)return null;const tp=[];for(let j=idx-p+1;j<=idx;j++)tp.push((c[j].high+c[j].low+c[j].close)/3);const mean=tp.reduce((x,y)=>x+y,0)/p,md=tp.reduce((x,y)=>x+Math.abs(y-mean),0)/p;return md===0?0:((c[idx].high+c[idx].low+c[idx].close)/3-mean)/(.015*md);};
  const warm=Math.max(cfg.slow||21,cfg.rsiPeriod||14,cfg.bandPeriod||20,cfg.channelPeriod||20,cfg.stochPeriod||14,cfg.cciPeriod||20,cfg.lookback||20,cfg.period||14,cfg.midPeriod||20,cfg.longPeriod||50,35);
  for(let i=warm;i<c.length-1;i++){
-  if(cfg.kind==="ema-trend"){
+  if(cfg.kind==="ema-rsi-pullback"){
+   // Trend-filtered pullback: signal only after RSI reclaims a mid-zone in the EMA trend.
+   // Backtest enters at the next candle open and deducts the user-selected costR.
+   const longLevel=cfg.longRsi||45,shortLevel=cfg.shortRsi||55;
+   if(ef[i]>es[i]&&close[i]>es[i]&&rr[i-1]!==null&&rr[i]!==null&&rr[i-1]<=longLevel&&rr[i]>longLevel&&close[i]>c[i].open)s[i]=1;
+   else if(ef[i]<es[i]&&close[i]<es[i]&&rr[i-1]!==null&&rr[i]!==null&&rr[i-1]>=shortLevel&&rr[i]<shortLevel&&close[i]<c[i].open)s[i]=-1;
+  } else if(cfg.kind==="ema-trend"){
    if(ef[i]>es[i]&&close[i]>ef[i]&&ef[i-1]<=es[i-1])s[i]=1;
    else if(ef[i]<es[i]&&close[i]<ef[i]&&ef[i-1]>=es[i-1])s[i]=-1;
   } else if(cfg.kind==="donchian"){
@@ -122,6 +128,8 @@ function makeCandidates(){
  const out=[],riskProfiles=[{sl:1,tp:1.5,label:"SL1.0 / TP1.5"},{sl:1.5,tp:2.2,label:"SL1.5 / TP2.2"},{sl:2,tp:3,label:"SL2.0 / TP3.0"},{sl:1.5,tp:1.5,label:"SL1.5 / TP1.5"}];
  const add=(base,risk)=>out.push({...base,...risk,horizon:12,riskLabel:risk.label});
  for(const [fast,slow] of [[5,13],[8,21],[12,30],[20,50],[34,89]])for(const risk of riskProfiles)add({kind:"ema-trend",fast,slow},risk);
+ // New challenger: EMA trend + RSI pullback/reclaim; all variants use the same cost-aware tests.
+ for(const [fast,slow] of [[20,50],[12,50]])for(const [rsiPeriod,longRsi,shortRsi] of [[14,45,55],[14,40,60],[21,45,55]])for(const risk of riskProfiles)add({kind:"ema-rsi-pullback",fast,slow,rsiPeriod,longRsi,shortRsi},risk);
  for(const lookback of [10,20,30,50])for(const risk of riskProfiles)add({kind:"donchian",fast:lookback,slow:lookback,lookback},risk);
  for(const period of [7,10,14,21])for(const [lower,upper] of [[25,75],[30,70],[35,65]])for(const risk of riskProfiles)add({kind:"rsi-reversion",fast:period,slow:period,rsiPeriod:period,lower,upper},risk);
  for(const [fast,slow] of [[5,13],[8,21],[12,30],[20,50],[34,89]])for(const risk of riskProfiles)add({kind:"trend-pullback",fast,slow},risk);
