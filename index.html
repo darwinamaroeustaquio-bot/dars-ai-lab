@@ -87,7 +87,7 @@
    const r=await fetch("/api/ai-trading-assistant",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:text,history:history.slice(-8,-1),context})});
    const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"AI assistant unavailable");
    bubble(d.answer,"bot");history.push({role:"assistant",content:d.answer});status.textContent=d.dataStatus||"Sagot batay sa data";
-  }catch(e){bubble("Hindi pa ako makasagot: "+e.message+". Kung AI key ang kulang, idagdag ang OPENAI_API_KEY sa Vercel Project → Settings → Environment Variables, pagkatapos redeploy. Hindi ako gagawa ng signal kung walang AI response.","bot");status.textContent="Setup needed";}
+  }catch(e){bubble("May problema sa lokal na pagsusuri: "+e.message+". Walang external AI/API key na kailangan. Suriin ang market-data connection at subukang muli. Hindi ako gagawa ng signal kung kulang ang data.","bot");status.textContent="Local engine";}
   finally{send.disabled=false;input.focus();}
  }
  form.addEventListener("submit",e=>{e.preventDefault();ask(input.value.trim());});
