@@ -95,7 +95,7 @@
  const title=document.createElement("strong");title.textContent="DARS SETUP BOARD · "+symbol+" · "+frame.timeframe;title.style.cssText="font-size:14px;letter-spacing:.04em";
  const badge=document.createElement("span");badge.textContent=direction==="WAIT"?"WAIT · NOT READY":direction+" · DRAFT ONLY";badge.style.cssText="padding:6px 10px;border-radius:8px;background:"+(direction==="WAIT"?"#4a3515":"#123d36")+";color:"+(direction==="WAIT"?"#ffd78a":"#73f0c3")+";font-weight:700;font-size:12px";
  head.append(title,badge);card.appendChild(head);
- const sub=document.createElement("p");sub.textContent="Visual guide from received MT5 candles. Check the live chart before copying any levels.";sub.style.cssText="color:#9db2c9;font-size:12px;margin:8px 0";card.appendChild(sub);
+ const sub=document.createElement("p");sub.textContent="COLOR GUIDE: BLUE = ENTRY · RED/PINK = STOP LOSS (SL) · GREEN = TAKE PROFIT 1 (TP1) · MINT = TAKE PROFIT 2 (TP2). Ang bawat level ay guhit sa mismong chart; tingnan din ang price label sa kanan. I-verify ang live MT5 price bago kopyahin.";sub.style.cssText="color:#b7cce0;font-size:12px;line-height:1.5;margin:8px 0";card.appendChild(sub);
  const W=760,H=330,L=62,R=100,T=30,B=28,pw=W-L-R,ph=H-T-B;
  const levels=[{name:"ENTRY",v:entry,color:"#38a6ff"},{name:"SL",v:sl,color:"#ff647c"},{name:"TP1",v:tp1,color:"#24d6a0"},{name:"TP2",v:tp2,color:"#72e6b8"}].filter(x=>x.v!==null);
  let min=Math.min(...data.map(c=>c.l),...levels.map(x=>x.v)),max=Math.max(...data.map(c=>c.h),...levels.map(x=>x.v));const pad=(max-min)*.08||1;min-=pad;max+=pad;const range=max-min||1,y=v=>T+(max-v)/range*ph,step=pw/data.length,cw=Math.max(3,step*.58);
@@ -103,7 +103,7 @@
  const el=(tag,attrs,txt)=>{const n=document.createElementNS(svg.namespaceURI,tag);Object.entries(attrs||{}).forEach(([k,v])=>n.setAttribute(k,v));if(txt!==undefined)n.textContent=txt;svg.appendChild(n);return n;};
  for(let k=0;k<=4;k++){const yy=T+ph*k/4;el("line",{x1:L,x2:W-R,y1:yy,y2:yy,stroke:"#1c3044"});el("text",{x:4,y:yy+4,fill:"#a3b8ce","font-size":11},(max-(max-min)*k/4).toFixed(2));}
  data.forEach((c,i)=>{const x=L+i*step+step/2,col=c.c>=c.o?"#27d7a0":"#ff6178";el("line",{x1:x,x2:x,y1:y(c.h),y2:y(c.l),stroke:col,"stroke-width":1.4});el("rect",{x:x-cw/2,y:Math.min(y(c.o),y(c.c)),width:cw,height:Math.max(1,Math.abs(y(c.o)-y(c.c))),fill:col,rx:1});});
- levels.forEach(a=>{const yy=y(a.v);el("line",{x1:L,x2:W-R+4,y1:yy,y2:yy,stroke:a.color,"stroke-width":1.8,"stroke-dasharray":"7 4"});el("rect",{x:W-R+7,y:yy-9,width:88,height:18,rx:4,fill:a.color});el("text",{x:W-R+12,y:yy+4,fill:"#04101a","font-size":10,"font-weight":700},a.name+" "+a.v.toFixed(2));});
+ levels.forEach(a=>{const yy=y(a.v);el("line",{x1:L,x2:W-R+4,y1:yy,y2:yy,stroke:a.color,"stroke-width":2.6,"stroke-dasharray":a.name==="ENTRY"?"3 3":"8 4"});el("circle",{cx:L+pw*.72,cy:yy,r:4,fill:a.color,stroke:"#06111e","stroke-width":1});el("rect",{x:W-R+5,y:yy-11,width:92,height:22,rx:5,fill:a.color,stroke:"#f1f7ff","stroke-width":.6});el("text",{x:W-R+10,y:yy+4,fill:"#04101a","font-size":10.5,"font-weight":800},a.name+" "+a.v.toFixed(2));});
  if(sweepLow)el("text",{x:L+pw*.48,y:T+15,fill:"#38e6ad","font-size":12,"font-weight":700},"Possible LOW SWEEP");
  if(sweepHigh)el("text",{x:L+pw*.48,y:T+15,fill:"#ff7b91","font-size":12,"font-weight":700},"Possible HIGH SWEEP");
  el("text",{x:L,y:H-8,fill:"#9db2c9","font-size":11},"Candles received · "+frame.timeframe);
