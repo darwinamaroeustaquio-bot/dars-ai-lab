@@ -780,7 +780,9 @@ refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
    else if(Number(hold.expectancyR||0)<=0)reasons.push("After-cost expectancy <=0");
    if(Number(hold.profitFactor||0)<=1.10)reasons.push("After-cost PF <=1.10");
   }
+  if(!checks.slippageStress)reasons.push("Fails +0.05 USD/oz adverse-slippage stress");
   if(!checks.drawdown)reasons.push("Net return/drawdown filter failed");
+  if(!checks.walkForward)reasons.push("Walk-forward stability failed");
   return reasons.length?reasons.join("; "):"All filters passed";
  }
  let selectedCandidateKey="";
