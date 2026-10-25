@@ -65,10 +65,10 @@
 <section class="panel" id="darsChatPanel" style="margin-bottom:15px;border-color:#527b9b">
 <div class="row"><div><div class="eyebrow">ASK DARS · GROUNDED IN RECEIVED DATA</div><h2 style="margin:5px 0 8px">AI Trading Assistant</h2></div><span class="tag" id="darsChatStatus">Ready to connect</span></div>
 <p class="note">Magtanong tungkol sa XAUUSD-STD setup, market bias, bakit WAIT, at paper-trading strategy results. Sasagot lang batay sa data na maipapasa at malinaw na sasabihin kung kulang o stale ang feed.</p>
-<div id="darsChatMessages" role="log" aria-live="polite" style="display:grid;gap:10px;max-height:360px;overflow:auto;margin:12px 0">
+<div id="darsChatMessages" role="log" aria-live="polite" style="display:grid;gap:10px;max-height:none;overflow:visible;margin:12px 0">
 <div style="padding:12px;border:1px solid var(--line);border-radius:11px;background:#091522;line-height:1.6">Kumusta! Tanungin mo ako, halimbawa: <b>“Ano ang setup natin ngayon sa Gold?”</b> o <b>“Bakit walang trade?”</b> Gumagamit ako ng lokal na rules-based analysis; ang chart ay mula sa candles na natanggap ko.</div>
 </div>
-<div class="row" style="justify-content:flex-start;margin-bottom:10px"><button class="btn dars-chat-prompt" type="button">Ano ang setup natin ngayon?</button><button class="btn dars-chat-prompt" type="button">Bakit walang trade?</button><button class="btn dars-chat-prompt" type="button">I-review ang strategy</button></div>
+<div class="row" style="justify-content:flex-start;margin-bottom:10px;flex-wrap:wrap"><button class="btn primary" id="darsSetupGuide" type="button">📊 Setup Guide · Entry / SL / TP</button><button class="btn dars-chat-prompt" type="button">Ano ang setup natin ngayon?</button><button class="btn dars-chat-prompt" type="button">Bakit walang trade?</button><button class="btn dars-chat-prompt" type="button">I-review ang strategy</button></div>
 <form id="darsChatForm" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px"><input id="darsChatInput" maxlength="1200" placeholder="Itanong sa DARS robot…" aria-label="Message to DARS AI" required><button class="btn primary" id="darsChatSend" type="submit">Send</button></form>
 <p class="note" id="darsChatFootnote">Read-only analysis. Hindi ito nagpapadala ng real orders o kusang binabago ang strategy.</p>
 </section>
@@ -133,6 +133,7 @@
  }
  form.addEventListener("submit",e=>{e.preventDefault();ask(input.value.trim());});
  document.querySelectorAll(".dars-chat-prompt").forEach(b=>b.addEventListener("click",()=>ask(b.textContent.trim())));
+ const guide=$("darsSetupGuide");if(guide)guide.addEventListener("click",()=>ask("Ipakita ang SETUP GUIDE para sa XAUUSD-STD: gumuhit ng chart na may Entry, Stop Loss (SL), Take Profit 1 (TP1), Take Profit 2 (TP2), at sabihin kung WAIT kapag hindi confirmed ang setup."));
 })();
 </script>
 <section class="panel" style="margin-bottom:15px;border-color:#356a61"><div class="row"><div><div class="eyebrow">SIMULATION · NO REAL ORDERS</div><h2 style="margin:5px 0 8px">Paper Trading Engine</h2><p class="note">Run simulated trades using verified MT5 candles and the validated research model while this page is open.</p></div><a class="btn primary" href="/paper-trading.html" style="text-decoration:none">Open Paper Trading</a></div></section>
