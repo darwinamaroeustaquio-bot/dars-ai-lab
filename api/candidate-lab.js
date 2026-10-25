@@ -110,8 +110,8 @@ function buildSignal(c,cfg){
    const r=rollingRange(i,cfg.lookback||10),b=c[i],bull=b.low<r.lo&&b.close>r.lo&&b.close>b.open,bear=b.high>r.hi&&b.close<r.hi&&b.close<b.open;
    if(bull)s[i]=1;else if(bear)s[i]=-1;
   } else if(cfg.kind==="compression-breakout"){
-   // Breakout after a compact prior range; current bar is excluded from the range calculation.
-   const r=rollingRange(i-1,cfg.lookback||8),width=r.hi-r.lo,compressed=aa[i-1]>0&&width<=(aa[i-1]||0)*(cfg.maxRangeAtr||2.5);
+   // Breakout after a compact prior range; uses the immediately preceding lookback bars and excludes the signal candle.
+   const r=rollingRange(i,cfg.lookback||8),width=r.hi-r.lo,compressed=aa[i-1]>0&&width<=(aa[i-1]||0)*(cfg.maxRangeAtr||2.5);
    if(compressed&&close[i]>r.hi&&close[i]>c[i].open)s[i]=1;
    else if(compressed&&close[i]<r.lo&&close[i]<c[i].open)s[i]=-1;
   } else if(cfg.kind==="ema-atr-pullback"){
