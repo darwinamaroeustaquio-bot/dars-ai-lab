@@ -70,7 +70,7 @@
 <div class="metrics" style="margin-top:12px">
 <div class="metric"><div class="eyebrow">Candles used</div><strong id="candidateCandles">—</strong><small>Verified MT5 candles · selected timeframe</small></div>
 <div class="metric"><div class="eyebrow">Candidates</div><strong id="candidateCount">—</strong><small>Rule variants generated</small></div>
-<div class="metric"><div class="eyebrow">Best holdout expectancy</div><strong id="candidateBestExpectancy">—</strong><small>R per trade · after assumed costs</small></div>
+<div class="metric"><div class="eyebrow">Best holdout expectancy</div><strong id="candidateBestExpectancy">—</strong><small>R per trade · after modeled spread/slippage</small></div>
 <div class="metric"><div class="eyebrow">Review candidates</div><strong id="candidatePassed">—</strong><small>Requires human review</small></div>
 </div>
 <p class="note" id="candidateLabMessage" role="status" aria-live="polite">Research uses saved VT Markets MT5 broker candles from Supabase. External market-data providers are disabled.</p>
@@ -877,11 +877,12 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
    "Symbol: "+((document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD"),
    "Timeframe: "+(candidateRunLabel||$("candidateTimeframe")?.value||"unknown"),
    "Verified candles: "+($("candidateCandles")?.textContent||"unknown"),
-   "Assumed cost per trade (R): "+($("candidateSpreadPrice")?.value||"0"),
+   "Spread benchmark/input (USD per oz): "+($("candidateSpreadPrice")?.value||"0"),
+   "Extra round-trip slippage (USD per oz): "+($("candidateSlippagePrice")?.value||"0"),
    "Candidates generated: "+lastCandidates.length,
    "Review candidates: "+lastCandidates.filter(c=>c.status==="REVIEW CANDIDATE").length,
    "Split: chronological 70% development / 30% holdout",
-   "WARNING: historical OHLC research only; not a live-trading recommendation. Costs are assumptions, not broker-calibrated.",
+   "Cost model: spread benchmark/input plus optional adverse slippage; +0.05 and +0.10 USD/oz slippage stress tests are included. Historical OHLC does not contain historical spread; not a live-trading recommendation.",
    "",
    "TOP 40 CANDIDATES (sorted by lab status/score):",
    ...lastCandidates.slice(0,40).map(c=>{
@@ -889,8 +890,9 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
     return [c.id+" | "+c.name+" | "+c.status,
      "DEV: trades="+tr.trades+", win="+pct(tr.winRate)+", netR="+tr.netR+", expR="+tr.expectancyR+", PF="+tr.profitFactor+", DD="+tr.maxDrawdownR,
      "HOLDOUT raw: trades="+ho.trades+", win="+pct(ho.winRate)+", netR="+ho.netR+", expR="+ho.expectancyR+", PF="+ho.profitFactor+", DD="+ho.maxDrawdownR,
-     "HOLDOUT after costs: trades="+net.trades+", win="+pct(net.winRate)+", netR="+net.netR+", expR="+net.expectancyR+", PF="+net.profitFactor+", DD="+net.maxDrawdownR,
-     "CHECKS: development="+ck.development+", holdout="+ck.holdout+", drawdown="+ck.drawdown+", walkForward="+ck.walkForward+"; folds="+(wf.folds||[]).map(f=>"F"+f.fold+":trades"+f.trades+"/netR"+f.netR+"/PF"+f.profitFactor).join(", "),
+     "HOLDOUT after modeled costs: trades="+net.trades+", win="+pct(net.winRate)+", netR="+net.netR+", expR="+net.expectancyR+", PF="+net.profitFactor+", DD="+net.maxDrawdownR,
+     "SLIPPAGE STRESS +0.05: expR="+((c.costStress||{}).slippagePlus005||{}).expectancyR+", PF="+((c.costStress||{}).slippagePlus005||{}).profitFactor+"; +0.10: expR="+((c.costStress||{}).slippagePlus010||{}).expectancyR+", PF="+((c.costStress||{}).slippagePlus010||{}).profitFactor,
+     "CHECKS: development="+ck.development+", holdout="+ck.holdout+", slippageStress="+ck.slippageStress+", drawdown="+ck.drawdown+", walkForward="+ck.walkForward+"; folds="+(wf.folds||[]).map(f=>"F"+f.fold+":trades"+f.trades+"/netR"+f.netR+"/PF"+f.profitFactor).join(", "),
      "Failure reasons: "+(c.status==="REVIEW CANDIDATE"?"none — review only":failureReason(c)),""
     ].join("\n");
    }),
