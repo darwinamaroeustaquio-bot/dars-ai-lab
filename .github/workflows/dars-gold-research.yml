@@ -1,0 +1,43 @@
+name: DARS Gold Research Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Runs every 6 hours; GitHub schedules use UTC.
+    - cron: "17 */6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dars-gold-research
+  cancel-in-progress: false
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Fetch the latest DARS candidate research report
+        shell: bash
+        env:
+          DARS_BASE_URL: https://dars-indol.vercel.app
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          url="${DARS_BASE_URL}/api/candidate-lab?symbol=XAUUSD-STD&timeframe=M5&limit=5000"
+          code="$(curl --silent --show-error --location --max-time 720 --output reports/gold-m5-candidate-report.json --write-out '%{http_code}' "$url")"
+          echo "Research endpoint HTTP status: $code"
+          if [[ "$code" != "200" ]]; then
+            echo "DARS research endpoint did not return HTTP 200."
+            cat reports/gold-m5-candidate-report.json || true
+            exit 1
+          fi
+          node -e 'const fs=require("fs"); const p="reports/gold-m5-candidate-report.json"; const d=JSON.parse(fs.readFileSync(p,"utf8")); console.log(JSON.stringify({ok:d.ok,ready:d.ready,symbol:d.symbol,timeframe:d.timeframe,candleCount:d.candleCount,generated:d.generated,passedCount:d.passedCount,message:d.message,warning:d.warning},null,2)); if(!d.ok) process.exit(1);'
+      - name: Keep report artifact for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: dars-gold-m5-research-${{ github.run_id }}
+          path: reports/gold-m5-candidate-report.json
+          if-no-files-found: error
+          retention-days: 14
