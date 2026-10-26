@@ -134,6 +134,9 @@
  form.addEventListener("submit",e=>{e.preventDefault();ask(input.value.trim());});
  document.querySelectorAll(".dars-chat-prompt").forEach(b=>b.addEventListener("click",()=>ask(b.textContent.trim())));
  const guide=$("darsSetupGuide");if(guide)guide.addEventListener("click",()=>ask("Ipakita ang SETUP GUIDE para sa XAUUSD-STD: gumuhit ng chart na may Entry, Stop Loss (SL), Take Profit 1 (TP1), Take Profit 2 (TP2), at sabihin kung WAIT kapag hindi confirmed ang setup."));
+ // Automatically show the setup board once the authenticated dashboard becomes visible.
+ const dashboard=$("dashboardContent");let autoGuideShown=false;
+ if(dashboard){const showGuideIfReady=()=>{if(!autoGuideShown&&!dashboard.classList.contains("hidden")){autoGuideShown=true;ask("Ipakita agad ang automatic SETUP GUIDE para sa XAUUSD-STD. Gumamit lang ng aktuwal na MT5 candles; gumuhit ng chart na may Entry, SL, TP1 at TP2. Kung walang sapat o valid na data, ipakita ang WAIT at huwag mag-imbento ng presyo.");}};new MutationObserver(showGuideIfReady).observe(dashboard,{attributes:true,attributeFilter:["class"]});showGuideIfReady();}
 })();
 </script>
 <section class="panel" style="margin-bottom:15px;border-color:#356a61"><div class="row"><div><div class="eyebrow">SIMULATION · NO REAL ORDERS</div><h2 style="margin:5px 0 8px">Paper Trading Engine</h2><p class="note">Run simulated trades using verified MT5 candles and the validated research model while this page is open.</p></div><a class="btn primary" href="/paper-trading.html" style="text-decoration:none">Open Paper Trading</a></div></section>
