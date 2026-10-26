@@ -68,7 +68,7 @@
 <div id="darsChatMessages" role="log" aria-live="polite" style="display:grid;gap:10px;max-height:none;overflow:visible;margin:12px 0">
 <div style="padding:12px;border:1px solid var(--line);border-radius:11px;background:#091522;line-height:1.6">Kumusta! Tanungin mo ako, halimbawa: <b>“Ano ang setup natin ngayon sa Gold?”</b> o <b>“Bakit walang trade?”</b> Gumagamit ako ng lokal na rules-based analysis; ang chart ay mula sa candles na natanggap ko.</div>
 </div>
-<div class="row" style="justify-content:flex-start;margin-bottom:10px;flex-wrap:wrap"><button class="btn primary" id="darsSetupGuide" type="button">📊 Setup Guide · Entry / SL / TP</button><button class="btn dars-chat-prompt" type="button">Ano ang setup natin ngayon?</button><button class="btn dars-chat-prompt" type="button">Bakit walang trade?</button><button class="btn dars-chat-prompt" type="button">I-review ang strategy</button></div>
+<div class="row" style="justify-content:flex-start;margin-bottom:10px;flex-wrap:wrap"><label class="muted" for="darsSetupTimeframe">Setup timeframe</label><select id="darsSetupTimeframe" class="btn" aria-label="Piliin ang setup timeframe"><option value="M1">M1 · 1 minuto</option><option value="M5" selected>M5 · 5 minuto</option><option value="M15">M15 · 15 minuto</option><option value="M30">M30 · 30 minuto</option><option value="H1">H1 · 1 oras</option><option value="H4">H4 · 4 oras</option></select><button class="btn primary" id="darsSetupGuide" type="button">📊 Setup Guide · Entry / SL / TP</button><button class="btn dars-chat-prompt" type="button">Ano ang setup natin ngayon?</button><button class="btn dars-chat-prompt" type="button">Bakit walang trade?</button><button class="btn dars-chat-prompt" type="button">I-review ang strategy</button></div>
 <form id="darsChatForm" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px"><input id="darsChatInput" maxlength="1200" placeholder="Itanong sa DARS robot…" aria-label="Message to DARS AI" required><button class="btn primary" id="darsChatSend" type="submit">Send</button></form>
 <p class="note" id="darsChatFootnote">Read-only analysis. Hindi ito nagpapadala ng real orders o kusang binabago ang strategy.</p>
 </section>
@@ -122,21 +122,22 @@
  async function ask(text){if(!text||send.disabled)return;input.value="";bubble(text,"you");history.push({role:"user",content:text});send.disabled=true;status.textContent="Sinusuri ang data…";
   try{
    const symbol=$("mt5SymbolSelect")?.value||"XAUUSD-STD";
-   const frames=await Promise.all(["M5","M15","H1"].map(async timeframe=>{try{const r=await fetch("/api/mt5-candles?symbol="+encodeURIComponent(symbol)+"&timeframe="+timeframe+"&limit=80",{cache:"no-store"});const d=await r.json();return {timeframe,ok:r.ok&&d.ok,count:d.count||0,candles:(d.candles||[]).slice(-50)};}catch(e){return {timeframe,ok:false,error:"Fetch failed",candles:[]};}}));
+   const selectedTimeframe=$("darsSetupTimeframe")?.value||"M5";
+   const frames=await Promise.all([...new Set([selectedTimeframe,"M1","M5","M15","M30","H1","H4"])].map(async timeframe=>{try{const r=await fetch("/api/mt5-candles?symbol="+encodeURIComponent(symbol)+"&timeframe="+timeframe+"&limit=80",{cache:"no-store"});const d=await r.json();return {timeframe,ok:r.ok&&d.ok,count:d.count||0,candles:(d.candles||[]).slice(-50)};}catch(e){return {timeframe,ok:false,error:"Fetch failed",candles:[]};}}));
    let quote={status:$("mt5LiveStatus")?.textContent||"Unknown",bid:$("mt5Bid")?.textContent||"—",ask:$("mt5Ask")?.textContent||"—",spread:$("mt5Spread")?.textContent||"—",age:$("mt5Age")?.textContent||"—"};
    const context={symbol,quote,frames,adaptive:{regime:$("adaptiveRegime")?.textContent,signal:$("adaptiveSignal")?.textContent,direction:$("adaptiveDirection")?.textContent,checks:$("adaptiveChecks")?.textContent,explanation:$("adaptiveExplanation")?.textContent},paperTradingPage:"/paper-trading.html",requestTime:new Date().toISOString()};
    const r=await fetch("/api/ai-trading-assistant",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question:text,history:history.slice(-8,-1),context})});
    const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"AI assistant unavailable");
-   const reply=bubble(d.answer,"bot");const preferred=frames.find(f=>f.timeframe==="M15"&&f.ok&&Array.isArray(f.candles)&&f.candles.length>=8)||frames.find(f=>f.timeframe==="M5"&&f.ok&&Array.isArray(f.candles)&&f.candles.length>=8)||frames.find(f=>f.ok&&Array.isArray(f.candles)&&f.candles.length>=8);if(/setup|signal|buy|sell|gold|entry|trade/i.test(text))addSetupIllustration(reply,preferred,symbol);history.push({role:"assistant",content:d.answer});status.textContent=d.dataStatus||"Sagot batay sa data";
+   const reply=bubble(d.answer,"bot");const preferred=frames.find(f=>f.timeframe===selectedTimeframe&&f.ok&&Array.isArray(f.candles)&&f.candles.length>=20)||frames.find(f=>f.timeframe===selectedTimeframe&&f.ok&&Array.isArray(f.candles)&&f.candles.length>=8)||frames.find(f=>f.ok&&Array.isArray(f.candles)&&f.candles.length>=20)||frames.find(f=>f.ok&&Array.isArray(f.candles)&&f.candles.length>=8);if(/setup|signal|buy|sell|gold|entry|trade/i.test(text))addSetupIllustration(reply,preferred,symbol);history.push({role:"assistant",content:d.answer});status.textContent=d.dataStatus||"Sagot batay sa data";
   }catch(e){bubble("May problema sa lokal na pagsusuri: "+e.message+". Walang external AI/API key na kailangan. Suriin ang market-data connection at subukang muli. Hindi ako gagawa ng signal kung kulang ang data.","bot");status.textContent="Local engine";}
   finally{send.disabled=false;input.focus();}
  }
  form.addEventListener("submit",e=>{e.preventDefault();ask(input.value.trim());});
  document.querySelectorAll(".dars-chat-prompt").forEach(b=>b.addEventListener("click",()=>ask(b.textContent.trim())));
- const guide=$("darsSetupGuide");if(guide)guide.addEventListener("click",()=>ask("Ipakita ang SETUP GUIDE para sa XAUUSD-STD: gumuhit ng chart na may Entry, Stop Loss (SL), Take Profit 1 (TP1), Take Profit 2 (TP2), at sabihin kung WAIT kapag hindi confirmed ang setup."));
+ const guide=$("darsSetupGuide");if(guide)guide.addEventListener("click",()=>ask("Ipakita ang SETUP GUIDE para sa XAUUSD-STD sa napiling timeframe "+($("darsSetupTimeframe")?.value||"M5")+". Gumamit lang ng aktuwal na candles ng napiling timeframe; gumuhit ng chart na may Entry, Stop Loss (SL), TP1 at TP2. Kung kulang ang data o hindi valid ang setup, WAIT at huwag mag-imbento ng presyo."));
  // Automatically show the setup board once the authenticated dashboard becomes visible.
  const dashboard=$("dashboardContent");let autoGuideShown=false;
- if(dashboard){const showGuideIfReady=()=>{if(!autoGuideShown&&!dashboard.classList.contains("hidden")){autoGuideShown=true;ask("Ipakita agad ang automatic SETUP GUIDE para sa XAUUSD-STD. Gumamit lang ng aktuwal na MT5 candles; gumuhit ng chart na may Entry, SL, TP1 at TP2. Kung walang sapat o valid na data, ipakita ang WAIT at huwag mag-imbento ng presyo.");}};new MutationObserver(showGuideIfReady).observe(dashboard,{attributes:true,attributeFilter:["class"]});showGuideIfReady();}
+ if(dashboard){const showGuideIfReady=()=>{if(!autoGuideShown&&!dashboard.classList.contains("hidden")){autoGuideShown=true;ask("Ipakita agad ang automatic SETUP GUIDE para sa XAUUSD-STD sa napiling timeframe "+($("darsSetupTimeframe")?.value||"M5")+". Gumamit lang ng aktuwal na MT5 candles ng timeframe na pinili; gumuhit ng chart na may Entry, SL, TP1 at TP2. Kung kulang ang data, WAIT at huwag mag-imbento ng presyo.");}};new MutationObserver(showGuideIfReady).observe(dashboard,{attributes:true,attributeFilter:["class"]});showGuideIfReady();}
 })();
 </script>
 <section class="panel" style="margin-bottom:15px;border-color:#356a61"><div class="row"><div><div class="eyebrow">SIMULATION · NO REAL ORDERS</div><h2 style="margin:5px 0 8px">Paper Trading Engine</h2><p class="note">Run simulated trades using verified MT5 candles and the validated research model while this page is open.</p></div><a class="btn primary" href="/paper-trading.html" style="text-decoration:none">Open Paper Trading</a></div></section>
@@ -997,6 +998,3 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
  const t=document.getElementById("newsFilterInfoText");
  if(b&&t)b.addEventListener("click",()=>{const show=t.hidden;t.hidden=!show;b.textContent=show?"Hide setup notes":"Check setup notes";});
 })();
-</script>
-
-</body></html>
