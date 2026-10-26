@@ -15,6 +15,7 @@ input int    InpClosedM5Bars = 200;
 input int    InpHttpTimeoutMs = 10000;
 
 datetime g_last_candle_send = 0;
+string g_bridge_token = "";
 
 string JsonEscape(string value)
 {
@@ -27,9 +28,9 @@ string JsonEscape(string value)
 
 bool PostJson(const string endpoint, const string payload, const string label)
 {
-   if(StringLen(InpBridgeToken) == 0)
+   if(StringLen(g_bridge_token) == 0)
    {
-      Print("DARS bridge ERROR: InpBridgeToken is empty. Set it in EA Inputs.");
+      Print("DARS bridge ERROR: bridge token is blank after trimming. Open chart > Expert Advisors > Properties > Inputs, set InpBridgeToken, then press OK. Re-attach the EA if needed.");
       return false;
    }
 
@@ -44,7 +45,7 @@ bool PostJson(const string endpoint, const string payload, const string label)
 
    char result[];
    string result_headers;
-   string headers = "Content-Type: application/json\r\nX-Bridge-Token: " + InpBridgeToken + "\r\n";
+   string headers = "Content-Type: application/json\r\nX-Bridge-Token: " + g_bridge_token + "\r\n";
    ResetLastError();
    int status = WebRequest("POST", endpoint, headers, InpHttpTimeoutMs, data, result, result_headers);
    string response = CharArrayToString(result, 0, -1, CP_UTF8);
@@ -135,14 +136,20 @@ void RunBridgeCycle()
 
 int OnInit()
 {
+   g_bridge_token = InpBridgeToken;
+   StringTrimLeft(g_bridge_token);
+   StringTrimRight(g_bridge_token);
+   if(StringLen(g_bridge_token) == 0)
+      Print("DARS bridge SETUP NEEDED: InpBridgeToken is blank. Set it under EA Properties > Inputs; token value is never printed.");
+   else
+      Print("DARS bridge token input detected (value hidden). Checking MT5 permissions and server response next.");
+
    if(!SymbolSelect(InpSymbol, true))
    {
       Print("DARS bridge ERROR: could not select symbol ", InpSymbol,
             ". Confirm the exact broker symbol name.");
       return INIT_FAILED;
    }
-   if(StringLen(InpBridgeToken) == 0)
-      Print("DARS bridge SETUP NEEDED: enter the Vercel MT5_BRIDGE_TOKEN in EA Inputs.");
    EventSetTimer(MathMax(5, InpTimerSeconds));
    Print("DARS read-only bridge started for ", InpSymbol,
          ". Quote interval=", InpTimerSeconds,
