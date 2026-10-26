@@ -118,6 +118,43 @@
  [["Trend alignment",up||down],["RSI confirmation",direction==="BUY"?rsi>50:direction==="SELL"?rsi<50:false],["Possible liquidity sweep",sweepLow||sweepHigh],["Live price / spread checked",false],["Structure shift + retest manually confirmed",false]].forEach(([label,ok])=>{const row=document.createElement("div");row.style.cssText="font-size:12px;color:"+(ok?"#75e9c1":"#ffd28a");row.textContent=(ok?"✓ ":"□ ")+label;checklist.appendChild(row);});card.appendChild(checklist);
  const copy=document.createElement("button");copy.type="button";copy.textContent="Copy setup levels";copy.style.cssText="margin-top:12px;padding:10px 14px;border:0;border-radius:8px;background:#146b58;color:white;font-weight:700;width:100%;cursor:pointer";copy.disabled=direction==="WAIT";copy.style.opacity=copy.disabled?".45":"1";copy.addEventListener("click",()=>{const txt=symbol+" "+frame.timeframe+" "+direction+" DRAFT\nEntry: "+entry.toFixed(2)+"\nSL: "+sl.toFixed(2)+"\nTP1: "+tp1.toFixed(2)+"\nTP2: "+tp2.toFixed(2)+"\nNOT CONFIRMED - verify live quote and risk.";if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(()=>{copy.textContent="Copied";}).catch(()=>{copy.textContent="Copy unavailable; select levels above";});else copy.textContent="Clipboard unavailable on this connection";});card.appendChild(copy);
  parent.appendChild(card);
+ // Keep the setup illustration moving from real MT5 quotes while this message remains visible.
+ // One loop per reply container; never synthesize a price when the quote endpoint is unavailable.
+ if(!parent.dataset.darsSetupLiveLoop){
+  parent.dataset.darsSetupLiveLoop="1";
+  const liveTimer=setInterval(async()=>{
+   if(!parent.isConnected){clearInterval(liveTimer);delete parent.dataset.darsSetupLiveLoop;return;}
+   try{
+    const qres=await fetch("/api/mt5-quote?symbol="+encodeURIComponent(symbol),{cache:"no-store"});
+    if(!qres.ok)return;
+    const q=await qres.json();
+    const bid=Number(q.bid??q.quote?.bid),ask=Number(q.ask??q.quote?.ask);
+    if(!Number.isFinite(bid)||!Number.isFinite(ask)||bid<=0||ask<=0)return;
+    const price=(bid+ask)/2;
+    const stamp=q.received_at||q.updated_at||q.timestamp;
+    const t=stamp?Math.floor(new Date(stamp).getTime()/1000):Math.floor(Date.now()/1000);
+    if(!Number.isFinite(t)||t<=0)return;
+    const secs=({M1:60,M5:300,M15:900,M30:1800,H1:3600,H4:14400})[frame.timeframe]||300;
+    const bucket=Math.floor(t/secs)*secs;
+    const list=frame.candles;
+    if(!Array.isArray(list)||!list.length)return;
+    const last=list[list.length-1];
+    const parseTime=v=>{const n=Number(v);if(Number.isFinite(n)&&n>0)return n>1e12?Math.floor(n/1000):Math.floor(n);const d=Date.parse(v);return Number.isFinite(d)?Math.floor(d/1000):0;};
+    const lastBucket=Math.floor(parseTime(last.time||last.timestamp||last.datetime)/secs)*secs;
+    if(lastBucket===bucket||lastBucket===0){
+      const close=Number(last.close??last.c),high=Number(last.high??last.h),low=Number(last.low??last.l);
+      last.close=last.c=price;last.high=last.h=Math.max(Number.isFinite(high)?high:price,price);last.low=last.l=Math.min(Number.isFinite(low)?low:price,price);
+      last.open=last.o=Number(last.open??last.o??price);
+    }else if(bucket>lastBucket){
+      list.push({time:new Date(bucket*1000).toISOString(),open:price,high:price,low:price,close:price,o:price,h:price,l:price,c:price});
+      if(list.length>80)list.shift();
+    }else return;
+    const old=parent.querySelector("section");
+    if(old)old.remove();
+    addSetupIllustration(parent,frame,symbol,allFrames);
+   }catch(_){/* no fabricated ticks */}
+  },1000);
+ }
 }
  async function ask(text){if(!text||send.disabled)return;input.value="";bubble(text,"you");history.push({role:"user",content:text});send.disabled=true;status.textContent="Sinusuri ang data…";
   try{
