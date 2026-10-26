@@ -1,7 +1,7 @@
 // Dars AI Lab - VT Markets MT5 Read-only Quote + Candle Bridge
-// Sends DARS API-compatible quote snapshots and M1/M5/M15/H1 closed candles. DOES NOT trade.
+// Sends DARS API-compatible quote snapshots, live forming candles and M1/M5/M15/H1 history. DOES NOT trade.
 #property strict
-#property version "1.22"
+#property version "1.30"
 #property description "Read-only quote and candle sender for Dars AI Lab"
 
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
@@ -17,6 +17,7 @@ string symbols[];
 int candleTimer = 0;
 int quoteSendCount = 0;
 int quoteTickMissCount = 0;
+int liveCandleTimer = 0;
 
 int OnInit()
 {
@@ -62,7 +63,7 @@ int OnInit()
    }
 
    EventSetTimer(MathMax(1, SendEverySeconds));
-   Print("Dars read-only quote + M1/M5/M15/H1 candle bridge started. No broker orders are sent.");
+   Print("Dars read-only bridge started: live quote + forming M1/M5/M15/H1 candles + candle history. No broker orders are sent.");
    OnTimer();
    return INIT_SUCCEEDED;
 }
@@ -132,13 +133,13 @@ void SendQuote(const string sym)
    }
 }
 
-string FrameJson(const string sym, const ENUM_TIMEFRAMES tf, const string frameName)
+string FrameJson(const string sym, const ENUM_TIMEFRAMES tf, const string frameName, const bool includeCurrent=false)
 {
    MqlRates rates[];
    ArraySetAsSeries(rates, false);
    int wanted = MathMax(30, MathMin(5000, BarsPerTimeframe));
    ResetLastError();
-   int copied = CopyRates(sym, tf, 1, wanted, rates); // closed candles only
+   int copied = CopyRates(sym, tf, includeCurrent ? 0 : 1, wanted, rates); // shift 0 includes the live, forming candle
    if(copied < 10)
    {
       Print("Dars waiting for enough ", frameName, " closed bars on ", sym,
@@ -177,12 +178,33 @@ void SendCandles(const string sym)
    PostFrame(sym, "H1", FrameJson(sym, PERIOD_H1, "H1"));
 }
 
+// Send only the currently forming bar. The API upserts by symbol + timeframe + bar time,
+// so repeated updates replace that same bar as its OHLC values evolve with incoming ticks.
+void SendLiveCandles(const string sym)
+{
+   PostFrame(sym, "M1", FrameJson(sym, PERIOD_M1, "M1", true));
+   PostFrame(sym, "M5", FrameJson(sym, PERIOD_M5, "M5", true));
+   PostFrame(sym, "M15", FrameJson(sym, PERIOD_M15, "M15", true));
+   PostFrame(sym, "H1", FrameJson(sym, PERIOD_H1, "H1", true));
+}
+
 void OnTimer()
 {
    for(int i = 0; i < ArraySize(symbols); i++)
    {
       string sym = symbols[i];
       if(StringLen(sym) > 0) SendQuote(sym);
+   }
+
+   liveCandleTimer += MathMax(1, SendEverySeconds);
+   if(liveCandleTimer >= 6)
+   {
+      liveCandleTimer = 0;
+      for(int k = 0; k < ArraySize(symbols); k++)
+      {
+         string liveSym = symbols[k];
+         if(StringLen(liveSym) > 0) SendLiveCandles(liveSym);
+      }
    }
 
    candleTimer += MathMax(1, SendEverySeconds);
