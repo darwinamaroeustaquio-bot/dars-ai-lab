@@ -8,7 +8,7 @@
 input string InpSymbol = "XAUUSD-STD";
 input string InpQuoteEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
 input string InpCandleEndpoint = "https://dars-indol.vercel.app/api/mt5-candles";
-input string InpBridgeToken = ""; // Must match Vercel MT5_BRIDGE_TOKEN exactly
+input string InpBridgeToken = ""; // Paste token in EA Properties > Inputs; keep secrets out of GitHub
 input int    InpTimerSeconds = 10;
 input int    InpCandleRefreshSeconds = 60;
 input int    InpClosedM5Bars = 200;
