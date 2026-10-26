@@ -8,7 +8,7 @@
 input string InpSymbol = "XAUUSD-STD";
 input string InpQuoteEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
 input string InpCandleEndpoint = "https://dars-indol.vercel.app/api/mt5-candles";
-input string InpBridgeToken = ""; // Paste token in EA Properties > Inputs; keep secrets out of GitHub
+input string BridgeToken = ""; // Paste the matching Vercel MT5_BRIDGE_TOKEN in EA Inputs; keep secrets out of GitHub
 input int    InpTimerSeconds = 10;
 input int    InpCandleRefreshSeconds = 60;
 input int    InpClosedM5Bars = 200;
@@ -30,7 +30,7 @@ bool PostJson(const string endpoint, const string payload, const string label)
 {
    if(StringLen(g_bridge_token) == 0)
    {
-      Print("DARS bridge ERROR: bridge token is blank after trimming. Open chart > Expert Advisors > Properties > Inputs, set InpBridgeToken, then press OK. Re-attach the EA if needed.");
+      Print("DARS bridge ERROR: bridge token is blank after trimming. Open chart > Expert Advisors > Properties > Inputs, set BridgeToken, then press OK. Re-attach the EA if needed.");
       return false;
    }
 
@@ -136,11 +136,11 @@ void RunBridgeCycle()
 
 int OnInit()
 {
-   g_bridge_token = InpBridgeToken;
+   g_bridge_token = BridgeToken;
    StringTrimLeft(g_bridge_token);
    StringTrimRight(g_bridge_token);
    if(StringLen(g_bridge_token) == 0)
-      Print("DARS bridge SETUP NEEDED: InpBridgeToken is blank. Set it under EA Properties > Inputs; token value is never printed.");
+      Print("DARS bridge SETUP NEEDED: BridgeToken is blank. Set it under EA Properties > Inputs; token value is never printed.");
    else
       Print("DARS bridge token input detected (value hidden). Checking MT5 permissions and server response next.");
 
