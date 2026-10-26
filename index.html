@@ -305,6 +305,38 @@ function drawChart(){
  $("chartFeedStatus").textContent="LIVE MT5 candle history · last candle "+lastTime;
  $("chartOverlayNote").textContent="Real OHLC candles · EMA20 overlay · auto-refresh";
 }
+// Apply fresh broker quote ticks to the currently forming chart candle so its body and wick move between history refreshes.
+let lastChartQuoteAt=0,liveTickBusy=false;
+async function updateFormingCandleFromQuote(){
+ if(liveTickBusy)return;liveTickBusy=true;
+ try{
+  const sym=selected==="XAUUSD"?"XAUUSD-STD":selected;
+  const r=await fetch("/api/mt5-quote?symbol="+encodeURIComponent(sym),{cache:"no-store",headers:{Accept:"application/json"}});
+  const d=await r.json();
+  if(!r.ok||!d.ok||!d.connected||!d.quote)throw new Error("Waiting for live MT5 tick");
+  const q=d.quote,price=(Number(q.bid)+Number(q.ask))/2,received=Date.parse(q.received_at||"");
+  if(!Number.isFinite(price)||price<=0||!Number.isFinite(received))throw new Error("Invalid live quote");
+  if(received<lastChartQuoteAt)return;lastChartQuoteAt=received;
+  const tf=$("timeframe").value,secs=({M1:60,M5:300,M15:900,H1:3600})[tf]||3600;
+  const bucket=Math.floor(received/1000/secs)*secs*1000,stamp=new Date(bucket).toISOString();
+  const data=liveChartCandles.filter(c=>c&&Number.isFinite(Number(c.open))&&Number.isFinite(Number(c.high))&&Number.isFinite(Number(c.low))&&Number.isFinite(Number(c.close)));
+  const last=data[data.length-1],lastBucket=last?Date.parse(last.bar_time||last.time||""):NaN;
+  if(last&&Number.isFinite(lastBucket)&&Math.floor(lastBucket/1000/secs)===Math.floor(bucket/1000/secs)){
+   last.close=price;last.high=Math.max(Number(last.high),price);last.low=Math.min(Number(last.low),price);
+  }else if(last&&Number.isFinite(lastBucket)&&bucket>lastBucket){
+   data.push({symbol:sym,timeframe:tf,bar_time:stamp,open:Number(last.close),high:Math.max(Number(last.close),price),low:Math.min(Number(last.close),price),close:price,source:"live_quote_ticks"});
+   liveChartCandles=data.slice(-200);
+  }else if(!last){
+   throw new Error("Waiting for real candle history");
+  }
+  drawChart();
+  const age=Math.max(0,Math.round((Date.now()-received)/1000));
+  $("chartFeedStatus").textContent="LIVE TICK · "+sym+" · quote "+age+"s old · forming "+tf+" candle";
+  $("chartOverlayNote").textContent="Live broker quote updates the current candle body and wick; OHLC history refreshes separately.";
+ }catch(e){
+  // Do not fabricate a moving candle if live quote data is missing or stale.
+ }finally{liveTickBusy=false;}
+}
 async function refreshLiveChart(){
  if(chartFetchBusy)return;chartFetchBusy=true;
  try{
@@ -405,7 +437,7 @@ $("copyPlan").addEventListener("click",async()=>{const txt="Dars AI Lab risk pla
 $("saveTrade").addEventListener("click",()=>{const pnlRaw=$("jPnl").value;const t={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),date:new Date().toISOString(),symbol:$("jSymbol").value,side:$("jSide").value,outcome:$("jOutcome").value,pnl:pnlRaw.trim()===""?null:Number(pnlRaw),note:$("jNote").value.trim()};journal.unshift(t);persist();$("jPnl").value="";$("jNote").value=""});
 $("clearJournal").addEventListener("click",()=>{if(confirm("Delete all locally saved journal entries? Export CSV first if you need a backup.")){journal=[];persist()}});
 $("exportJournal").addEventListener("click",()=>{const rows=[["date","symbol","side","outcome","pnl","notes"],...journal.map(t=>[t.date,t.symbol,t.side,t.outcome,t.pnl===null?"":t.pnl,t.note])];const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="dars-ai-lab-journal.csv";a.click();URL.revokeObjectURL(url)});
-renderWatch();refreshWatchlist();setInterval(refreshWatchlist,5000);drawChart();refreshLiveChart();chartFetchTimer=setInterval(refreshLiveChart,5000);updateRisk();updateScore();renderJournal();
+renderWatch();refreshWatchlist();setInterval(refreshWatchlist,5000);drawChart();refreshLiveChart();chartFetchTimer=setInterval(refreshLiveChart,5000);setInterval(updateFormingCandleFromQuote,1000);updateRisk();updateScore();renderJournal();
 
 const setupEl=id=>document.getElementById(id);
 let setupBusy=false,lastSetupSnapshot=null;
