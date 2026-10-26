@@ -137,12 +137,12 @@ string FrameJson(const string sym, const ENUM_TIMEFRAMES tf, const string frameN
 {
    MqlRates rates[];
    ArraySetAsSeries(rates, false);
-   int wanted = MathMax(30, MathMin(5000, BarsPerTimeframe));
+   int wanted = includeCurrent ? 1 : MathMax(30, MathMin(5000, BarsPerTimeframe));
    ResetLastError();
    int copied = CopyRates(sym, tf, includeCurrent ? 0 : 1, wanted, rates); // shift 0 includes the live, forming candle
-   if(copied < 10)
+   if(copied < (includeCurrent ? 1 : 10))
    {
-      Print("Dars waiting for enough ", frameName, " closed bars on ", sym,
+      Print("Dars waiting for enough ", frameName, " bars on ", sym,
             ". CopyRates=", copied, " error=", GetLastError(),
             ". Load history for this timeframe in MT5.");
       return "";
