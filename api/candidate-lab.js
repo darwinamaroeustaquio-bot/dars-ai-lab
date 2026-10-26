@@ -56,6 +56,17 @@ function buildSignal(c,cfg){
    const k=stochasticAt(i,cfg.stochPeriod||14),prevK=stochasticAt(i-1,cfg.stochPeriod||14);
    if(k!==null&&prevK!==null&&prevK<cfg.lower&&k>prevK)s[i]=1;
    else if(k!==null&&prevK!==null&&prevK>cfg.upper&&k<prevK)s[i]=-1;
+  } else if(cfg.kind==="stochastic-cross-reversion"){
+   // New entry variant: require %K to cross back through the extreme threshold.
+   // Optional EMA-trend or candle-body confirmation is tested as a separate configuration.
+   const k=stochasticAt(i,cfg.stochPeriod||14),prevK=stochasticAt(i-1,cfg.stochPeriod||14);
+   const longCross=k!==null&&prevK!==null&&prevK<cfg.lower&&k>=cfg.lower;
+   const shortCross=k!==null&&prevK!==null&&prevK>cfg.upper&&k<=cfg.upper;
+   const mode=cfg.filterMode||"cross";
+   const longAllowed=mode==="ema-trend"?ef[i]>es[i]:mode==="candle-confirm"?close[i]>c[i].open:true;
+   const shortAllowed=mode==="ema-trend"?ef[i]<es[i]:mode==="candle-confirm"?close[i]<c[i].open:true;
+   if(longCross&&longAllowed)s[i]=1;
+   else if(shortCross&&shortAllowed)s[i]=-1;
   } else if(cfg.kind==="cci-reversion"){
    const v=cciAt(i,cfg.cciPeriod||20),prevV=cciAt(i-1,cfg.cciPeriod||20);
    if(v!==null&&prevV!==null&&prevV< -cfg.cciLevel&&v> -cfg.cciLevel)s[i]=1;
@@ -204,6 +215,13 @@ function makeCandidates(){
  for(const lookback of [5,8,12])for(const expansion of [1.15,1.35,1.6])for(const risk of scalpRisk)add({kind:"volatility-expansion",fast:lookback,slow:lookback,lookback,expansion},risk);
  for(const lookback of [5,8,12,20])for(const confirmBars of [2,3,4])for(const risk of scalpRisk)add({kind:"sweep-mss",fast:lookback,slow:lookback,lookback,confirmBars},risk);
  for(const lookback of [8,12,20])for(const tolerance of [0.15,0.25,0.4])for(const risk of scalpRisk)add({kind:"range-retest",fast:lookback,slow:lookback,lookback,tolerance},risk);
+ // Expand stochastic reversion research while keeping all existing candidate IDs/configurations stable.
+ // GOLD-265 uses a turning-point entry; these challengers require a cross back through the threshold.
+ for(const stochPeriod of [9,14,21])
+  for(const [lower,upper] of [[20,80],[25,75],[30,70],[35,65]])
+   for(const filterMode of ["cross","ema-trend","candle-confirm"])
+    for(const risk of riskProfiles)
+     add({kind:"stochastic-cross-reversion",fast:20,slow:50,stochPeriod,lower,upper,filterMode},risk);
  return out;
 }
 module.exports=async(req,res)=>{
@@ -251,7 +269,7 @@ module.exports=async(req,res)=>{
    const scoreBase=net.trades>=15?net.expectancyR*Math.min(net.trades/50,1)-net.maxDrawdownR*.03:-999;
    const score=scoreBase+(walkForwardInformative?(foldConsistency-.5)*.12:0);
    const family=cfg.kind.replace(/-/g," ").replace(/\b\w/g,x=>x.toUpperCase());
-   const params=cfg.kind==="adx-trend"?"ADX "+cfg.period+" · threshold "+cfg.threshold:cfg.kind==="ichimoku"?"Ichimoku "+cfg.period:cfg.kind==="sr-retest"?"S/R retest "+cfg.lookback:cfg.kind==="atr-breakout"?"ATR impulse "+cfg.atrMult:cfg.kind==="candle-reversal"?"Engulfing/pin-bar":cfg.kind==="inside-bar"?"Inside-bar breakout":cfg.kind==="roc-momentum"?"ROC "+cfg.period+" · "+cfg.threshold:cfg.kind==="williams-reversion"?"Williams %R "+cfg.period+" · "+cfg.lower+"/"+cfg.upper:cfg.kind==="triple-ema"?"EMA "+cfg.fast+"/"+cfg.midPeriod+"/"+cfg.longPeriod:cfg.kind==="fib-pullback"?"Fib pullback "+cfg.lookback:cfg.kind==="supertrend"?"ATR band "+cfg.atrMult:cfg.kind==="liquidity-sweep"?"Liquidity sweep "+cfg.lookback:cfg.kind==="compression-breakout"?"Range compression "+cfg.lookback+" · "+cfg.maxRangeAtr+" ATR":cfg.kind==="ema-atr-pullback"?"EMA reclaim "+cfg.fast+"/"+cfg.slow:cfg.kind==="failed-breakout"?"Failed breakout "+cfg.lookback+" · wick "+cfg.wickRatio:cfg.kind==="volatility-expansion"?"Volatility expansion "+cfg.lookback+" · "+cfg.expansion+" ATR":cfg.kind==="sweep-mss"?"Sweep + MSS "+cfg.lookback+" · confirm "+cfg.confirmBars:cfg.kind==="range-retest"?"Range retest "+cfg.lookback+" · tol "+cfg.tolerance+" ATR":cfg.kind==="donchian"?"Lookback "+cfg.lookback:cfg.kind==="rsi-reversion"?"RSI "+cfg.rsiPeriod+" · "+cfg.lower+"/"+cfg.upper:cfg.kind==="bollinger-reversion"?"BB "+cfg.bandPeriod+" · "+cfg.bandDev+"σ":cfg.kind==="macd-momentum"?"MACD "+cfg.fast+"/"+cfg.slow+"/"+cfg.signalPeriod:cfg.kind==="keltner-breakout"?"Keltner "+cfg.channelPeriod+" · "+cfg.channelMult+" ATR":cfg.kind==="stochastic-reversion"?"Stoch "+cfg.stochPeriod+" · "+cfg.lower+"/"+cfg.upper:cfg.kind==="cci-reversion"?"CCI "+cfg.cciPeriod+" · ±"+cfg.cciLevel:cfg.fast+"/"+cfg.slow;
+   const params=cfg.kind==="adx-trend"?"ADX "+cfg.period+" · threshold "+cfg.threshold:cfg.kind==="ichimoku"?"Ichimoku "+cfg.period:cfg.kind==="sr-retest"?"S/R retest "+cfg.lookback:cfg.kind==="atr-breakout"?"ATR impulse "+cfg.atrMult:cfg.kind==="candle-reversal"?"Engulfing/pin-bar":cfg.kind==="inside-bar"?"Inside-bar breakout":cfg.kind==="roc-momentum"?"ROC "+cfg.period+" · "+cfg.threshold:cfg.kind==="williams-reversion"?"Williams %R "+cfg.period+" · "+cfg.lower+"/"+cfg.upper:cfg.kind==="triple-ema"?"EMA "+cfg.fast+"/"+cfg.midPeriod+"/"+cfg.longPeriod:cfg.kind==="fib-pullback"?"Fib pullback "+cfg.lookback:cfg.kind==="supertrend"?"ATR band "+cfg.atrMult:cfg.kind==="liquidity-sweep"?"Liquidity sweep "+cfg.lookback:cfg.kind==="compression-breakout"?"Range compression "+cfg.lookback+" · "+cfg.maxRangeAtr+" ATR":cfg.kind==="ema-atr-pullback"?"EMA reclaim "+cfg.fast+"/"+cfg.slow:cfg.kind==="failed-breakout"?"Failed breakout "+cfg.lookback+" · wick "+cfg.wickRatio:cfg.kind==="volatility-expansion"?"Volatility expansion "+cfg.lookback+" · "+cfg.expansion+" ATR":cfg.kind==="sweep-mss"?"Sweep + MSS "+cfg.lookback+" · confirm "+cfg.confirmBars:cfg.kind==="range-retest"?"Range retest "+cfg.lookback+" · tol "+cfg.tolerance+" ATR":cfg.kind==="donchian"?"Lookback "+cfg.lookback:cfg.kind==="rsi-reversion"?"RSI "+cfg.rsiPeriod+" · "+cfg.lower+"/"+cfg.upper:cfg.kind==="bollinger-reversion"?"BB "+cfg.bandPeriod+" · "+cfg.bandDev+"σ":cfg.kind==="macd-momentum"?"MACD "+cfg.fast+"/"+cfg.slow+"/"+cfg.signalPeriod:cfg.kind==="keltner-breakout"?"Keltner "+cfg.channelPeriod+" · "+cfg.channelMult+" ATR":cfg.kind==="stochastic-reversion"?"Stoch "+cfg.stochPeriod+" · "+cfg.lower+"/"+cfg.upper:cfg.kind==="stochastic-cross-reversion"?"Stoch cross "+cfg.stochPeriod+" · "+cfg.lower+"/"+cfg.upper+" · "+cfg.filterMode:cfg.kind==="cci-reversion"?"CCI "+cfg.cciPeriod+" · ±"+cfg.cciLevel:cfg.fast+"/"+cfg.slow;
    return {id:"GOLD-"+String(n+1).padStart(3,"0"),name:family+" · "+params+" · "+cfg.riskLabel,config:cfg,train:{trades:train.trades,winRate:train.winRate,netR:train.netR,expectancyR:train.expectancyR,profitFactor:train.profitFactor,maxDrawdownR:train.maxDrawdownR},holdout:{trades:raw.trades,winRate:raw.winRate,netR:raw.netR,expectancyR:raw.expectancyR,profitFactor:raw.profitFactor,maxDrawdownR:raw.maxDrawdownR},afterCosts:{trades:net.trades,winRate:net.winRate,netR:net.netR,expectancyR:net.expectancyR,profitFactor:net.profitFactor,maxDrawdownR:net.maxDrawdownR},costStress:{slippagePlus005:{netR:stress05.netR,expectancyR:stress05.expectancyR,profitFactor:stress05.profitFactor,maxDrawdownR:stress05.maxDrawdownR},slippagePlus010:{netR:stress10.netR,expectancyR:stress10.expectancyR,profitFactor:stress10.profitFactor,maxDrawdownR:stress10.maxDrawdownR}},walkForward:{folds,activeFolds:activeFolds.length,positiveFolds,consistency:Number(foldConsistency.toFixed(3)),netR:foldNetR,informative:walkForwardInformative,stable:walkForwardStable},checks:{development:robustTrain,holdout:robustHoldout,slippageStress:slippageStressPass,drawdown:drawdownAcceptable,walkForward:walkForwardStable},status:passed?"REVIEW CANDIDATE":"NOT PASSED",score:Number(score.toFixed(3)),recentTrades:net.results};
  });
   candidates.sort((a,b)=>Number(b.status==="REVIEW CANDIDATE")-Number(a.status==="REVIEW CANDIDATE")||b.score-a.score);
