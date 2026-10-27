@@ -46,7 +46,7 @@ module.exports = async (req, res) => {
     } catch (_) { return send(res,502,{ok:false,error:"Could not reach candle storage."}); }
   }
   if (req.method === "GET") {
-    const symbol=String(req.query.symbol||"XAUUSD-STD"), timeframe=String(req.query.timeframe||"M5");
+    const symbol=String(req.query.symbol||"XAUUSD-STD").trim().toUpperCase(), timeframe=String(req.query.timeframe||"M5").trim().toUpperCase();
     const limit=Math.min(200,Math.max(10,Number.parseInt(req.query.limit||"100",10)||100));
     if(!ALLOWED.has(symbol)||!FRAMES.has(timeframe)) return send(res,400,{ok:false,error:"Unsupported symbol or timeframe."});
     try {
