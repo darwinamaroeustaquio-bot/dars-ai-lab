@@ -1,7 +1,7 @@
 // Dars AI Lab - VT Markets MT5 Read-only Quote + Candle Bridge
 // Sends quote snapshots and M1/M5/M15/H1 candle history. DOES NOT trade.
 #property strict
-#property version "1.22"
+#property version "1.23"
 #property description "Read-only quote and candle sender for Dars AI Lab"
 
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
@@ -9,7 +9,7 @@ input string CandleEndpoint = "https://dars-indol.vercel.app/api/mt5-candles";
 input string BridgeToken = "SET_THE_SAME_RANDOM_TOKEN_IN_VERCEL";
 input string SymbolsCsv = "XAUUSD-STD";
 input int SendEverySeconds = 3;
-input int SendCandlesEverySeconds = 300;
+input int SendCandlesEverySeconds = 60;
 input int BarsPerTimeframe = 500;
 
 string symbols[];
@@ -29,6 +29,8 @@ int OnInit()
    for(int i=0;i<count;i++){StringTrimLeft(symbols[i]);StringTrimRight(symbols[i]);if(StringLen(symbols[i])>0)SymbolSelect(symbols[i],true);}
    EventSetTimer(MathMax(1,SendEverySeconds));
    Print("Dars read-only quote + candle bridge started. No order functions are used.");
+   // Upload candle history immediately at startup instead of waiting five minutes.
+   for(int i=0;i<ArraySize(symbols);i++){string sym=symbols[i];if(StringLen(sym)>0)SendCandles(sym);}
    return INIT_SUCCEEDED;
 }
 void OnDeinit(const int reason){EventKillTimer();}
