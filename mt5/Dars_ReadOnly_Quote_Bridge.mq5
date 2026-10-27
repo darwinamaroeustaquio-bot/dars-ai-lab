@@ -1,7 +1,7 @@
 // Dars AI Lab - VT Markets MT5 Read-only Quote + Candle Bridge
 // Sends quote snapshots and M1/M5/M15/H1 candle history. DOES NOT trade.
 #property strict
-#property version "1.23"
+#property version "1.24"
 #property description "Read-only quote and candle sender for Dars AI Lab"
 
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
@@ -43,7 +43,7 @@ bool PostJson(const string endpoint,const string payload,const string label)
    ResetLastError();
    int code=WebRequest("POST",endpoint,headers,10000,data,result,resultHeaders);
    string responseText=CharArrayToString(result,0,-1,CP_UTF8);
-   if(code==200){return true;}
+   if(code>=200 && code<300){ Print("Dars ",label," HTTP OK: ",code," response=",responseText); return true; }
    Print("Dars ",label," failed. HTTP=",code," MT5 error=",GetLastError()," response=",responseText,
          ". Check MT5 WebRequest allow-list, exact BridgeToken, endpoint and Vercel Function Logs.");
    return false;
@@ -77,8 +77,10 @@ string FrameJson(const string sym,const ENUM_TIMEFRAMES tf,const string frameNam
 {
    MqlRates rates[];ArraySetAsSeries(rates,false);
    int wanted=MathMax(30,MathMin(5000,BarsPerTimeframe));
+   ResetLastError();
    int copied=CopyRates(sym,tf,0,wanted,rates);
-   if(copied<10){Print("Dars waiting for enough ",frameName," bars on ",sym,". CopyRates=",copied," error=",GetLastError());return "";}
+   int copyError=GetLastError();
+   if(copied<10){Print("Dars waiting for enough ",frameName," bars on ",sym,". CopyRates=",copied," error=",copyError,". Keep MT5 connected and allow history to synchronize.");return "";}
    string out="\""+frameName+"\":[";
    for(int j=0;j<copied;j++){
       if(j>0)out+=",";
@@ -86,6 +88,7 @@ string FrameJson(const string sym,const ENUM_TIMEFRAMES tf,const string frameNam
       out+=StringFormat("{\"time\":%I64d,\"open\":%s,\"high\":%s,\"low\":%s,\"close\":%s,\"tick_volume\":%I64d}",
          (long)rates[j].time,DoubleToString(rates[j].open,digits),DoubleToString(rates[j].high,digits),DoubleToString(rates[j].low,digits),DoubleToString(rates[j].close,digits),(long)rates[j].tick_volume);
    }
+   Print("Dars prepared candles: ",sym," ",frameName," bars=",copied," oldest=",TimeToString(rates[0].time,TIME_DATE|TIME_MINUTES)," newest=",TimeToString(rates[copied-1].time,TIME_DATE|TIME_MINUTES));
    return out+"]";
 }
 void PostFrame(const string sym,const string frameName,const string frameJson)
