@@ -22,9 +22,9 @@ module.exports = async (req, res) => {
     const provided = String(req.headers["x-bridge-token"] || "");
     if (!expected || provided.length !== expected.length || provided !== expected) return send(res, 401, {ok:false,error:"Unauthorized bridge token."});
     const body = req.body || {};
-    const symbol = String(body.symbol || "");
+    const symbol = String(body.symbol || "").trim().toUpperCase();
     if (!ALLOWED.has(symbol)) return send(res,400,{ok:false,error:"Invalid symbol."});
-    const incomingFrames = body.timeframe && Array.isArray(body.candles) ? { [String(body.timeframe)]: body.candles } : body.frames;
+    const incomingFrames = body.timeframe && Array.isArray(body.candles) ? { [String(body.timeframe).trim().toUpperCase()]: body.candles } : body.frames;
     if (!incomingFrames || typeof incomingFrames !== "object") return send(res,400,{ok:false,error:"Send timeframe + candles or frames object."});
     const rows = [];
     for (const [timeframe, candles] of Object.entries(incomingFrames)) {
