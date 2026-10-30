@@ -210,6 +210,23 @@
 <div class="row" style="justify-content:flex-start;gap:8px;margin:12px 0"><button class="btn primary" id="copyCandidateReport" type="button" disabled>Copy result for ChatGPT</button><span class="note" id="copyCandidateStatus" aria-live="polite">Run the lab first.</span></div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:900px"><thead><tr><th align="left">Candidate</th><th>Holdout trades</th><th>Win rate</th><th>Net R after costs</th><th>Expectancy after costs</th><th>PF after costs</th><th>Max DD R</th><th>Why not passed</th><th>Status</th></tr></thead><tbody id="candidateResults"><tr><td colspan="9" class="muted">No research run yet.</td></tr></tbody></table></div>
 <p class="note">Tap/click any candidate row to inspect it in the selector above. This is a transparent screening engine, not self-modifying AI. After-cost metrics subtract the entered total round-trip cost in R from each completed trade; include spread, commission, swap and slippage in that estimate. It is not a verified VT Markets cash-cost calculation. Passing means review candidate only—not proven profitable, not auto-selected for live trading, and never automatically converted to an EA.</p>
 </section>
+<section class="panel" id="reverseEdgePanel" style="margin-bottom:15px;border-color:#9a5961">
+<div class="row"><div><div class="eyebrow">CONTRARIAN RESEARCH · GOLD ONLY</div><h2 style="margin:5px 0 8px">DARS Reverse-Edge Lab</h2></div><span class="tag" id="reverseEdgeStatus">Not run yet</span></div>
+<p class="note">This experiment ranks the weakest original candidates using development data only (first 70%, minimum 20 trades), then tests the exact opposite BUY/SELL signals on the final 30% holdout. Entry timing, ATR stop/target, spread, slippage and commission assumptions remain identical. This is a research comparison—not evidence that MT5 or a broker is designed to make traders lose.</p>
+<div class="row" style="justify-content:flex-start;gap:8px;margin:10px 0">
+<button class="btn primary" id="runReverseEdgeLab" type="button">Find weakest & test inverse</button>
+<span class="note">Uses selected timeframe and Candidate Lab cost inputs.</span>
+</div>
+<div class="metrics" style="margin-top:12px">
+<div class="metric"><div class="eyebrow">Weak originals tested</div><strong id="reverseEdgeCount">—</strong><small>Selected on development only</small></div>
+<div class="metric"><div class="eyebrow">Inverse review candidates</div><strong id="reverseEdgePassed">—</strong><small>Positive after-cost holdout + stress</small></div>
+<div class="metric"><div class="eyebrow">Weakest original expectancy</div><strong id="reverseEdgeWeakest">—</strong><small>Development R / trade</small></div>
+<div class="metric"><div class="eyebrow">Best inverse expectancy</div><strong id="reverseEdgeBest">—</strong><small>Holdout after modeled costs</small></div>
+</div>
+<p class="note" id="reverseEdgeMessage" role="status" aria-live="polite">Run the experiment to compare original low-quality candidates with their inverted versions. No candidate is automatically added to paper trading or live trading.</p>
+<div class="tablewrap"><table style="min-width:1150px"><thead><tr><th>Rank</th><th>Weak original candidate</th><th>Dev trades</th><th>Dev win rate</th><th>Dev net R</th><th>Dev PF</th><th>Inverse holdout trades</th><th>Inverse win rate</th><th>Inverse net R</th><th>Inverse expectancy</th><th>Inverse PF</th><th>Inverse DD</th><th>Status</th></tr></thead><tbody id="reverseEdgeResults"><tr><td colspan="13" class="empty">No Reverse-Edge run yet.</td></tr></tbody></table></div>
+<p class="note">Important: the same final 30% holdout must not be repeatedly used to choose a strategy. After reviewing this experiment, validate any promising inverse candidate on a newly collected, later, untouched period and then demo forward-test it. The inverse result is not automatically a profitable EA.</p>
+</section>
 <section class="panel" id="learningModelPanel" style="margin-bottom:15px;border-color:#4a6190">
 <div class="row"><div><div class="eyebrow">GOLD ONLY · HISTORICAL + LIVE FORWARD TEST</div><h2 style="margin:5px 0 8px">Gold strategy research engine</h2></div><span class="tag" id="learningStatus">Waiting for history</span></div>
 <div class="metrics" style="margin:12px 0 0">
@@ -514,6 +531,56 @@ setupEl("setupSymbol").addEventListener("change",refreshAutomaticSetup);
 setupEl("setupCopy").addEventListener("click",async()=>{if(!lastSetupSnapshot){setupEl("setupNote").textContent="Walang valid automatic setup na makokopya. Hintayin ang valid live data at model validation.";return;}const s=lastSetupSnapshot,txt="DARS AI LAB · AUTOMATIC RESEARCH SETUP\nSymbol: "+s.symbol+"\nDirection: "+s.side+"\nEntry: "+fmtSetup(s.entry,s.digits)+"\nSL: "+fmtSetup(s.stop,s.digits)+"\nTP1 (1R): "+fmtSetup(s.tp1,s.digits)+"\nTP2 (2R): "+fmtSetup(s.tp2,s.digits)+"\nModel: up "+(Number(s.probabilities.up)*100).toFixed(1)+"%, down "+(Number(s.probabilities.down)*100).toFixed(1)+"%\nClosed M5: "+s.bar+"\nResearch/paper only; no order sent.";try{await navigator.clipboard.writeText(txt);setupEl("setupCopy").textContent="Copied!";}catch(e){setupEl("setupNote").textContent=txt;}});
 setupEl("setupReset").addEventListener("click",refreshAutomaticSetup);
 refreshAutomaticSetup();setInterval(refreshAutomaticSetup,30000);
+
+const reverseEdgeButton=document.getElementById("runReverseEdgeLab");
+if(reverseEdgeButton){
+ reverseEdgeButton.addEventListener("click",async()=>{
+  const btn=reverseEdgeButton,el=id=>document.getElementById(id);
+  btn.disabled=true;btn.textContent="Testing weakest candidates…";
+  el("reverseEdgeStatus").textContent="Running reverse research";
+  el("reverseEdgeMessage").textContent="Reading the verified MT5 candles, ranking weak originals on development data, then testing inverse signals on holdout…";
+  try{
+   const tf=el("candidateTimeframe")?.value||"M5";
+   const symbol=el("mt5SymbolSelect")?.value||"XAUUSD-STD";
+   const val=(id,fallback)=>{const x=Number(el(id)?.value);return Number.isFinite(x)&&x>=0?Math.min(10,x):fallback;};
+   const params=new URLSearchParams({symbol,timeframe:tf,spreadPrice:String(val("candidateSpreadPrice",0.28)),slippagePrice:String(val("candidateSlippagePrice",0.05)),commissionPrice:String(val("candidateCommissionPrice",0)),reverseEdge:"1"});
+   const response=await fetch("/api/candidate-lab?"+params.toString(),{cache:"no-store",headers:{Accept:"application/json"}});
+   const data=await response.json();
+   if(!response.ok||!data.ok)throw new Error(data.error||"Reverse-Edge research failed");
+   if(!data.ready){
+    el("reverseEdgeStatus").textContent="Waiting for data";
+    el("reverseEdgeCount").textContent="0";el("reverseEdgePassed").textContent="0";
+    el("reverseEdgeWeakest").textContent="—";el("reverseEdgeBest").textContent="—";
+    el("reverseEdgeMessage").textContent=data.message||"Need more verified MT5 candles.";
+    el("reverseEdgeResults").innerHTML='<tr><td colspan="13" class="empty">At least 250 verified candles are required.</td></tr>';
+    return;
+   }
+   const rows=data.reverseEdge||[],passed=rows.filter(x=>x.inversePassed);
+   const fmt=(v,d=2)=>Number.isFinite(Number(v))?Number(v).toFixed(d):"—";
+   const pct=v=>Number.isFinite(Number(v))?(Number(v)*100).toFixed(1)+"%":"—";
+   el("reverseEdgeCount").textContent=String(rows.length);
+   el("reverseEdgePassed").textContent=String(passed.length);
+   el("reverseEdgeWeakest").textContent=rows.length?fmt(rows[0].originalDevelopment.expectancyR,3)+"R":"No qualifying sample";
+   const best=passed.slice().sort((a,b)=>b.inverseHoldout.expectancyR-a.inverseHoldout.expectancyR)[0];
+   el("reverseEdgeBest").textContent=best?fmt(best.inverseHoldout.expectancyR,3)+"R":"No inverse pass";
+   el("reverseEdgeStatus").textContent="Complete · "+tf;
+   el("reverseEdgeMessage").textContent=data.reverseEdgeSelection+" Tested "+rows.length+" weak candidates from "+Number(data.candleCount).toLocaleString()+" candles; "+passed.length+" inverse candidate(s) met the review thresholds. Spread $"+fmt(data.costModel.spreadPriceUSDPerOz,2)+"/oz, slippage $"+fmt(data.costModel.slippagePriceUSDPerOzRoundTurn,2)+"/oz, commission $"+fmt(data.costModel.commissionPriceUSDPerOzRoundTurn,2)+"/oz. This remains a holdout research result, not a live signal.";
+   const body=el("reverseEdgeResults");body.replaceChildren();
+   for(const item of rows){
+    const tr=document.createElement("tr"),dev=item.originalDevelopment,inv=item.inverseHoldout;
+    const values=[item.rank,item.id+" · "+item.name,dev.trades,pct(dev.winRate),fmt(dev.netR)+"R",fmt(dev.profitFactor),inv.trades,pct(inv.winRate),fmt(inv.netR)+"R",fmt(inv.expectancyR,3)+"R",fmt(inv.profitFactor),fmt(inv.maxDrawdownR)+"R",item.status];
+    for(const value of values){const td=document.createElement("td");td.textContent=String(value);tr.appendChild(td);}
+    if(item.inversePassed)tr.style.color="var(--green)";
+    body.appendChild(tr);
+   }
+   if(!rows.length)body.innerHTML='<tr><td colspan="13" class="empty">No original candidate reached the 20-development-trade minimum. Collect more verified candles.</td></tr>';
+  }catch(error){
+   el("reverseEdgeStatus").textContent="Unavailable";
+   el("reverseEdgeMessage").textContent=error.message+" Check Supabase candle history and the Vercel function logs.";
+  }finally{btn.disabled=false;btn.textContent="Find weakest & test inverse";}
+ });
+}
+
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
