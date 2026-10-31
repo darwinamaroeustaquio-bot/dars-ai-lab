@@ -11,7 +11,7 @@ async function loadVerifiedStrategyStats() {
     const query = new URLSearchParams({ select: "strategy,status,closed_at,net_r,features", symbol: "eq.XAUUSD-STD", status: "eq.CLOSED", order: "closed_at.desc", limit: "2000" });
     const response = await fetch(root + "/rest/v1/dars_paper_trades?" + query, { headers: { apikey: key, Authorization: "Bearer " + key } });
     if (!response.ok) return { trades: [], stats: {} };
-    const trades = await response.json();
+    const trades = (await response.json()).reverse();
     return { trades, stats: summarizeByStrategy(trades) };
   } catch (_) { return { trades: [], stats: {} }; }
 }
