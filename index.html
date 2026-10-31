@@ -58,23 +58,21 @@ body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#
 .omni-msg.user{background:#10263a}
 @media(max-width:850px){.omni-hero,.omni-grid{grid-template-columns:1fr}.omni-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:440px){.omni-card{padding:14px}.omni-level strong{font-size:15px}.omni-controls select{flex:1}.omni-chat{grid-template-columns:1fr auto}}
-#topConnectionStatus{display:none!important}</style></head>
+#topConnectionStatus{display:none!important}</style><style id="dars-auth-polish">
+.auth-panel{margin:8vh auto 0;max-width:470px;padding:clamp(20px,5vw,32px);border-color:#2c4560;box-shadow:0 24px 80px #0006}.auth-brand{text-align:center;margin-bottom:22px}.auth-mark{width:48px;height:48px;margin:0 auto 12px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(140deg,#7da7ff,#39d9a0);color:#07111f;font-weight:950;font-size:24px}.auth-title{font-size:25px;margin:7px 0}.auth-brand h2{font-size:19px;margin:18px 0 5px}.auth-brand .note{margin:0 0 13px}.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;border:1px solid var(--line);border-radius:12px;background:#081421;margin:20px 0}.auth-tab{border:0;border-radius:8px;background:transparent;color:var(--muted);padding:10px;font-weight:750}.auth-tab.active{background:#1b3850;color:var(--text);box-shadow:inset 0 0 0 1px #3b6686}.auth-fields{display:grid;gap:14px}.auth-fields label{font-size:12px;color:#c0cee0}.auth-fields input{padding:13px;border-radius:10px;font-size:14px}.auth-actions{display:grid;gap:8px;margin-top:18px}.auth-actions .btn{padding:13px;font-size:14px}.auth-links{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:13px}.auth-link{border:0;background:none;color:#8fbaff;padding:4px 0;font-size:11px;text-decoration:underline;text-underline-offset:3px}.auth-help{font-size:10px;color:var(--muted);margin-top:6px}.auth-message{min-height:38px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#091522;color:#b9c9dc;font-size:11px;line-height:1.55;margin:15px 0 0;overflow-wrap:anywhere}.auth-message.error{border-color:#8e4655;color:#ffabb5;background:#27151d}.auth-message.success{border-color:#286b59;color:#8ce8c6;background:#0b211e}.auth-panel .password-wrap input{flex:1}.auth-panel .password-toggle{min-width:62px}@media(max-width:520px){.auth-panel{margin:4vh auto 0;padding:20px}.auth-tabs{margin:16px 0}.auth-fields{gap:12px}}
+</style>
+</head>
 <body><main class="wrap">
-<section class="panel" id="supabasePanel" style="margin:10vh auto 0;max-width:520px;padding:26px">
-
-<div style="text-align:center;margin-bottom:20px"><div class="eyebrow">Welcome back</div><div class="brand" style="font-size:28px;margin:8px 0">DARS <span>OMNISCIENT</span></div><h2 style="margin:5px 0 8px">Sign in to continue</h2><span class="tag" id="cloudStatus">Checking configuration…</span></div>
-<p class="note" style="text-align:center;margin-bottom:18px">Sign in to open your trading dashboard and sync your journal. Use your account password, not your VT Markets password.</p>
-<div class="fields">
-<div><label for="cloudEmail">Email</label><input id="cloudEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
-<div><label for="cloudPassword">Account password</label><div class="password-wrap"><input id="cloudPassword" type="password" autocomplete="current-password" placeholder="Use a strong password"><button class="btn password-toggle" id="togglePassword" type="button" aria-controls="cloudPassword" aria-pressed="false">Show</button></div></div>
-</div>
-<div class="row" style="margin-top:11px;justify-content:flex-start">
-<button class="btn primary" id="cloudSignIn" type="button">Sign in</button>
-<button class="btn" id="cloudSignUp" type="button">Create account</button>
-</div>
-<p class="note" id="cloudMessage" role="status" aria-live="polite">Cloud journal is not connected yet.</p>
-<div id="accountActions" class="hidden row" style="margin-top:11px;justify-content:flex-start"><button class="btn" id="cloudSync" type="button">Sync journal</button><button class="btn danger" id="cloudSignOut" type="button">Sign out</button></div>
-</section>
+<section class="panel auth-panel" id="supabasePanel">
+ <div class="auth-brand"><div class="auth-mark">D</div><div class="eyebrow">DARS AI LAB · SECURE WORKSPACE</div><div class="brand auth-title">DARS <span>OMNISCIENT</span></div><h2 id="authHeading">Welcome back</h2><p class="note">Sign in to access your trading workspace and synced journal.</p><span class="tag" id="cloudStatus">Checking configuration…</span></div>
+ <div class="auth-tabs" role="tablist" aria-label="Account access"><button class="auth-tab active" id="authModeSignIn" type="button" role="tab" aria-selected="true">Sign in</button><button class="auth-tab" id="authModeSignUp" type="button" role="tab" aria-selected="false">Create account</button></div>
+ <div class="auth-fields"><div><label for="cloudEmail">Email address</label><input id="cloudEmail" type="email" autocomplete="email" placeholder="name@example.com" required></div>
+ <div><label for="cloudPassword">Password</label><div class="password-wrap"><input id="cloudPassword" type="password" autocomplete="current-password" placeholder="Enter your password" required><button class="btn password-toggle" id="togglePassword" type="button" aria-controls="cloudPassword" aria-pressed="false">Show</button></div><div class="auth-help">Use your DARS account password, not your broker password.</div></div>
+ <div id="confirmPasswordWrap" class="hidden"><label for="cloudPasswordConfirm">Confirm password</label><input id="cloudPasswordConfirm" type="password" autocomplete="new-password" placeholder="Enter the password again"></div></div>
+ <div class="auth-actions"><button class="btn primary" id="cloudSignIn" type="button">Sign in</button><button class="btn primary hidden" id="cloudSignUp" type="button">Create account</button></div>
+ <div class="auth-links"><button class="auth-link" id="forgotPassword" type="button">Forgot password?</button><button class="auth-link hidden" id="resendConfirmation" type="button">Resend confirmation email</button></div>
+ <p class="auth-message" id="cloudMessage" role="status" aria-live="polite">Connecting securely to your account…</p>
+ <div id="accountActions" class="hidden row" style="margin-top:11px;justify-content:flex-start"><button class="btn" id="cloudSync" type="button">Sync journal</button><button class="btn danger" id="cloudSignOut" type="button">Sign out</button></div></section>
 <div id="dashboardContent" class="hidden">
 <section id="omniscientDashboard">
  <div class="omni-hero">
@@ -776,108 +774,28 @@ if(reverseEdgeButton){
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (async function setupDarsCloud(){
- const status=document.getElementById("cloudStatus"), msg=document.getElementById("cloudMessage");
- const email=document.getElementById("cloudEmail"), password=document.getElementById("cloudPassword");
- const togglePassword=document.getElementById("togglePassword");
- togglePassword.addEventListener("click",()=>{const reveal=password.type==="password";password.type=reveal?"text":"password";togglePassword.textContent=reveal?"Hide":"Show";togglePassword.setAttribute("aria-pressed",String(reveal));password.focus();});
- const signIn=document.getElementById("cloudSignIn"), signUp=document.getElementById("cloudSignUp");
- const syncBtn=document.getElementById("cloudSync"), signOut=document.getElementById("cloudSignOut");
- const accountToggle=document.getElementById("accountToggle");
- accountToggle.addEventListener("click",()=>{document.getElementById("supabasePanel").classList.toggle("hidden");});
- let client=null, currentUser=null;
- const say=(text)=>{msg.textContent=text};
- function friendlyAuthError(error){
-   const raw=String(error?.message||"Unknown authentication error");
-   if(/email rate limit exceeded|rate limit.*email/i.test(raw))
-     return "Supabase has reached its email-sending limit. Repeated attempts won't fix this. We need to connect a custom SMTP provider (such as Resend) in Supabase Authentication settings. Wait before retrying; do not keep clicking Create account.";
-   if(/invalid login credentials/i.test(raw))
-     return "Email or password is incorrect. If you just created the account, confirm your email first, then try again.";
-   if(/email not confirmed/i.test(raw))
-     return "Please confirm your email using the link sent to your inbox before signing in.";
-   if(/user already registered/i.test(raw))
-     return "An account may already exist for this email. Try Sign in instead of Create account.";
-   return raw;
- }
- function setSignedIn(user){
-   currentUser=user||null;
-   const panel=document.getElementById("supabasePanel");
-   const dashboard=document.getElementById("dashboardContent");
-   const accountToggle=document.getElementById("accountToggle");
-   dashboard.classList.toggle("hidden",!user);
-   panel.classList.toggle("hidden",!!user);
-   panel.style.margin=user?"0 0 15px":"10vh auto 0";
-   panel.style.maxWidth=user?"none":"520px";
-   accountToggle.classList.toggle("hidden",!user);
-   document.getElementById("accountActions").classList.toggle("hidden",!user);
-   status.textContent=user?"Account connected":"Not signed in";
-   signIn.disabled=!!user; signUp.disabled=!!user;
-   syncBtn.disabled=!user; signOut.disabled=!user;
-   if(user) say("Account connected. Journal sync will start automatically.");
- }
- try{
-   const cfgRes=await fetch("/api/supabase-config",{cache:"no-store"});
-   const cfg=await cfgRes.json();
-   if(!cfgRes.ok||!cfg.configured) throw new Error(cfg.message||"Supabase configuration missing.");
-   if(!window.supabase||!window.supabase.createClient) throw new Error("Supabase library did not load. Refresh and try again.");
-   client=window.supabase.createClient(cfg.url,cfg.key);
-   const {data:{session}}=await client.auth.getSession();
-   // Always show the dedicated sign-in screen first, even if this browser has a saved session.
-   setSignedIn(null);
-   status.textContent="Configured · sign in required";
-   if(session?.user) say("A saved session was found for "+session.user.email+". Sign in here to open the dashboard.");
-   else say("Supabase configuration found. Sign in or create an account to open the dashboard.");
- }catch(e){status.textContent="Not configured";say(e.message+" Check Vercel environment variables and redeploy.");return;}
- signUp.addEventListener("click",async()=>{
-   if(!email.value.trim()||!password.value){say("Enter your email and password first.");return;}
-   if(password.value.length<8){say("Use a password with at least 8 characters.");return;}
-   signUp.disabled=true;say("Creating account…");
-   const {data,error}=await client.auth.signUp({email:email.value.trim(),password:password.value,options:{emailRedirectTo:window.location.origin + "/"}});
-   signUp.disabled=false;
-   if(error){say(friendlyAuthError(error));return;}
-   if(data.session){setSignedIn(data.user);say("Account created and signed in. Now you can sync the journal.");}
-   else say("Account created. Check your email for the confirmation link, then sign in.");
- });
- signIn.addEventListener("click",async()=>{
-   if(!email.value.trim()||!password.value){say("Enter your email and password first.");return;}
-   signIn.disabled=true;say("Signing in…");
-   const {data,error}=await client.auth.signInWithPassword({email:email.value.trim(),password:password.value});
-   signIn.disabled=false;
-   if(error){say(error.message);return;}
-   setSignedIn(data.user);say("Account connected. Syncing your journal…");syncBtn.click();
- });
- signOut.addEventListener("click",async()=>{
-   const {error}=await client.auth.signOut();
-   if(error){say(error.message);return;}
-   setSignedIn(null);status.textContent="Signed out";say("Signed out. Your existing browser journal remains on this device.");
- });
- syncBtn.addEventListener("click",async()=>{
-   if(!currentUser){say("Sign in first.");return;}
-   syncBtn.disabled=true;say("Syncing journal…");
-   try{
-     const {data:remote,error:readErr}=await client.from("trade_journal").select("id,local_id,symbol,direction,profit_loss,outcome,notes,opened_at").eq("user_id",currentUser.id);
-     if(readErr) throw readErr;
-     const merged=new Map();
-     (remote||[]).forEach(t=>{
-       const id=t.local_id||t.id;
-       merged.set(id,{id,date:t.opened_at,symbol:t.symbol,side:t.direction,outcome:String(t.outcome||"OPEN").toLowerCase(),pnl:t.profit_loss===null?null:Number(t.profit_loss),note:t.notes||""});
-     });
-     (Array.isArray(journal)?journal:[]).forEach(t=>merged.set(String(t.id),t));
-     journal=Array.from(merged.values()).sort((a,b)=>new Date(b.date)-new Date(a.date));
-     persist();
-     const rows=journal.map(t=>({user_id:currentUser.id,local_id:String(t.id),symbol:t.symbol||"XAUUSD",direction:t.side==="SELL"?"SELL":"BUY",profit_loss:t.pnl===null||t.pnl===""?null:Number(t.pnl),outcome:({win:"WIN",loss:"LOSS",breakeven:"BREAKEVEN",open:"OPEN"})[String(t.outcome).toLowerCase()]||"OPEN",notes:t.note||null,opened_at:t.date||new Date().toISOString(),closed_at:["win","loss","breakeven"].includes(String(t.outcome).toLowerCase())?(t.date||new Date().toISOString()):null}));
-     if(rows.length){
-       const {error:writeErr}=await client.from("trade_journal").upsert(rows,{onConflict:"user_id,local_id"});
-       if(writeErr) throw writeErr;
-     }
-     say("Sync complete: "+rows.length+" journal entr"+(rows.length===1?"y":"ies")+" synced to your Supabase account.");
-   }catch(e){say("Sync failed: "+e.message+" Check that supabase/setup.sql has been run in the Supabase SQL Editor.");}
-   finally{syncBtn.disabled=!currentUser;}
- });
- client.auth.onAuthStateChange((event,session)=>{
-   // Do not auto-open the dashboard for INITIAL_SESSION; wait for an explicit sign-in action.
-   if(event==="SIGNED_IN") setSignedIn(session?.user||null);
-   else if(event==="SIGNED_OUT") setSignedIn(null);
- });
+ const $=id=>document.getElementById(id),status=$("cloudStatus"),msg=$("cloudMessage"),email=$("cloudEmail"),password=$("cloudPassword"),confirmPassword=$("cloudPasswordConfirm");
+ const signIn=$("cloudSignIn"),signUp=$("cloudSignUp"),syncBtn=$("cloudSync"),signOut=$("cloudSignOut"),modeIn=$("authModeSignIn"),modeUp=$("authModeSignUp"),forgot=$("forgotPassword"),resend=$("resendConfirmation"),toggle=$("togglePassword");
+ let client=null,currentUser=null,mode="signin",busy=false;
+ const say=(v,t="")=>{msg.textContent=v;msg.className="auth-message"+(t?" "+t:"");};
+ const mail=()=>email.value.trim().toLowerCase();
+ const validEmail=()=>{if(!mail()||!email.checkValidity()){email.focus();say("Maglagay ng valid na email address.","error");return false;}return true;};
+ const lock=v=>{busy=v;[signIn,signUp,forgot,resend].forEach(x=>x.disabled=v);};
+ function friendly(e){const x=String(e?.message||"Unknown error");if(/email rate limit exceeded|rate limit.*email/i.test(x))return "Naabot na ang email sending limit ng Supabase. Huwag paulit-ulit mag-create account; kailangan munang ayusin ang SMTP settings.";if(/invalid login credentials/i.test(x))return "Hindi tugma ang email o password. Kung bagong account, i-confirm muna ang email.";if(/email not confirmed/i.test(x))return "Hindi pa confirmed ang email. Tingnan ang inbox o pindutin ang Resend confirmation email.";if(/user already registered/i.test(x))return "May account na sa email na ito. Piliin ang Sign in o Forgot password.";return x;}
+ function setMode(m){mode=m;const up=m==="signup";modeIn.classList.toggle("active",!up);modeUp.classList.toggle("active",up);modeIn.setAttribute("aria-selected",String(!up));modeUp.setAttribute("aria-selected",String(up));$("authHeading").textContent=up?"Create your DARS account":"Welcome back";signIn.classList.toggle("hidden",up);signUp.classList.toggle("hidden",!up);$("confirmPasswordWrap").classList.toggle("hidden",!up);forgot.classList.toggle("hidden",up);resend.classList.toggle("hidden",up);password.autocomplete=up?"new-password":"current-password";say(up?"Create an account to securely save your DARS journal.":"Sign in to access your trading workspace.");}
+ function setSignedIn(user){currentUser=user||null;const panel=$("supabasePanel"),dash=$("dashboardContent"),toggleAccount=$("accountToggle");dash.classList.toggle("hidden",!user);panel.classList.toggle("hidden",!!user);panel.style.margin=user?"0 0 15px":"8vh auto 0";panel.style.maxWidth=user?"none":"470px";if(toggleAccount)toggleAccount.classList.toggle("hidden",!user);$("accountActions").classList.toggle("hidden",!user);status.textContent=user?"Account connected":"Not signed in";syncBtn.disabled=!user;signOut.disabled=!user;if(user)say("Signed in as "+(user.email||"your account")+". Your journal is ready.","success");}
+ async function syncJournal(){if(!currentUser)return;syncBtn.disabled=true;say("Syncing your journal…");try{const {data:remote,error:readErr}=await client.from("trade_journal").select("id,local_id,symbol,direction,profit_loss,outcome,notes,opened_at").eq("user_id",currentUser.id);if(readErr)throw readErr;const merged=new Map();(remote||[]).forEach(t=>{const id=t.local_id||t.id;merged.set(id,{id,date:t.opened_at,symbol:t.symbol,side:t.direction,outcome:String(t.outcome||"OPEN").toLowerCase(),pnl:t.profit_loss===null?null:Number(t.profit_loss),note:t.notes||""});});(Array.isArray(journal)?journal:[]).forEach(t=>merged.set(String(t.id),t));journal=Array.from(merged.values()).sort((a,b)=>new Date(b.date)-new Date(a.date));persist();const rows=journal.map(t=>({user_id:currentUser.id,local_id:String(t.id),symbol:t.symbol||"XAUUSD",direction:t.side==="SELL"?"SELL":"BUY",profit_loss:t.pnl===null||t.pnl===""?null:Number(t.pnl),outcome:({win:"WIN",loss:"LOSS",breakeven:"BREAKEVEN",open:"OPEN"})[String(t.outcome).toLowerCase()]||"OPEN",notes:t.note||null,opened_at:t.date||new Date().toISOString(),closed_at:["win","loss","breakeven"].includes(String(t.outcome).toLowerCase())?(t.date||new Date().toISOString()):null}));if(rows.length){const {error}=await client.from("trade_journal").upsert(rows,{onConflict:"user_id,local_id"});if(error)throw error;}say("Journal sync complete · "+rows.length+" entr"+(rows.length===1?"y":"ies")+" synced.","success");}catch(e){say("Hindi natuloy ang journal sync: "+e.message+". Tingnan kung na-run ang supabase/setup.sql.","error");}finally{syncBtn.disabled=!currentUser;}}
+ toggle.addEventListener("click",()=>{const show=password.type==="password";password.type=show?"text":"password";toggle.textContent=show?"Hide":"Show";toggle.setAttribute("aria-pressed",String(show));});
+ modeIn.addEventListener("click",()=>setMode("signin"));modeUp.addEventListener("click",()=>setMode("signup"));
+ $("accountToggle")?.addEventListener("click",()=>$("supabasePanel").classList.toggle("hidden"));
+ try{const r=await fetch("/api/supabase-config",{cache:"no-store"}),cfg=await r.json();if(!r.ok||!cfg.configured)throw new Error(cfg.message||"Supabase configuration missing.");if(!window.supabase?.createClient)throw new Error("Hindi nag-load ang sign-in library. I-refresh ang page.");client=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const {data,error}=await client.auth.getSession();if(error)throw error;status.textContent="Secure connection ready";if(data.session?.user){setSignedIn(data.session.user);syncJournal();}else{setSignedIn(null);setMode("signin");say("Ready. Mag-sign in o gumawa ng bagong account.");}}catch(e){status.textContent="Connection unavailable";say(e.message+" Tingnan ang Supabase public key at Vercel environment variables.","error");return;}
+ signUp.addEventListener("click",async()=>{if(busy||!validEmail())return;if(password.value.length<8){say("Gumamit ng password na hindi bababa sa 8 characters.","error");password.focus();return;}if(password.value!==confirmPassword.value){say("Hindi magkapareho ang password at confirmation.","error");confirmPassword.focus();return;}lock(true);say("Creating your account…");try{const {data,error}=await client.auth.signUp({email:mail(),password:password.value,options:{emailRedirectTo:location.origin+"/"}});if(error)throw error;if(data.session&&data.user){setSignedIn(data.user);await syncJournal();}else{setMode("signin");say("Account created. Tingnan ang inbox at spam folder para sa confirmation link bago mag-sign in.","success");resend.classList.remove("hidden");}}catch(e){say(friendly(e),"error");}finally{lock(false);}});
+ signIn.addEventListener("click",async()=>{if(busy||!validEmail())return;if(!password.value){say("Ilagay ang password mo.","error");password.focus();return;}lock(true);say("Signing in securely…");try{const {data,error}=await client.auth.signInWithPassword({email:mail(),password:password.value});if(error)throw error;setSignedIn(data.user);await syncJournal();}catch(e){say(friendly(e),"error");if(/email not confirmed/i.test(String(e.message||"")))resend.classList.remove("hidden");}finally{lock(false);}});
+ forgot.addEventListener("click",async()=>{if(busy||!validEmail())return;lock(true);say("Sending password reset email…");try{const {error}=await client.auth.resetPasswordForEmail(mail(),{redirectTo:location.origin+"/"});if(error)throw error;say("Kung rehistrado ang email, may password reset link na ipinadala. Tingnan din ang spam folder.","success");}catch(e){say(friendly(e),"error");}finally{lock(false);}});
+ resend.addEventListener("click",async()=>{if(busy||!validEmail())return;lock(true);say("Resending confirmation email…");try{const {error}=await client.auth.resend({type:"signup",email:mail(),options:{emailRedirectTo:location.origin+"/"}});if(error)throw error;say("Nagpadala ng bagong confirmation link kung pinapayagan. Tingnan ang inbox at spam folder.","success");}catch(e){say(friendly(e),"error");}finally{lock(false);}});
+ signOut.addEventListener("click",async()=>{const {error}=await client.auth.signOut();if(error){say(friendly(error),"error");return;}setSignedIn(null);setMode("signin");say("Signed out. Nananatili sa device ang local journal mo.");});
+ syncBtn.addEventListener("click",syncJournal);
+ client.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_IN"&&session?.user)setSignedIn(session.user);else if(event==="SIGNED_OUT"){setSignedIn(null);setMode("signin");}});
 })();
 
  // Read-only MT5 quote display. Live status is based on the last quote stored by the API.
