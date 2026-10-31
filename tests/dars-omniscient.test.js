@@ -84,24 +84,26 @@ const wideSpread = analyzeDarsMarket({
 assert.equal(wideSpread.decision, "WAIT");
 assert.ok(wideSpread.diagnostics.some(x => /Spread exceeds/.test(x)));
 assert.equal(wideSpread.quoteQuality.maxSpread, 0.50);
-assert.equal(wideSpread.engine, "DARS_OMNISCIENT_CORE_V2");
+assert.equal(wideSpread.engine, "DARS_OMNISCIENT_QUANT_V3");
 console.log("DARS execution-cost quality gate tests passed.");
 
 
 // Adaptive strategy selector: regime candidate plus out-of-sample evidence gate.
 const { selectAdaptiveStrategy, performanceGate } = require("../lib/dars-adaptive-selector");
 const strongEvidence = {
-  totalTrades: 80, holdoutTrades: 35, expectancyR: 0.08,
-  profitFactor: 1.25, maxDrawdownR: 3.5, consecutiveLosses: 2
+  totalTrades: 100, holdoutTrades: 30, expectancyR: 0.08,
+  profitFactor: 1.25, maxDrawdownR: 3.5, consecutiveLosses: 2,
+  model: { validated: true, winProbability: 0.61 }
 };
 const trendCandidate = selectAdaptiveStrategy({ regime: "TRENDING", trend: "BULLISH" });
 assert.equal(trendCandidate.candidate, "TREND_FOLLOWING");
 assert.equal(trendCandidate.eligible, false);
-assert.equal(trendCandidate.status, "RESEARCH_ONLY_NOT_IMPLEMENTED");
+assert.equal(trendCandidate.status, "BLOCKED_BY_EVIDENCE");
 
 const rangeCandidate = selectAdaptiveStrategy({ regime: "RANGE_OR_TRANSITION", trend: "MIXED" });
 assert.equal(rangeCandidate.candidate, "MEAN_REVERSION");
 assert.equal(rangeCandidate.eligible, false);
+assert.equal(rangeCandidate.status, "BLOCKED_BY_EVIDENCE");
 
 const volatilityCandidate = selectAdaptiveStrategy({ regime: "HIGH_VOLATILITY", trend: "BULLISH" });
 assert.equal(volatilityCandidate.candidate, "NO_TRADE");
@@ -122,3 +124,38 @@ assert.equal(sweepProven.status, "PAPER_ELIGIBLE");
 assert.equal(sweepProven.eligible, true);
 assert.equal(performanceGate({ ...strongEvidence, holdoutTrades: 10 }).passed, false);
 console.log("DARS adaptive selector tests passed.");
+
+
+// New adaptive journal modules must load safely and fail closed without server credentials.
+require("../api/dars-omniscient");
+const paperJournalApi = require("../api/dars-paper-journal");
+const { trainOutcomeModel, summarizeByStrategy } = require("../lib/dars-paper-research");
+const { STRATEGIES, buildCandidates } = require("../lib/dars-strategy-engines");
+assert.equal(trainOutcomeModel([]).ready, false);
+assert.equal(buildCandidates({ frames: {}, quote: {} }).length, 0);
+assert.equal(summarizeByStrategy([]).LIQUIDITY_RECLAIM.totalTrades, 0);
+assert.equal(STRATEGIES.length, 15, "DARS must expose fifteen independently tracked strategy engines.");
+assert.equal(new Set(STRATEGIES).size, 15, "Strategy identifiers must be unique.");
+assert.equal(Object.keys(summarizeByStrategy([])).length, 15, "Every strategy must have its own research metrics.");
+const candidateSelection = selectAdaptiveStrategy({
+  regime: "TRENDING", trend: "BULLISH", candidates: [{ strategy: "MOMENTUM" }], strategyStats: {}
+});
+assert.equal(candidateSelection.candidate, "MOMENTUM");
+assert.equal(candidateSelection.status, "BLOCKED_BY_EVIDENCE");
+assert.equal(candidateSelection.eligible, false);
+const noSetupSelection = selectAdaptiveStrategy({ regime: "TRENDING", trend: "BULLISH", candidates: [] });
+assert.equal(noSetupSelection.status, "NO_SETUP");
+
+(async () => {
+  const response = {
+    statusCode: 200,
+    headers: {},
+    setHeader(k, v) { this.headers[k] = v; },
+    status(code) { this.statusCode = code; return this; },
+    json(body) { this.body = body; return this; }
+  };
+  await paperJournalApi({ method: "GET" }, response);
+  assert.equal(response.statusCode, 503, "Journal API must fail closed until Supabase credentials/schema are configured.");
+  assert.equal(response.body.ok, false);
+  console.log("DARS server journal and learning module smoke tests passed.");
+})().catch(error => { console.error(error); process.exitCode = 1; });
