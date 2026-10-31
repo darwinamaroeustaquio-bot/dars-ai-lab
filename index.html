@@ -141,7 +141,82 @@ body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#
  </div>
  <p class="omni-foot">Research / paper mode only. DARS does not place broker orders. BUY / SELL labels are analytical outputs, not guaranteed outcomes. Verify spread, execution, stop distance and your own risk before manually copying any setup.</p>
 </section>
-<header class="top"><div><div class="brand">DARS <span>AI LAB</span></div><div class="sub">Advanced trading workspace · v0.4 · Connection setup</div></div><div class="row" style="justify-content:flex-end"><button class="btn hidden" id="accountToggle" type="button">Account</button><span class="pill" id="topConnectionStatus">● MT5 STATUS · CHECKING</span></div></header>
+
+<script id="darsOmniscientRuntime">
+(()=>{
+ const $=id=>document.getElementById(id);
+ const state={quote:null,analysis:null,frames:{},busy:false};
+ const fmt=v=>Number.isFinite(Number(v))?Number(v).toFixed(2):"—";
+ const set=(id,v)=>{const n=$(id);if(n)n.textContent=v;};
+ function message(text){const n=$("omniChatLog"),d=document.createElement("div");d.className="omni-msg";d.textContent=text;n.appendChild(d);n.scrollTop=n.scrollHeight;}
+ function drawChart(){
+  const svg=$("omniChart"),tf=$("omniTimeframe").value,rows=state.frames[tf]||[];
+  svg.replaceChildren();
+  const valid=rows.filter(c=>[c.open,c.high,c.low,c.close].every(v=>Number.isFinite(Number(v)))&&Number(c.high)>=Number(c.low)).slice(-65);
+  const ns="http://www.w3.org/2000/svg",el=(tag,attrs,txt)=>{const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(txt!==undefined)n.textContent=txt;svg.appendChild(n);return n;};
+  if(valid.length<2){el("text",{x:400,y:155,"text-anchor":"middle",fill:"#91a8c2","font-size":15},"Waiting for verified "+tf+" MT5 candle history");set("omniChartMeta","No chart data available. DARS will not draw sample candles.");return;}
+  let min=Math.min(...valid.map(c=>Number(c.low))),max=Math.max(...valid.map(c=>Number(c.high)));
+  if(!(max>min)){min-=1;max+=1;}const pad=(max-min)*.08;min-=pad;max+=pad;
+  const left=60,right=750,top=20,bottom=285,plotH=bottom-top,step=(right-left)/valid.length,w=Math.max(2,Math.min(10,step*.58)),y=v=>bottom-(v-min)/(max-min)*plotH;
+  for(let i=0;i<=4;i++){const yy=top+plotH*i/4,p=max-(max-min)*i/4;el("line",{x1:left,y1:yy,x2:right,y2:yy,stroke:"#20334a"});el("text",{x:7,y:yy+4,fill:"#8fa4bd","font-size":11},p.toFixed(2));}
+  valid.forEach((c,i)=>{const o=Number(c.open),h=Number(c.high),l=Number(c.low),cl=Number(c.close),x=left+(i+.5)*step,col=cl>=o?"#48e0ad":"#ff7187";el("line",{x1:x,y1:y(h),x2:x,y2:y(l),stroke:col,"stroke-width":1.4});el("rect",{x:x-w/2,y:Math.min(y(o),y(cl)),width:w,height:Math.max(1.5,Math.abs(y(o)-y(cl))),fill:col,rx:1});});
+  const setup=state.analysis?.setup;if(setup&&tf==="M5"){[["ENTRY",setup.entry,"#65b5ff"],["SL",setup.stopLoss,"#ff7187"],["TP1",setup.takeProfit1,"#48e0ad"],["TP2",setup.takeProfit2,"#80e8c1"]].forEach(([label,v,col])=>{const yy=y(Number(v));if(yy>=top&&yy<=bottom){el("line",{x1:left,x2:right,y1:yy,y2:yy,stroke:col,"stroke-width":1.8,"stroke-dasharray":"7 4"});el("text",{x:right-4,y:yy-5,"text-anchor":"end",fill:col,"font-size":11,"font-weight":700},label+" "+fmt(v));}});}
+  const last=valid[valid.length-1],stamp=last.bar_time||last.time||last.timestamp||"";
+  set("omniChartMeta","Verified MT5 OHLC · "+tf+" · "+valid.length+" candles · last bar "+(stamp?new Date(stamp).toLocaleString():"timestamp unavailable"));
+ }
+ function renderAnalysis(a,q){
+  state.analysis=a;const live=!!q?.connected&&!!q?.quote;
+  $("omniDot").className="omni-dot"+(live?" live":" bad");
+  set("omniConnection",live?"MT5 LIVE · READ ONLY":"MT5 OFFLINE / STALE");
+  const quote=q?.quote||{};set("omniBid",fmt(quote.bid));set("omniAsk",fmt(quote.ask));
+  set("omniPrice",Number.isFinite((Number(quote.bid)+Number(quote.ask))/2)?fmt((Number(quote.bid)+Number(quote.ask))/2):"—");
+  set("omniQuoteMeta",live?"Spread "+fmt(Number(quote.ask)-Number(quote.bid))+" · Quote age "+q.age_seconds+"s":"No fresh broker quote");
+  const f=a.frames||{};set("omniRegime",f.H1?.regime||"—");set("omniM15",f.M15?.trend||"—");set("omniM5",f.M5?.trend||"—");
+  const good=Object.values(f).filter(x=>x.ok).length;set("omniDataQuality",good+"/3 frames");set("omniDataAge",a.diagnostics?.length? "Checks: "+a.diagnostics.length:"All configured checks passed");
+  const d=a.decision||"WAIT",dn=$("omniDecision");dn.textContent=d==="WAIT"?"WAIT · NO TRADE":d+" · SETUP";dn.className="omni-decision "+(d==="BUY"?"buy":d==="SELL"?"sell":"wait");
+  const s=a.setup;set("omniEntry",s?fmt(s.entry):"—");set("omniSL",s?fmt(s.stopLoss):"—");set("omniTP1",s?fmt(s.takeProfit1):"—");set("omniTP2",s?fmt(s.takeProfit2):"—");
+  set("omniDecisionReason",s?"M5 liquidity reclaim aligned with M15/H1 direction. Draft paper setup; validate broker execution details.":(a.diagnostics||[]).join(" "));
+  set("omniRiskNote",s?"Entry uses current ask for BUY / bid for SELL. SL is structure + ATR based. TP1 = 1.5R; TP2 = 2.5R. Lot sizing is intentionally withheld until verified broker tick value, tick size, volume step and stop-level metadata are available.":"No entry or targets issued. DARS waits for fresh quote, sufficient closed candles and aligned multi-timeframe evidence.");
+  const list=$("omniDiagnostics");list.replaceChildren();
+  (a.diagnostics||[]).forEach(t=>{const row=document.createElement("div");row.className="omni-check";row.textContent=t;list.appendChild(row);});
+  drawChart();
+ }
+ async function analyze(){
+  if(state.busy)return;state.busy=true;set("omniConnection","Checking MT5…");
+  try{
+   const [qr,...crs]=await Promise.all(["/api/mt5-quote?symbol=XAUUSD-STD",...["M5","M15","H1"].map(tf=>"/api/mt5-candles?symbol=XAUUSD-STD&timeframe="+tf+"&limit=120")].map(url=>fetch(url,{cache:"no-store",headers:{Accept:"application/json"}})));
+   const q=await qr.json(),frames={};for(let i=0;i<crs.length;i++){const d=await crs[i].json();frames[["M5","M15","H1"][i]]=d.ok&&Array.isArray(d.candles)?d.candles:[];}
+   state.frames={...state.frames,...frames};
+   const quote=q.quote?{bid:q.quote.bid,ask:q.quote.ask,received_at:q.quote.received_at}: {};
+   const ar=await fetch("/api/dars-omniscient",{method:"POST",cache:"no-store",headers:{"Content-Type":"application/json"},body:JSON.stringify({symbol:"XAUUSD-STD",quote,frames})});
+   const ad=await ar.json();if(!ar.ok||!ad.ok)throw new Error(ad.error||"Analysis endpoint unavailable");
+   renderAnalysis(ad.analysis,q);
+  }catch(e){
+   set("omniDot","omni-dot bad");$("omniDot").className="omni-dot bad";set("omniConnection","DATA / API ERROR");
+   const empty={decision:"WAIT",setup:null,diagnostics:[e.message],frames:{}};renderAnalysis(empty,null);
+  }finally{state.busy=false;}
+ }
+ async function refreshChartOnly(){
+  const tf=$("omniTimeframe").value;
+  try{const r=await fetch("/api/mt5-candles?symbol=XAUUSD-STD&timeframe="+tf+"&limit=100",{cache:"no-store"}),d=await r.json();state.frames[tf]=d.ok?d.candles:[];drawChart();}catch(_){state.frames[tf]=[];drawChart();}
+ }
+ $("omniRefresh").addEventListener("click",analyze);
+ $("omniTimeframe").addEventListener("change",refreshChartOnly);
+ $("omniChatForm").addEventListener("submit",e=>{
+  e.preventDefault();const input=$("omniChatInput"),q=input.value.trim();if(!q)return;
+  message("You: "+q);input.value="";
+  const a=state.analysis;
+  if(!a){message("DARS: Wala pang verified analysis. I-check muna natin ang MT5 connection.");return;}
+  const lower=q.toLowerCase(),s=a.setup;
+  let answer;
+  if(/setup|entry|tp1|tp2|stop|sl|buy|sell/.test(lower))answer=s?"DARS: "+a.decision+" draft setup. Entry "+fmt(s.entry)+", SL "+fmt(s.stopLoss)+", TP1 "+fmt(s.takeProfit1)+", TP2 "+fmt(s.takeProfit2)+". Research/paper output lamang; hindi ito guaranteed trade.":"DARS: WAIT. "+(a.diagnostics||[]).join(" ");
+  else if(/bakit|why|wait|no trade/.test(lower))answer="DARS: Current decision is "+a.decision+". "+(a.diagnostics||[]).join(" ");
+  else answer="DARS: H1 regime "+(a.frames?.H1?.regime||"unavailable")+", M15 trend "+(a.frames?.M15?.trend||"unavailable")+", M5 trend "+(a.frames?.M5?.trend||"unavailable")+". Decision: "+a.decision+". I can explain the current setup checks, but this first release is a deterministic, auditable analysis engine—not a self-learning model.";
+  message(answer);
+ });
+ analyze();refreshChartOnly();setInterval(analyze,15000);setInterval(()=>{const q=fetch("/api/mt5-quote?symbol=XAUUSD-STD",{cache:"no-store"}).then(r=>r.json()).then(d=>{if(d.ok&&d.quote){const x=d.quote;set("omniBid",fmt(x.bid));set("omniAsk",fmt(x.ask));set("omniPrice",fmt((Number(x.bid)+Number(x.ask))/2));set("omniQuoteMeta",d.connected?"Spread "+fmt(Number(x.ask)-Number(x.bid))+" · Quote age "+d.age_seconds+"s":"Quote stale · "+d.age_seconds+"s");}}).catch(()=>{});},3000);
+})();
+</script><header class="top"><div><div class="brand">DARS <span>AI LAB</span></div><div class="sub">Advanced trading workspace · v0.4 · Connection setup</div></div><div class="row" style="justify-content:flex-end"><button class="btn hidden" id="accountToggle" type="button">Account</button><span class="pill" id="topConnectionStatus">● MT5 STATUS · CHECKING</span></div></header>
 <div class="notice" id="dashboardMainNotice"><b>LIVE CONNECTION:</b> Checking MT5 bridge status… This dashboard reads real VT Markets MT5 quotes and candles when the bridge is online. Paper trading / analysis only; no real orders are sent.</div>
 <section class="panel" id="mt5LivePanel" style="margin-bottom:15px">
 <div class="row"><div><div class="eyebrow">VT Markets · MT5 Bridge · GOLD ONLY</div><h2 style="margin:5px 0 8px">Gold live quote connection</h2></div><span class="tag" id="mt5LiveStatus">Waiting for MT5 bridge</span></div>
