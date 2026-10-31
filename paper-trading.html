@@ -135,8 +135,7 @@ async function cycle(){
   const [q,m5,m15,h1]=await Promise.all([getJSON("/api/mt5-quote?symbol="+SYMBOL),getFrame("M5"),getFrame("M15"),getFrame("H1")]);
   if(!q.connected||!q.quote)throw new Error("MT5 quote is not fresh. Paper entries are paused.");
   const body={symbol:SYMBOL,quote:q.quote,frames:{M5:m5,M15:m15,H1:h1}};
-  const d=await getJSON("/api/dars-omniscient");
-  // The analysis endpoint is POST-only; send the exact same quote/candle inputs to the Robot core.
+  // Send the exact same quote/candle inputs to the Robot core.
   const response=await fetch("/api/dars-omniscient",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body),cache:"no-store"});
   const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||"DARS analysis unavailable.");
   renderAnalysis(result.analysis,q.quote,{M5:m5,M15:m15,H1:h1});say("feedStatus","Connected to fresh VT Markets MT5 quote and candle history. Paper simulator mirrors DARS core decisions.");setState("RUNNING");
