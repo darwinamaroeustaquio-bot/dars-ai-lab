@@ -8,6 +8,55 @@
 :root{color-scheme:dark;--bg:#07111f;--panel:#101d2d;--panel2:#0b1726;--line:#26384e;--muted:#91a4ba;--text:#edf5ff;--green:#39d9a0;--blue:#7da7ff;--gold:#f3c66d;--red:#ff7d89}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 45% -15%,#1b3a5a 0,transparent 48%),var(--bg);color:var(--text);font:14px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}.wrap{max-width:1320px;margin:auto;padding:22px}.top,.row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.top{margin-bottom:18px}.brand{font-size:22px;font-weight:950;letter-spacing:.7px}.brand span{color:var(--green)}.sub,.muted,.note{color:var(--muted)}.sub{font-size:12px;margin-top:3px}.pill,.tag{border:1px solid var(--line);border-radius:999px;padding:7px 11px;color:var(--muted);font-size:11px;white-space:nowrap}.notice{padding:12px 14px;border:1px solid #6c582c;background:#292317;color:#f3d99a;border-radius:12px;margin-bottom:16px;font-size:12px;line-height:1.6}.layout{display:grid;grid-template-columns: minmax(0,1.7fr) minmax(300px,.9fr);gap:15px}.stack{display:grid;gap:15px;align-content:start}.panel{min-width:0;background:linear-gradient(145deg,#122238,#0c1726);border:1px solid var(--line);border-radius:17px;padding:18px}.panel h2{font-size:16px;margin:0 0 14px}.eyebrow{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted)}h1{font-size:clamp(25px,4vw,38px);line-height:1.12;margin:8px 0}p{line-height:1.6}.note{font-size:11px;line-height:1.6}.btn{border:1px solid var(--line);border-radius:10px;background:#1a2b42;color:var(--text);font-weight:750;padding:10px 13px}.btn:hover{filter:brightness(1.12)}.primary{background:linear-gradient(135deg,#7da7ff,#39d9a0);border:0;color:#06131d}.danger{color:var(--red)}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 15px}.metric{padding:14px;border:1px solid var(--line);background:#0b1827;border-radius:13px;min-width:0}.metric strong{display:block;font-size:22px;margin:7px 0 3px;overflow-wrap:anywhere}.metric small{color:var(--muted);font-size:11px}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}.tab{padding:8px 11px;border-radius:9px;border:1px solid var(--line);background:#0a1726;color:var(--muted);font-size:12px}.tab.active{color:var(--text);border-color:#4b789d;background:#19324a}.chart-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.price{font-size:25px;font-weight:850}.chartbox{margin-top:12px;border:1px solid var(--line);background:#091522;border-radius:12px;overflow:hidden}.chartbox svg{display:block;width:100%;height:auto}.asset-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:12px 0;border-bottom:1px solid #203147;cursor:pointer}.asset-row:last-child{border-bottom:0}.asset-row.selected{color:var(--green)}.asset-row small{display:block;color:var(--muted);font-size:10px;margin-top:3px}.asset-price{font-variant-numeric:tabular-nums;font-weight:700}.change{font-size:11px;color:var(--muted)}.fields{display:grid;grid-template-columns:1fr 1fr;gap:11px}label{display:block;color:var(--muted);font-size:11px;margin-bottom:6px}input,select,textarea{width:100%;background:#091522;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:10px;min-width:0}input[type=range]{padding:0;accent-color:var(--green)}input[type=checkbox]{width:auto;accent-color:var(--green)}.resultbox{border:1px solid #2e695b;background:#0c2828;border-radius:12px;padding:14px;margin-top:12px}.resultbox strong{font-size:23px;display:block;margin:5px 0}.checklist{display:grid;gap:8px}.check{display:flex;align-items:flex-start;gap:9px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#0a1726}.check span{font-size:12px;line-height:1.4}.scorebar{height:8px;border-radius:99px;background:#28384b;overflow:hidden;margin:12px 0 7px}.scorebar span{display:block;height:100%;width:0;background:linear-gradient(90deg,#f3c66d,#39d9a0);transition:width .2s}.status{font-size:12px;font-weight:800}.divider{border:0;border-top:1px solid var(--line);margin:15px 0}table{border-collapse:collapse;width:100%;margin-top:10px}td,th{text-align:left;padding:10px 6px;border-bottom:1px solid var(--line);font-size:11px;vertical-align:top}th{color:var(--muted);font-weight:600}.tablewrap{overflow-x:auto}.empty{text-align:center;color:var(--muted);padding:20px 8px;font-size:12px}.tag-green{color:var(--green)}.tag-red{color:var(--red)}.footer{font-size:11px;color:var(--muted);line-height:1.7;padding:18px 2px}.password-wrap{display:flex;align-items:stretch;gap:6px}.password-wrap input{flex:1;min-width:0}.password-toggle{padding:8px 10px;font-size:12px}.hidden{display:none!important}
 @media(max-width:900px){.layout{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:13px}.panel{padding:15px}}@media(max-width:420px){.fields{grid-template-columns:1fr}.metric strong{font-size:19px}.top .pill{white-space:normal}}
+
+<style id="dars-omniscient-theme">
+:root{--bg:#070d18;--panel:#101a2a;--panel2:#0b1422;--line:#24354b;--muted:#8fa4bd;--text:#edf4ff;--green:#48e0ad;--blue:#65b5ff;--gold:#f3c66d;--red:#ff7187}
+body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#070d18}
+#dashboardContent>.top{padding:14px 0 18px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+#dashboardContent>.top .sub{font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+#dashboardContent>section:not(#omniscientDashboard),#dashboardContent>.metrics,#dashboardContent>.layout{display:none!important}
+#omniscientDashboard{display:grid;gap:14px;margin-bottom:18px}
+.omni-hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(240px,.7fr);gap:14px}
+.omni-card{background:linear-gradient(145deg,#111f32,#0b1422);border:1px solid var(--line);border-radius:18px;padding:18px;min-width:0}
+.omni-eyebrow{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#91a8c2}
+.omni-title{font-size:clamp(25px,4vw,39px);line-height:1.08;letter-spacing:-.04em;margin:8px 0}
+.omni-muted{color:var(--muted);font-size:12px;line-height:1.6}
+.omni-status{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:99px;padding:7px 10px;font-size:11px;color:var(--muted)}
+.omni-dot{width:7px;height:7px;border-radius:50%;background:#7b8798;display:inline-block}
+.omni-dot.live{background:var(--green);box-shadow:0 0 12px #48e0ad88}
+.omni-dot.bad{background:var(--red)}
+.omni-price{font-size:clamp(27px,4vw,38px);font-weight:850;font-variant-numeric:tabular-nums;letter-spacing:-.04em;margin:9px 0}
+.omni-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.omni-metric{border:1px solid var(--line);background:#0a1422;border-radius:12px;padding:12px;min-width:0}
+.omni-metric strong{display:block;font-size:19px;margin:6px 0 2px;overflow-wrap:anywhere}
+.omni-metric small{font-size:10px;color:var(--muted)}
+.omni-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.8fr);gap:14px}
+.omni-chart-wrap{background:#07111e;border:1px solid #20334a;border-radius:13px;overflow:hidden;margin-top:12px}
+#omniChart{width:100%;height:auto;display:block;min-height:230px}
+.omni-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.omni-controls select,.omni-controls button{width:auto;min-width:110px;padding:9px 11px;border-radius:10px;background:#0a1727;color:var(--text);border:1px solid var(--line)}
+.omni-controls button{font-weight:750;cursor:pointer}
+.omni-primary{background:linear-gradient(120deg,#7dbbff,#50e0b0)!important;color:#06121d!important;border:0!important}
+.omni-decision{font-size:25px;font-weight:900;letter-spacing:.04em;margin:8px 0}
+.omni-decision.buy{color:var(--green)}.omni-decision.sell{color:var(--red)}.omni-decision.wait{color:var(--gold)}
+.omni-levels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.omni-level{border:1px solid var(--line);background:#091421;border-radius:11px;padding:11px}
+.omni-level small{display:block;color:var(--muted);font-size:10px;letter-spacing:.08em}
+.omni-level strong{display:block;font-size:18px;margin-top:5px;font-variant-numeric:tabular-nums}
+.omni-level.entry{border-color:#3478ad}.omni-level.sl{border-color:#a34e60}.omni-level.tp{border-color:#247d68}
+.omni-reason{padding:10px 12px;border-radius:10px;background:#0a1726;border:1px solid var(--line);font-size:12px;line-height:1.6;margin-top:10px}
+.omni-list{display:grid;gap:8px;margin-top:12px}
+.omni-check{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#0a1523;font-size:12px;line-height:1.45}
+.omni-check b{color:var(--green);font-size:13px}
+.omni-foot{font-size:10px;line-height:1.6;color:var(--muted)}
+.omni-chat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px}
+.omni-chat input{background:#081321;border:1px solid var(--line);border-radius:10px;padding:12px;color:var(--text);min-width:0}
+.omni-chat button{border:0;border-radius:10px;padding:10px 15px;background:#173c54;color:white;font-weight:800}
+#omniChatLog{display:grid;gap:8px;max-height:230px;overflow:auto;margin-top:10px}
+.omni-msg{padding:10px 12px;border-radius:11px;background:#0a1523;border:1px solid var(--line);font-size:12px;line-height:1.55;white-space:pre-wrap}
+.omni-msg.user{background:#10263a}
+@media(max-width:850px){.omni-hero,.omni-grid{grid-template-columns:1fr}.omni-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:440px){.omni-card{padding:14px}.omni-level strong{font-size:15px}.omni-controls select{flex:1}.omni-chat{grid-template-columns:1fr auto}}
 </style></head>
 <body><main class="wrap">
 <section class="panel" id="supabasePanel" style="margin:10vh auto 0;max-width:520px;padding:26px">
@@ -26,6 +75,72 @@
 <div id="accountActions" class="hidden row" style="margin-top:11px;justify-content:flex-start"><button class="btn" id="cloudSync" type="button">Sync journal</button><button class="btn danger" id="cloudSignOut" type="button">Sign out</button></div>
 </section>
 <div id="dashboardContent" class="hidden">
+<section id="omniscientDashboard">
+ <div class="omni-hero">
+  <div class="omni-card">
+   <div class="omni-eyebrow">DARS OMNISCIENT · QUANT INTELLIGENCE</div>
+   <h1 class="omni-title">Think in evidence.<br><span style="color:var(--green)">Trade with discipline.</span></h1>
+   <p class="omni-muted">Independent market-analysis core · VT Markets MT5 · XAUUSD-STD · Manual execution only.</p>
+   <div class="omni-controls" style="margin-top:15px"><span class="omni-status"><i class="omni-dot" id="omniDot"></i><span id="omniConnection">Checking MT5 feed…</span></span><button class="omni-primary" id="omniRefresh" type="button">Analyze market</button></div>
+  </div>
+  <div class="omni-card">
+   <div class="omni-eyebrow">LIVE GOLD · XAUUSD-STD</div><div class="omni-price" id="omniPrice">—</div>
+   <div class="omni-muted" id="omniQuoteMeta">Waiting for verified bid / ask</div>
+   <div class="omni-metrics" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:15px">
+    <div class="omni-metric"><small>BID</small><strong id="omniBid">—</strong></div>
+    <div class="omni-metric"><small>ASK</small><strong id="omniAsk">—</strong></div>
+   </div>
+  </div>
+ </div>
+ <div class="omni-metrics">
+  <div class="omni-metric"><small>MARKET REGIME · H1</small><strong id="omniRegime">—</strong><small>Volatility / structure</small></div>
+  <div class="omni-metric"><small>HIGHER TF · M15</small><strong id="omniM15">—</strong><small>Directional structure</small></div>
+  <div class="omni-metric"><small>EXECUTION TF · M5</small><strong id="omniM5">—</strong><small>Closed candle setup</small></div>
+  <div class="omni-metric"><small>DATA QUALITY</small><strong id="omniDataQuality">Checking</strong><small id="omniDataAge">Quote freshness gate</small></div>
+ </div>
+ <div class="omni-grid">
+  <div class="omni-card">
+   <div class="omni-controls" style="justify-content:space-between">
+    <div><div class="omni-eyebrow">Verified market structure</div><b style="font-size:16px">Live XAUUSD candle chart</b></div>
+    <select id="omniTimeframe" aria-label="Chart timeframe"><option value="M1">M1</option><option value="M5" selected>M5</option><option value="M15">M15</option><option value="H1">H1</option></select>
+   </div>
+   <div class="omni-chart-wrap"><svg id="omniChart" viewBox="0 0 800 330" role="img" aria-label="Live MT5 candlestick chart"></svg></div>
+   <p class="omni-foot" id="omniChartMeta">Chart will appear only when actual MT5 candle history is available. No synthetic candles.</p>
+  </div>
+  <div class="omni-card">
+   <div class="omni-eyebrow">DARS decision engine</div>
+   <div class="omni-decision wait" id="omniDecision">WAIT · DATA CHECK</div>
+   <p class="omni-muted" id="omniDecisionReason">DARS is validating quote freshness, closed candles and multi-timeframe alignment.</p>
+   <div class="omni-levels">
+    <div class="omni-level entry"><small>ENTRY</small><strong id="omniEntry">—</strong></div>
+    <div class="omni-level sl"><small>STOP LOSS</small><strong id="omniSL">—</strong></div>
+    <div class="omni-level tp"><small>TAKE PROFIT 1 · 1.5R</small><strong id="omniTP1">—</strong></div>
+    <div class="omni-level tp"><small>TAKE PROFIT 2 · 2.5R</small><strong id="omniTP2">—</strong></div>
+   </div>
+   <div class="omni-reason" id="omniRiskNote">No setup is issued until every data-quality and rule check passes. Lot size remains uncalculated until broker tick value and symbol specifications are verified.</div>
+   <div class="omni-list" id="omniDiagnostics"><div class="omni-check">Waiting for first analysis…</div></div>
+  </div>
+ </div>
+ <div class="omni-grid">
+  <div class="omni-card">
+   <div class="omni-eyebrow">Research & validation</div><h2 style="margin:7px 0">Proof before promotion</h2>
+   <div class="omni-list">
+    <div class="omni-check"><b>01</b><span>Chronological development, validation and untouched holdout periods.</span></div>
+    <div class="omni-check"><b>02</b><span>Spread, commission, slippage and swap included in net performance.</span></div>
+    <div class="omni-check"><b>03</b><span>Walk-forward testing and forward paper outcomes before any profitability claim.</span></div>
+    <div class="omni-check"><b>04</b><span>Every BUY, SELL and WAIT decision is auditable; losing outcomes are never hidden.</span></div>
+   </div>
+   <p class="omni-foot">The current rule engine is a research baseline, not a proven profitable strategy. No win probability or performance claim is fabricated.</p>
+  </div>
+  <div class="omni-card">
+   <div class="omni-eyebrow">Ask DARS</div><h2 style="margin:7px 0">Market analyst</h2>
+   <p class="omni-muted">Ask why DARS is waiting, what the market regime means, or how a setup was calculated. Answers must be grounded in the latest analysis result.</p>
+   <div id="omniChatLog"><div class="omni-msg">DARS online interface ready. First verify the MT5 feed before asking for a trade idea.</div></div>
+   <form class="omni-chat" id="omniChatForm"><input id="omniChatInput" maxlength="500" placeholder="Ask DARS about the current market…" required><button type="submit">Ask</button></form>
+  </div>
+ </div>
+ <p class="omni-foot">Research / paper mode only. DARS does not place broker orders. BUY / SELL labels are analytical outputs, not guaranteed outcomes. Verify spread, execution, stop distance and your own risk before manually copying any setup.</p>
+</section>
 <header class="top"><div><div class="brand">DARS <span>AI LAB</span></div><div class="sub">Advanced trading workspace · v0.4 · Connection setup</div></div><div class="row" style="justify-content:flex-end"><button class="btn hidden" id="accountToggle" type="button">Account</button><span class="pill" id="topConnectionStatus">● MT5 STATUS · CHECKING</span></div></header>
 <div class="notice" id="dashboardMainNotice"><b>LIVE CONNECTION:</b> Checking MT5 bridge status… This dashboard reads real VT Markets MT5 quotes and candles when the bridge is online. Paper trading / analysis only; no real orders are sent.</div>
 <section class="panel" id="mt5LivePanel" style="margin-bottom:15px">
