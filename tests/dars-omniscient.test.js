@@ -118,7 +118,11 @@ assert.equal(sweepUnproven.eligible, false);
 
 const sweepProven = selectAdaptiveStrategy({
   regime: "TRENDING", trend: "BULLISH", sweepLow: true,
-  strategyStats: { LIQUIDITY_RECLAIM: strongEvidence }
+  candidates: [
+    { strategy: "LIQUIDITY_RECLAIM", side: "BUY", entry: 4000, stopLoss: 3998, takeProfit1: 4003, takeProfit2: 4005, riskDistance: 2, features: { spread: 0.2, atr: 3, sweep: 1 } },
+    { strategy: "SUPPORT_RESISTANCE", side: "BUY", entry: 4000, stopLoss: 3998, takeProfit1: 4003, takeProfit2: 4005, riskDistance: 2, features: { spread: 0.2, atr: 3, trendAlignment: 1 } }
+  ],
+  strategyStats: { LIQUIDITY_RECLAIM: strongEvidence, SUPPORT_RESISTANCE: strongEvidence }
 });
 assert.equal(sweepProven.status, "PAPER_ELIGIBLE");
 assert.equal(sweepProven.eligible, true);
@@ -192,4 +196,22 @@ const weakNoBypass = selectAdaptiveStrategy({
 });
 assert.equal(weakNoBypass.eligible, false, "Dynamic weighting must never bypass the 100-trade evidence gate.");
 assert.equal(weakNoBypass.status, "BLOCKED_BY_EVIDENCE");
-console.log("DARS adaptive allocation and evidence-gate tests passed.");
+const champions = selectAdaptiveStrategy({
+  regime: "TRENDING",
+  candidates: [
+    { strategy: "MOMENTUM", side: "BUY", entry: 4000, stopLoss: 3998, takeProfit1: 4003, takeProfit2: 4005, riskDistance: 2, features: { spread: .2, atr: 3 } },
+    { strategy: "PULLBACK", side: "BUY", entry: 4000, stopLoss: 3998, takeProfit1: 4003, takeProfit2: 4005, riskDistance: 2, features: { spread: .2, atr: 3 } },
+    { strategy: "MEAN_REVERSION", side: "SELL", entry: 4000, stopLoss: 4002, takeProfit1: 3997, takeProfit2: 3995, riskDistance: 2, features: { spread: .2, atr: 3 } }
+  ],
+  strategyStats: { MOMENTUM: provenMomentum, PULLBACK: provenMomentum, MEAN_REVERSION: provenMomentum }
+});
+assert.equal(champions.perEngineChampions.length, 3);
+assert.equal(champions.ensemble.buyVotes, 2);
+assert.equal(champions.ensemble.sellVotes, 1);
+assert.equal(champions.ensemble.consensus, true);
+assert.equal(champions.status, "PAPER_ELIGIBLE");
+assert.ok(champions.selectedSetup);
+assert.equal(champions.perEngineChampions.some(x => x.strategy === "MEAN_REVERSION"), true,
+  "Opposing engine champion remains in the ensemble research rather than being discarded.");
+console.log("DARS per-engine champions and cross-engine ensemble tests passed.");
+
