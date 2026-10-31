@@ -1,5 +1,5 @@
 // DARS Omniscient read-only analysis endpoint. No broker order methods.
-const { analyzeDarsMarket } = require("../lib/dars-omniscient");
+const { analyzeDarsMarket } = require("../lib/dars-omniscient");\nconst { summarizeByStrategy } = require("../lib/dars-paper-research");\n\nasync function loadVerifiedStrategyStats() {\n  const root = String(process.env.SUPABASE_URL || "").trim().replace(/\\/+$/, "").replace(/\\/rest\\/v1$/i, "");\n  const key = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();\n  if (!root || !key) return {};\n  try {\n    const query = new URLSearchParams({ select: "strategy,status,closed_at,net_r,features", symbol: "eq.XAUUSD-STD", order: "closed_at.asc", limit: "2000" });\n    const response = await fetch(root + "/rest/v1/dars_paper_trades?" + query, { headers: { apikey: key, Authorization: "Bearer " + key } });\n    if (!response.ok) return {};\n    return summarizeByStrategy(await response.json());\n  } catch (_) { return {}; }\n}
 
 module.exports = async (req, res) => {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
