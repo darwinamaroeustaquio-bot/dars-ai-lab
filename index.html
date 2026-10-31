@@ -8,11 +8,61 @@
 :root{color-scheme:dark;--bg:#07111f;--panel:#101d2d;--panel2:#0b1726;--line:#26384e;--muted:#91a4ba;--text:#edf5ff;--green:#39d9a0;--blue:#7da7ff;--gold:#f3c66d;--red:#ff7d89}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 45% -15%,#1b3a5a 0,transparent 48%),var(--bg);color:var(--text);font:14px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}.wrap{max-width:1320px;margin:auto;padding:22px}.top,.row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.top{margin-bottom:18px}.brand{font-size:22px;font-weight:950;letter-spacing:.7px}.brand span{color:var(--green)}.sub,.muted,.note{color:var(--muted)}.sub{font-size:12px;margin-top:3px}.pill,.tag{border:1px solid var(--line);border-radius:999px;padding:7px 11px;color:var(--muted);font-size:11px;white-space:nowrap}.notice{padding:12px 14px;border:1px solid #6c582c;background:#292317;color:#f3d99a;border-radius:12px;margin-bottom:16px;font-size:12px;line-height:1.6}.layout{display:grid;grid-template-columns: minmax(0,1.7fr) minmax(300px,.9fr);gap:15px}.stack{display:grid;gap:15px;align-content:start}.panel{min-width:0;background:linear-gradient(145deg,#122238,#0c1726);border:1px solid var(--line);border-radius:17px;padding:18px}.panel h2{font-size:16px;margin:0 0 14px}.eyebrow{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted)}h1{font-size:clamp(25px,4vw,38px);line-height:1.12;margin:8px 0}p{line-height:1.6}.note{font-size:11px;line-height:1.6}.btn{border:1px solid var(--line);border-radius:10px;background:#1a2b42;color:var(--text);font-weight:750;padding:10px 13px}.btn:hover{filter:brightness(1.12)}.primary{background:linear-gradient(135deg,#7da7ff,#39d9a0);border:0;color:#06131d}.danger{color:var(--red)}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 15px}.metric{padding:14px;border:1px solid var(--line);background:#0b1827;border-radius:13px;min-width:0}.metric strong{display:block;font-size:22px;margin:7px 0 3px;overflow-wrap:anywhere}.metric small{color:var(--muted);font-size:11px}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}.tab{padding:8px 11px;border-radius:9px;border:1px solid var(--line);background:#0a1726;color:var(--muted);font-size:12px}.tab.active{color:var(--text);border-color:#4b789d;background:#19324a}.chart-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.price{font-size:25px;font-weight:850}.chartbox{margin-top:12px;border:1px solid var(--line);background:#091522;border-radius:12px;overflow:hidden}.chartbox svg{display:block;width:100%;height:auto}.asset-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:12px 0;border-bottom:1px solid #203147;cursor:pointer}.asset-row:last-child{border-bottom:0}.asset-row.selected{color:var(--green)}.asset-row small{display:block;color:var(--muted);font-size:10px;margin-top:3px}.asset-price{font-variant-numeric:tabular-nums;font-weight:700}.change{font-size:11px;color:var(--muted)}.fields{display:grid;grid-template-columns:1fr 1fr;gap:11px}label{display:block;color:var(--muted);font-size:11px;margin-bottom:6px}input,select,textarea{width:100%;background:#091522;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:10px;min-width:0}input[type=range]{padding:0;accent-color:var(--green)}input[type=checkbox]{width:auto;accent-color:var(--green)}.resultbox{border:1px solid #2e695b;background:#0c2828;border-radius:12px;padding:14px;margin-top:12px}.resultbox strong{font-size:23px;display:block;margin:5px 0}.checklist{display:grid;gap:8px}.check{display:flex;align-items:flex-start;gap:9px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#0a1726}.check span{font-size:12px;line-height:1.4}.scorebar{height:8px;border-radius:99px;background:#28384b;overflow:hidden;margin:12px 0 7px}.scorebar span{display:block;height:100%;width:0;background:linear-gradient(90deg,#f3c66d,#39d9a0);transition:width .2s}.status{font-size:12px;font-weight:800}.divider{border:0;border-top:1px solid var(--line);margin:15px 0}table{border-collapse:collapse;width:100%;margin-top:10px}td,th{text-align:left;padding:10px 6px;border-bottom:1px solid var(--line);font-size:11px;vertical-align:top}th{color:var(--muted);font-weight:600}.tablewrap{overflow-x:auto}.empty{text-align:center;color:var(--muted);padding:20px 8px;font-size:12px}.tag-green{color:var(--green)}.tag-red{color:var(--red)}.footer{font-size:11px;color:var(--muted);line-height:1.7;padding:18px 2px}.password-wrap{display:flex;align-items:stretch;gap:6px}.password-wrap input{flex:1;min-width:0}.password-toggle{padding:8px 10px;font-size:12px}.hidden{display:none!important}
 @media(max-width:900px){.layout{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:13px}.panel{padding:15px}}@media(max-width:420px){.fields{grid-template-columns:1fr}.metric strong{font-size:19px}.top .pill{white-space:normal}}
-</style></head>
+
+</style>
+<style id="dars-omniscient-theme">
+:root{--bg:#070d18;--panel:#101a2a;--panel2:#0b1422;--line:#24354b;--muted:#8fa4bd;--text:#edf4ff;--green:#48e0ad;--blue:#65b5ff;--gold:#f3c66d;--red:#ff7187}
+body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#070d18}
+#dashboardContent>.top{padding:14px 0 18px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+#dashboardContent>.top .sub{font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+#dashboardContent>section:not(#omniscientDashboard),#dashboardContent>.metrics,#dashboardContent>.layout{display:none!important}
+#omniscientDashboard{display:grid;gap:14px;margin-bottom:18px}
+.omni-hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(240px,.7fr);gap:14px}
+.omni-card{background:linear-gradient(145deg,#111f32,#0b1422);border:1px solid var(--line);border-radius:18px;padding:18px;min-width:0}
+.omni-eyebrow{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#91a8c2}
+.omni-title{font-size:clamp(25px,4vw,39px);line-height:1.08;letter-spacing:-.04em;margin:8px 0}
+.omni-muted{color:var(--muted);font-size:12px;line-height:1.6}
+.omni-status{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:99px;padding:7px 10px;font-size:11px;color:var(--muted)}
+.omni-dot{width:7px;height:7px;border-radius:50%;background:#7b8798;display:inline-block}
+.omni-dot.live{background:var(--green);box-shadow:0 0 12px #48e0ad88}
+.omni-dot.bad{background:var(--red)}
+.omni-price{font-size:clamp(27px,4vw,38px);font-weight:850;font-variant-numeric:tabular-nums;letter-spacing:-.04em;margin:9px 0}
+.omni-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.omni-metric{border:1px solid var(--line);background:#0a1422;border-radius:12px;padding:12px;min-width:0}
+.omni-metric strong{display:block;font-size:19px;margin:6px 0 2px;overflow-wrap:anywhere}
+.omni-metric small{font-size:10px;color:var(--muted)}
+.omni-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.8fr);gap:14px}
+.omni-chart-wrap{background:#07111e;border:1px solid #20334a;border-radius:13px;overflow:hidden;margin-top:12px}
+#omniChart{width:100%;height:auto;display:block;min-height:230px}
+.omni-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.omni-controls select,.omni-controls button{width:auto;min-width:110px;padding:9px 11px;border-radius:10px;background:#0a1727;color:var(--text);border:1px solid var(--line)}
+.omni-controls button{font-weight:750;cursor:pointer}
+.omni-primary{background:linear-gradient(120deg,#7dbbff,#50e0b0)!important;color:#06121d!important;border:0!important}
+.omni-decision{font-size:25px;font-weight:900;letter-spacing:.04em;margin:8px 0}
+.omni-decision.buy{color:var(--green)}.omni-decision.sell{color:var(--red)}.omni-decision.wait{color:var(--gold)}
+.omni-levels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.omni-level{border:1px solid var(--line);background:#091421;border-radius:11px;padding:11px}
+.omni-level small{display:block;color:var(--muted);font-size:10px;letter-spacing:.08em}
+.omni-level strong{display:block;font-size:18px;margin-top:5px;font-variant-numeric:tabular-nums}
+.omni-level.entry{border-color:#3478ad}.omni-level.sl{border-color:#a34e60}.omni-level.tp{border-color:#247d68}
+.omni-reason{padding:10px 12px;border-radius:10px;background:#0a1726;border:1px solid var(--line);font-size:12px;line-height:1.6;margin-top:10px}
+.omni-list{display:grid;gap:8px;margin-top:12px}
+.omni-check{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#0a1523;font-size:12px;line-height:1.45}
+.omni-check b{color:var(--green);font-size:13px}
+.omni-foot{font-size:10px;line-height:1.6;color:var(--muted)}
+.omni-chat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px}
+.omni-chat input{background:#081321;border:1px solid var(--line);border-radius:10px;padding:12px;color:var(--text);min-width:0}
+.omni-chat button{border:0;border-radius:10px;padding:10px 15px;background:#173c54;color:white;font-weight:800}
+#omniChatLog{display:grid;gap:8px;max-height:230px;overflow:auto;margin-top:10px}
+.omni-msg{padding:10px 12px;border-radius:11px;background:#0a1523;border:1px solid var(--line);font-size:12px;line-height:1.55;white-space:pre-wrap}
+.omni-msg.user{background:#10263a}
+@media(max-width:850px){.omni-hero,.omni-grid{grid-template-columns:1fr}.omni-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:440px){.omni-card{padding:14px}.omni-level strong{font-size:15px}.omni-controls select{flex:1}.omni-chat{grid-template-columns:1fr auto}}
+#topConnectionStatus{display:none!important}</style></head>
 <body><main class="wrap">
 <section class="panel" id="supabasePanel" style="margin:10vh auto 0;max-width:520px;padding:26px">
 
-<div style="text-align:center;margin-bottom:20px"><div class="eyebrow">Welcome back</div><div class="brand" style="font-size:28px;margin:8px 0">DARS <span>AI LAB</span></div><h2 style="margin:5px 0 8px">Sign in to continue</h2><span class="tag" id="cloudStatus">Checking configuration…</span></div>
+<div style="text-align:center;margin-bottom:20px"><div class="eyebrow">Welcome back</div><div class="brand" style="font-size:28px;margin:8px 0">DARS <span>OMNISCIENT</span></div><h2 style="margin:5px 0 8px">Sign in to continue</h2><span class="tag" id="cloudStatus">Checking configuration…</span></div>
 <p class="note" style="text-align:center;margin-bottom:18px">Sign in to open your trading dashboard and sync your journal. Use your account password, not your VT Markets password.</p>
 <div class="fields">
 <div><label for="cloudEmail">Email</label><input id="cloudEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
@@ -26,7 +76,148 @@
 <div id="accountActions" class="hidden row" style="margin-top:11px;justify-content:flex-start"><button class="btn" id="cloudSync" type="button">Sync journal</button><button class="btn danger" id="cloudSignOut" type="button">Sign out</button></div>
 </section>
 <div id="dashboardContent" class="hidden">
-<header class="top"><div><div class="brand">DARS <span>AI LAB</span></div><div class="sub">Advanced trading workspace · v0.4 · Connection setup</div></div><div class="row" style="justify-content:flex-end"><button class="btn hidden" id="accountToggle" type="button">Account</button><span class="pill" id="topConnectionStatus">● MT5 STATUS · CHECKING</span></div></header>
+<section id="omniscientDashboard">
+ <div class="omni-hero">
+  <div class="omni-card">
+   <div class="omni-eyebrow">DARS OMNISCIENT · QUANT INTELLIGENCE</div>
+   <h1 class="omni-title">Think in evidence.<br><span style="color:var(--green)">Trade with discipline.</span></h1>
+   <p class="omni-muted">Independent market-analysis core · VT Markets MT5 · XAUUSD-STD · Manual execution only.</p>
+   <div class="omni-controls" style="margin-top:15px"><span class="omni-status"><i class="omni-dot" id="omniDot"></i><span id="omniConnection">Checking MT5 feed…</span></span><button class="omni-primary" id="omniRefresh" type="button">Analyze market</button></div>
+  </div>
+  <div class="omni-card">
+   <div class="omni-eyebrow">LIVE GOLD · XAUUSD-STD</div><div class="omni-price" id="omniPrice">—</div>
+   <div class="omni-muted" id="omniQuoteMeta">Waiting for verified bid / ask</div>
+   <div class="omni-metrics" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:15px">
+    <div class="omni-metric"><small>BID</small><strong id="omniBid">—</strong></div>
+    <div class="omni-metric"><small>ASK</small><strong id="omniAsk">—</strong></div>
+   </div>
+  </div>
+ </div>
+ <div class="omni-metrics">
+  <div class="omni-metric"><small>MARKET REGIME · H1</small><strong id="omniRegime">—</strong><small>Volatility / structure</small></div>
+  <div class="omni-metric"><small>HIGHER TF · M15</small><strong id="omniM15">—</strong><small>Directional structure</small></div>
+  <div class="omni-metric"><small>EXECUTION TF · M5</small><strong id="omniM5">—</strong><small>Closed candle setup</small></div>
+  <div class="omni-metric"><small>DATA QUALITY</small><strong id="omniDataQuality">Checking</strong><small id="omniDataAge">Quote freshness gate</small></div>
+ </div>
+ <div class="omni-grid">
+  <div class="omni-card">
+   <div class="omni-controls" style="justify-content:space-between">
+    <div><div class="omni-eyebrow">Verified market structure</div><b style="font-size:16px">Live XAUUSD candle chart</b></div>
+    <select id="omniTimeframe" aria-label="Chart timeframe"><option value="M1">M1</option><option value="M5" selected>M5</option><option value="M15">M15</option><option value="H1">H1</option></select>
+   </div>
+   <div class="omni-chart-wrap"><svg id="omniChart" viewBox="0 0 800 330" role="img" aria-label="Live MT5 candlestick chart"></svg></div>
+   <p class="omni-foot" id="omniChartMeta">Chart will appear only when actual MT5 candle history is available. No synthetic candles.</p>
+  </div>
+  <div class="omni-card">
+   <div class="omni-eyebrow">DARS decision engine</div>
+   <div class="omni-decision wait" id="omniDecision">WAIT · DATA CHECK</div>
+   <p class="omni-muted" id="omniDecisionReason">DARS is validating quote freshness, closed candles and multi-timeframe alignment.</p>
+   <div class="omni-levels">
+    <div class="omni-level entry"><small>ENTRY</small><strong id="omniEntry">—</strong></div>
+    <div class="omni-level sl"><small>STOP LOSS</small><strong id="omniSL">—</strong></div>
+    <div class="omni-level tp"><small>TAKE PROFIT 1 · 1.5R</small><strong id="omniTP1">—</strong></div>
+    <div class="omni-level tp"><small>TAKE PROFIT 2 · 2.5R</small><strong id="omniTP2">—</strong></div>
+   </div>
+   <div class="omni-reason" id="omniRiskNote">No setup is issued until every data-quality and rule check passes. Lot size remains uncalculated until broker tick value and symbol specifications are verified.</div>
+   <div class="omni-list" id="omniDiagnostics"><div class="omni-check">Waiting for first analysis…</div></div>
+  </div>
+ </div>
+ <div class="omni-grid">
+  <div class="omni-card">
+   <div class="omni-eyebrow">Research & validation</div><h2 style="margin:7px 0">Proof before promotion</h2>
+   <div class="omni-list">
+    <div class="omni-check"><b>01</b><span>Chronological development, validation and untouched holdout periods.</span></div>
+    <div class="omni-check"><b>02</b><span>Spread, commission, slippage and swap included in net performance.</span></div>
+    <div class="omni-check"><b>03</b><span>Walk-forward testing and forward paper outcomes before any profitability claim.</span></div>
+    <div class="omni-check"><b>04</b><span>Every BUY, SELL and WAIT decision is auditable; losing outcomes are never hidden.</span></div>
+   </div>
+   <p class="omni-foot">The current rule engine is a research baseline, not a proven profitable strategy. No win probability or performance claim is fabricated.</p>
+  </div>
+  <div class="omni-card">
+   <div class="omni-eyebrow">Ask DARS</div><h2 style="margin:7px 0">Market analyst</h2>
+   <p class="omni-muted">Ask why DARS is waiting, what the market regime means, or how a setup was calculated. Answers must be grounded in the latest analysis result.</p>
+   <div id="omniChatLog"><div class="omni-msg">DARS online interface ready. First verify the MT5 feed before asking for a trade idea.</div></div>
+   <form class="omni-chat" id="omniChatForm"><input id="omniChatInput" maxlength="500" placeholder="Ask DARS about the current market…" required><button type="submit">Ask</button></form>
+  </div>
+ </div>
+ <p class="omni-foot">Research / paper mode only. DARS does not place broker orders. BUY / SELL labels are analytical outputs, not guaranteed outcomes. Verify spread, execution, stop distance and your own risk before manually copying any setup.</p>
+</section>
+
+<script id="darsOmniscientRuntime">
+(()=>{
+ const $=id=>document.getElementById(id);
+ const state={quote:null,analysis:null,frames:{},busy:false};
+ const fmt=v=>Number.isFinite(Number(v))?Number(v).toFixed(2):"—";
+ const set=(id,v)=>{const n=$(id);if(n)n.textContent=v;};
+ function message(text){const n=$("omniChatLog"),d=document.createElement("div");d.className="omni-msg";d.textContent=text;n.appendChild(d);n.scrollTop=n.scrollHeight;}
+ function drawChart(){
+  const svg=$("omniChart"),tf=$("omniTimeframe").value,rows=state.frames[tf]||[];
+  svg.replaceChildren();
+  const valid=rows.filter(c=>[c.open,c.high,c.low,c.close].every(v=>Number.isFinite(Number(v)))&&Number(c.high)>=Number(c.low)).slice(-65);
+  const ns="http://www.w3.org/2000/svg",el=(tag,attrs,txt)=>{const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(txt!==undefined)n.textContent=txt;svg.appendChild(n);return n;};
+  if(valid.length<2){el("text",{x:400,y:155,"text-anchor":"middle",fill:"#91a8c2","font-size":15},"Waiting for verified "+tf+" MT5 candle history");set("omniChartMeta","No chart data available. DARS will not draw sample candles.");return;}
+  let min=Math.min(...valid.map(c=>Number(c.low))),max=Math.max(...valid.map(c=>Number(c.high)));
+  if(!(max>min)){min-=1;max+=1;}const pad=(max-min)*.08;min-=pad;max+=pad;
+  const left=60,right=750,top=20,bottom=285,plotH=bottom-top,step=(right-left)/valid.length,w=Math.max(2,Math.min(10,step*.58)),y=v=>bottom-(v-min)/(max-min)*plotH;
+  for(let i=0;i<=4;i++){const yy=top+plotH*i/4,p=max-(max-min)*i/4;el("line",{x1:left,y1:yy,x2:right,y2:yy,stroke:"#20334a"});el("text",{x:7,y:yy+4,fill:"#8fa4bd","font-size":11},p.toFixed(2));}
+  valid.forEach((c,i)=>{const o=Number(c.open),h=Number(c.high),l=Number(c.low),cl=Number(c.close),x=left+(i+.5)*step,col=cl>=o?"#48e0ad":"#ff7187";el("line",{x1:x,y1:y(h),x2:x,y2:y(l),stroke:col,"stroke-width":1.4});el("rect",{x:x-w/2,y:Math.min(y(o),y(cl)),width:w,height:Math.max(1.5,Math.abs(y(o)-y(cl))),fill:col,rx:1});});
+  const setup=state.analysis?.setup;if(setup&&tf==="M5"){[["ENTRY",setup.entry,"#65b5ff"],["SL",setup.stopLoss,"#ff7187"],["TP1",setup.takeProfit1,"#48e0ad"],["TP2",setup.takeProfit2,"#80e8c1"]].forEach(([label,v,col])=>{const yy=y(Number(v));if(yy>=top&&yy<=bottom){el("line",{x1:left,x2:right,y1:yy,y2:yy,stroke:col,"stroke-width":1.8,"stroke-dasharray":"7 4"});el("text",{x:right-4,y:yy-5,"text-anchor":"end",fill:col,"font-size":11,"font-weight":700},label+" "+fmt(v));}});}
+  const last=valid[valid.length-1],stamp=last.bar_time||last.time||last.timestamp||"";
+  set("omniChartMeta","Verified MT5 OHLC · "+tf+" · "+valid.length+" candles · last bar "+(stamp?new Date(stamp).toLocaleString():"timestamp unavailable"));
+ }
+ function renderAnalysis(a,q){
+  state.analysis=a;const live=!!q?.connected&&!!q?.quote;
+  $("omniDot").className="omni-dot"+(live?" live":" bad");
+  set("omniConnection",live?"MT5 LIVE · READ ONLY":"MT5 OFFLINE / STALE");
+  const quote=q?.quote||{};set("omniBid",fmt(quote.bid));set("omniAsk",fmt(quote.ask));
+  set("omniPrice",Number.isFinite((Number(quote.bid)+Number(quote.ask))/2)?fmt((Number(quote.bid)+Number(quote.ask))/2):"—");
+  set("omniQuoteMeta",live?"Spread "+fmt(Number(quote.ask)-Number(quote.bid))+" · Quote age "+q.age_seconds+"s":"No fresh broker quote");
+  const f=a.frames||{};set("omniRegime",f.H1?.regime||"—");set("omniM15",f.M15?.trend||"—");set("omniM5",f.M5?.trend||"—");
+  const good=Object.values(f).filter(x=>x.ok).length;set("omniDataQuality",good+"/3 frames");set("omniDataAge",a.diagnostics?.length? "Checks: "+a.diagnostics.length:"All configured checks passed");
+  const d=a.decision||"WAIT",dn=$("omniDecision");dn.textContent=d==="WAIT"?"WAIT · NO TRADE":d+" · SETUP";dn.className="omni-decision "+(d==="BUY"?"buy":d==="SELL"?"sell":"wait");
+  const s=a.setup;set("omniEntry",s?fmt(s.entry):"—");set("omniSL",s?fmt(s.stopLoss):"—");set("omniTP1",s?fmt(s.takeProfit1):"—");set("omniTP2",s?fmt(s.takeProfit2):"—");
+  set("omniDecisionReason",s?"M5 liquidity reclaim aligned with M15/H1 direction. Draft paper setup; validate broker execution details.":(a.diagnostics||[]).join(" "));
+  set("omniRiskNote",s?"Entry uses current ask for BUY / bid for SELL. SL is structure + ATR based. TP1 = 1.5R; TP2 = 2.5R. Lot sizing is intentionally withheld until verified broker tick value, tick size, volume step and stop-level metadata are available.":"No entry or targets issued. DARS waits for fresh quote, sufficient closed candles and aligned multi-timeframe evidence.");
+  const list=$("omniDiagnostics");list.replaceChildren();
+  (a.diagnostics||[]).forEach(t=>{const row=document.createElement("div");row.className="omni-check";row.textContent=t;list.appendChild(row);});
+  drawChart();
+ }
+ async function analyze(){
+  if(state.busy)return;state.busy=true;set("omniConnection","Checking MT5…");
+  try{
+   const [qr,...crs]=await Promise.all(["/api/mt5-quote?symbol=XAUUSD-STD",...["M5","M15","H1"].map(tf=>"/api/mt5-candles?symbol=XAUUSD-STD&timeframe="+tf+"&limit=120")].map(url=>fetch(url,{cache:"no-store",headers:{Accept:"application/json"}})));
+   const q=await qr.json(),frames={};for(let i=0;i<crs.length;i++){const d=await crs[i].json();frames[["M5","M15","H1"][i]]=d.ok&&Array.isArray(d.candles)?d.candles:[];}
+   state.frames={...state.frames,...frames};
+   const quote=q.quote?{bid:q.quote.bid,ask:q.quote.ask,received_at:q.quote.received_at}: {};
+   const ar=await fetch("/api/dars-omniscient",{method:"POST",cache:"no-store",headers:{"Content-Type":"application/json"},body:JSON.stringify({symbol:"XAUUSD-STD",quote,frames})});
+   const ad=await ar.json();if(!ar.ok||!ad.ok)throw new Error(ad.error||"Analysis endpoint unavailable");
+   renderAnalysis(ad.analysis,q);
+  }catch(e){
+   set("omniDot","omni-dot bad");$("omniDot").className="omni-dot bad";set("omniConnection","DATA / API ERROR");
+   const empty={decision:"WAIT",setup:null,diagnostics:[e.message],frames:{}};renderAnalysis(empty,null);
+  }finally{state.busy=false;}
+ }
+ async function refreshChartOnly(){
+  const tf=$("omniTimeframe").value;
+  try{const r=await fetch("/api/mt5-candles?symbol=XAUUSD-STD&timeframe="+tf+"&limit=100",{cache:"no-store"}),d=await r.json();state.frames[tf]=d.ok?d.candles:[];drawChart();}catch(_){state.frames[tf]=[];drawChart();}
+ }
+ $("omniRefresh").addEventListener("click",analyze);
+ $("omniTimeframe").addEventListener("change",refreshChartOnly);
+ $("omniChatForm").addEventListener("submit",e=>{
+  e.preventDefault();const input=$("omniChatInput"),q=input.value.trim();if(!q)return;
+  message("You: "+q);input.value="";
+  const a=state.analysis;
+  if(!a){message("DARS: Wala pang verified analysis. I-check muna natin ang MT5 connection.");return;}
+  const lower=q.toLowerCase(),s=a.setup;
+  let answer;
+  if(/setup|entry|tp1|tp2|stop|sl|buy|sell/.test(lower))answer=s?"DARS: "+a.decision+" draft setup. Entry "+fmt(s.entry)+", SL "+fmt(s.stopLoss)+", TP1 "+fmt(s.takeProfit1)+", TP2 "+fmt(s.takeProfit2)+". Research/paper output lamang; hindi ito guaranteed trade.":"DARS: WAIT. "+(a.diagnostics||[]).join(" ");
+  else if(/bakit|why|wait|no trade/.test(lower))answer="DARS: Current decision is "+a.decision+". "+(a.diagnostics||[]).join(" ");
+  else answer="DARS: H1 regime "+(a.frames?.H1?.regime||"unavailable")+", M15 trend "+(a.frames?.M15?.trend||"unavailable")+", M5 trend "+(a.frames?.M5?.trend||"unavailable")+". Decision: "+a.decision+". I can explain the current setup checks, but this first release is a deterministic, auditable analysis engine—not a self-learning model.";
+  message(answer);
+ });
+ analyze();refreshChartOnly();setInterval(analyze,15000);setInterval(()=>{const q=fetch("/api/mt5-quote?symbol=XAUUSD-STD",{cache:"no-store"}).then(r=>r.json()).then(d=>{if(d.ok&&d.quote){const x=d.quote;set("omniBid",fmt(x.bid));set("omniAsk",fmt(x.ask));set("omniPrice",fmt((Number(x.bid)+Number(x.ask))/2));set("omniQuoteMeta",d.connected?"Spread "+fmt(Number(x.ask)-Number(x.bid))+" · Quote age "+d.age_seconds+"s":"Quote stale · "+d.age_seconds+"s");}}).catch(()=>{});},3000);
+})();
+</script><header class="top"><div><div class="brand">DARS <span>OMNISCIENT</span></div><div class="sub">Adaptive Quantitative Trading Intelligence · Research / Paper Mode</div></div><div class="row" style="justify-content:flex-end"><button class="btn hidden" id="accountToggle" type="button">Account</button><span class="pill" id="topConnectionStatus">● MT5 STATUS · CHECKING</span></div></header>
 <div class="notice" id="dashboardMainNotice"><b>LIVE CONNECTION:</b> Checking MT5 bridge status… This dashboard reads real VT Markets MT5 quotes and candles when the bridge is online. Paper trading / analysis only; no real orders are sent.</div>
 <section class="panel" id="mt5LivePanel" style="margin-bottom:15px">
 <div class="row"><div><div class="eyebrow">VT Markets · MT5 Bridge · GOLD ONLY</div><h2 style="margin:5px 0 8px">Gold live quote connection</h2></div><span class="tag" id="mt5LiveStatus">Waiting for MT5 bridge</span></div>
