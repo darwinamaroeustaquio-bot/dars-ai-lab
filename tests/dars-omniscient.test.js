@@ -159,3 +159,37 @@ assert.equal(noSetupSelection.status, "NO_SETUP");
   assert.equal(response.body.ok, false);
   console.log("DARS server journal and learning module smoke tests passed.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
+
+
+// Adaptive allocation: every current regime candidate is ranked and weights respond to recent outcomes,
+// while no strategy can bypass the independent evidence gate.
+const { adaptiveScore } = require("../lib/dars-adaptive-selector");
+const provenMomentum = {
+  ...strongEvidence, totalTrades: 140, holdoutTrades: 42, expectancyR: 0.09,
+  profitFactor: 1.3, maxDrawdownR: 2.8, consecutiveLosses: 1,
+  recentExpectancyR: 0.12, recentProfitFactor: 1.45,
+  model: { validated: true, winProbability: 0.62 }
+};
+const provenPullback = {
+  ...provenMomentum, recentExpectancyR: -0.12, recentProfitFactor: 0.72,
+  maxDrawdownR: 4.5, consecutiveLosses: 3
+};
+const adaptiveRanking = selectAdaptiveStrategy({
+  regime: "TRENDING", trend: "BULLISH",
+  candidates: [{ strategy: "MOMENTUM" }, { strategy: "PULLBACK" }],
+  strategyStats: { MOMENTUM: provenMomentum, PULLBACK: provenPullback }
+});
+assert.equal(adaptiveRanking.status, "PAPER_ELIGIBLE");
+assert.equal(adaptiveRanking.candidate, "MOMENTUM");
+assert.equal(adaptiveRanking.strategyRanking.length, 2);
+assert.ok(adaptiveRanking.strategyRanking[0].weight > adaptiveRanking.strategyRanking[1].weight);
+assert.ok(Math.abs(adaptiveRanking.strategyRanking.reduce((sum, x) => sum + x.weight, 0) - 1) < 0.001);
+assert.match(adaptiveRanking.adaptation, /re-ranked on each sync/);
+const weakNoBypass = selectAdaptiveStrategy({
+  regime: "TRENDING", trend: "BULLISH",
+  candidates: [{ strategy: "MOMENTUM" }],
+  strategyStats: { MOMENTUM: { ...provenMomentum, totalTrades: 20 } }
+});
+assert.equal(weakNoBypass.eligible, false, "Dynamic weighting must never bypass the 100-trade evidence gate.");
+assert.equal(weakNoBypass.status, "BLOCKED_BY_EVIDENCE");
+console.log("DARS adaptive allocation and evidence-gate tests passed.");
