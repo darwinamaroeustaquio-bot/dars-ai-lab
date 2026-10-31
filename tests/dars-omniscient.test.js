@@ -180,7 +180,7 @@ const provenPullback = {
 };
 const adaptiveRanking = selectAdaptiveStrategy({
   regime: "TRENDING", trend: "BULLISH",
-  candidates: [{ strategy: "MOMENTUM" }, { strategy: "PULLBACK" }],
+  candidates: [{ strategy: "MOMENTUM", side: "BUY" }, { strategy: "PULLBACK", side: "BUY" }],
   strategyStats: { MOMENTUM: provenMomentum, PULLBACK: provenPullback }
 });
 assert.equal(adaptiveRanking.status, "PAPER_ELIGIBLE");
@@ -188,7 +188,7 @@ assert.equal(adaptiveRanking.candidate, "MOMENTUM");
 assert.equal(adaptiveRanking.strategyRanking.length, 2);
 assert.ok(adaptiveRanking.strategyRanking[0].weight > adaptiveRanking.strategyRanking[1].weight);
 assert.ok(Math.abs(adaptiveRanking.strategyRanking.reduce((sum, x) => sum + x.weight, 0) - 1) < 0.001);
-assert.match(adaptiveRanking.adaptation, /re-ranked on each sync/);
+assert.match(adaptiveRanking.adaptation, /recalculated each market sync/);
 const weakNoBypass = selectAdaptiveStrategy({
   regime: "TRENDING", trend: "BULLISH",
   candidates: [{ strategy: "MOMENTUM" }],
