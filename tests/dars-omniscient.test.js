@@ -73,3 +73,16 @@ const executionStatus = require("../api/dars-execution-status");
   assert.equal(gateway.includes("CTrade"), false, "Foundation EA must not contain CTrade.");
   console.log("DARS execution bridge fail-closed tests passed.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
+
+
+// Execution-cost guard: reject abnormal absolute spread before issuing any setup.
+const wideSpread = analyzeDarsMarket({
+  now, symbol: "XAUUSD-STD",
+  quote: { bid: 4000, ask: 4000.75, received_at: new Date(now).toISOString() },
+  frames
+});
+assert.equal(wideSpread.decision, "WAIT");
+assert.ok(wideSpread.diagnostics.some(x => /Spread exceeds/.test(x)));
+assert.equal(wideSpread.quoteQuality.maxSpread, 0.50);
+assert.equal(wideSpread.engine, "DARS_OMNISCIENT_CORE_V2");
+console.log("DARS execution-cost quality gate tests passed.");
