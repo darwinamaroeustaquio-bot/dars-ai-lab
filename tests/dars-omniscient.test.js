@@ -69,7 +69,7 @@ const executionStatus = require("../api/dars-execution-status");
   const gateway = fs.readFileSync(path.join(__dirname, "..", "mt5", "DARS_Execution_Gateway.mq5"), "utf8");
   assert.ok(gateway.includes("input bool   InpEnableLiveTrading = false"));
   assert.ok(gateway.includes("void OnTick()"));
-  assert.ok(!/\\b(OrderSend|OrderSendAsync|CTrade|PositionOpen|Buy\\s*\\(|Sell\\s*\\()/.test(gateway),
-    "Foundation EA must not contain order-submission methods.");
+  assert.equal(gateway.includes("OrderSend"), false, "Foundation EA must not contain order submission.");
+  assert.equal(gateway.includes("CTrade"), false, "Foundation EA must not contain CTrade.");
   console.log("DARS execution bridge fail-closed tests passed.");
 })().catch(error => { console.error(error); process.exitCode = 1; });
