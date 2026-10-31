@@ -32,3 +32,15 @@ assert.equal(validHistory.frames.M5.ok, true);
 assert.equal(validHistory.frames.M5.count, 70);
 assert.equal(validHistory.decision, "WAIT"); // no sweep/reclaim: no forced entry
 console.log("DARS Omniscient core safety tests passed.");
+
+
+const fs = require("node:fs");
+const path = require("node:path");
+const dashboard = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+assert.equal((dashboard.match(/<style\\b/g) || []).length, (dashboard.match(/<\\/style>/g) || []).length,
+  "Dashboard stylesheet tags must be balanced.");
+assert.ok(dashboard.includes('id="omniscientDashboard"'), "Omniscient dashboard must be present.");
+assert.ok(dashboard.includes('id="darsOmniscientRuntime"'), "Omniscient runtime must be present.");
+assert.ok(dashboard.includes("/api/dars-omniscient"), "Dashboard must call the authoritative analysis endpoint.");
+assert.ok(dashboard.includes("/api/mt5-candles"), "Dashboard must use the MT5 candle feed.");
+console.log("DARS dashboard integration smoke tests passed.");
