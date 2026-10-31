@@ -1,5 +1,5 @@
 // DARS Omniscient read-only analysis endpoint. No broker order methods.
-const { analyzeDarsMarket } = require("../lib/dars-omniscient");
+const { analyzeDarsMarket, MAX_SPREAD_PRICE, MAX_SPREAD_TO_M5_ATR } = require("../lib/dars-omniscient");
 const { summarizeByStrategy, scoreCandidates } = require("../lib/dars-paper-research");
 const { buildCandidates } = require("../lib/dars-strategy-engines");
 
@@ -36,7 +36,7 @@ module.exports = async (req, res) => {
     const research = await loadVerifiedStrategyStats();
     const input = { symbol: body.symbol, quote: body.quote, frames: body.frames, now: Date.now() };
     const first = analyzeDarsMarket({ ...input, strategyStats: research.stats });
-    const candidates = buildCandidates({ frames: first.frames, quote: body.quote });
+    const m5 = first.frames.M5, m15 = first.frames.M15, spread = first.quoteQuality.spread;\n    const marketOk = m5?.ok && m15?.ok && first.frames.H1?.ok && Number.isFinite(spread) && spread <= MAX_SPREAD_PRICE && spread <= m5.atr14 * MAX_SPREAD_TO_M5_ATR && m5.regime !== "HIGH_VOLATILITY" && m15.regime !== "HIGH_VOLATILITY";\n    const candidates = marketOk ? buildCandidates({ frames: first.frames, quote: body.quote }) : [];
     scoreCandidates(research.trades, candidates, research.stats);
     const analysis = analyzeDarsMarket({ ...input, strategyStats: research.stats });
     return res.status(200).json({ ok: true, analysis });
