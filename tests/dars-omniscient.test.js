@@ -84,7 +84,7 @@ const wideSpread = analyzeDarsMarket({
 assert.equal(wideSpread.decision, "WAIT");
 assert.ok(wideSpread.diagnostics.some(x => /Spread exceeds/.test(x)));
 assert.equal(wideSpread.quoteQuality.maxSpread, 0.50);
-assert.equal(wideSpread.engine, "DARS_OMNISCIENT_CORE_V2");
+assert.equal(wideSpread.engine, "DARS_OMNISCIENT_QUANT_V3");
 console.log("DARS execution-cost quality gate tests passed.");
 
 
