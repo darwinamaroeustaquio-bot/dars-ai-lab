@@ -1,7 +1,12 @@
 -- DARS adaptive paper journal. Run in Supabase SQL Editor before enabling the journal API.
 create table if not exists public.dars_paper_trades (
  trade_id text primary key, symbol text not null,
- strategy text not null check(strategy in ('LIQUIDITY_RECLAIM','TREND_FOLLOWING','MEAN_REVERSION')),
+ strategy text not null check(strategy in (
+  'LIQUIDITY_RECLAIM','TREND_FOLLOWING','MEAN_REVERSION','BREAKOUT',
+  'BREAKOUT_RETEST','MOMENTUM','PULLBACK','SUPPORT_RESISTANCE',
+  'VOLATILITY_EXPANSION','SESSION_BREAKOUT','RSI_DIVERGENCE',
+  'STOCHASTIC_REVERSION','CCI_REVERSION','WILLIAMS_REVERSION','MTF_CONFLUENCE'
+ )),
  side text not null check(side in ('BUY','SELL')),
  mode text not null default 'SHADOW' check(mode in ('SHADOW','ACTIVE_PAPER')),
  status text not null default 'OPEN' check(status in ('OPEN','CLOSED')),
