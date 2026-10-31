@@ -4,7 +4,7 @@ const { summarizeByStrategy, scoreCandidates } = require("../lib/dars-paper-rese
 const { buildCandidates } = require("../lib/dars-strategy-engines");
 
 async function loadVerifiedStrategyStats() {
-  const root = String(process.env.SUPABASE_URL || "").trim().replace(/\\/+$/, "").replace(/\\/rest\\/v1$/i, "");
+  const root = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
   const key = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
   if (!root || !key) return { trades: [], stats: {} };
   try {
