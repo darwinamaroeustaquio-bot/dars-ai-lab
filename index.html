@@ -57,11 +57,11 @@ body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#
 .omni-msg.user{background:#10263a}
 @media(max-width:850px){.omni-hero,.omni-grid{grid-template-columns:1fr}.omni-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:440px){.omni-card{padding:14px}.omni-level strong{font-size:15px}.omni-controls select{flex:1}.omni-chat{grid-template-columns:1fr auto}}
-</style></head>
+<style>#topConnectionStatus{display:none!important}</style></head>
 <body><main class="wrap">
 <section class="panel" id="supabasePanel" style="margin:10vh auto 0;max-width:520px;padding:26px">
 
-<div style="text-align:center;margin-bottom:20px"><div class="eyebrow">Welcome back</div><div class="brand" style="font-size:28px;margin:8px 0">DARS <span>AI LAB</span></div><h2 style="margin:5px 0 8px">Sign in to continue</h2><span class="tag" id="cloudStatus">Checking configuration…</span></div>
+<div style="text-align:center;margin-bottom:20px"><div class="eyebrow">Welcome back</div><div class="brand" style="font-size:28px;margin:8px 0">DARS <span>OMNISCIENT</span></div><h2 style="margin:5px 0 8px">Sign in to continue</h2><span class="tag" id="cloudStatus">Checking configuration…</span></div>
 <p class="note" style="text-align:center;margin-bottom:18px">Sign in to open your trading dashboard and sync your journal. Use your account password, not your VT Markets password.</p>
 <div class="fields">
 <div><label for="cloudEmail">Email</label><input id="cloudEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
@@ -216,7 +216,7 @@ body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#
  });
  analyze();refreshChartOnly();setInterval(analyze,15000);setInterval(()=>{const q=fetch("/api/mt5-quote?symbol=XAUUSD-STD",{cache:"no-store"}).then(r=>r.json()).then(d=>{if(d.ok&&d.quote){const x=d.quote;set("omniBid",fmt(x.bid));set("omniAsk",fmt(x.ask));set("omniPrice",fmt((Number(x.bid)+Number(x.ask))/2));set("omniQuoteMeta",d.connected?"Spread "+fmt(Number(x.ask)-Number(x.bid))+" · Quote age "+d.age_seconds+"s":"Quote stale · "+d.age_seconds+"s");}}).catch(()=>{});},3000);
 })();
-</script><header class="top"><div><div class="brand">DARS <span>AI LAB</span></div><div class="sub">Advanced trading workspace · v0.4 · Connection setup</div></div><div class="row" style="justify-content:flex-end"><button class="btn hidden" id="accountToggle" type="button">Account</button><span class="pill" id="topConnectionStatus">● MT5 STATUS · CHECKING</span></div></header>
+</script><header class="top"><div><div class="brand">DARS <span>OMNISCIENT</span></div><div class="sub">Adaptive Quantitative Trading Intelligence · Research / Paper Mode</div></div><div class="row" style="justify-content:flex-end"><button class="btn hidden" id="accountToggle" type="button">Account</button><span class="pill" id="topConnectionStatus">● MT5 STATUS · CHECKING</span></div></header>
 <div class="notice" id="dashboardMainNotice"><b>LIVE CONNECTION:</b> Checking MT5 bridge status… This dashboard reads real VT Markets MT5 quotes and candles when the bridge is online. Paper trading / analysis only; no real orders are sent.</div>
 <section class="panel" id="mt5LivePanel" style="margin-bottom:15px">
 <div class="row"><div><div class="eyebrow">VT Markets · MT5 Bridge · GOLD ONLY</div><h2 style="margin:5px 0 8px">Gold live quote connection</h2></div><span class="tag" id="mt5LiveStatus">Waiting for MT5 bridge</span></div>
