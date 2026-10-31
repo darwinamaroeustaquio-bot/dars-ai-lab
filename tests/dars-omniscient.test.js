@@ -37,7 +37,7 @@ console.log("DARS Omniscient core safety tests passed.");
 const fs = require("node:fs");
 const path = require("node:path");
 const dashboard = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-assert.equal((dashboard.match(/<style\\b/g) || []).length, (dashboard.match(/<\\/style>/g) || []).length,
+assert.equal(dashboard.split("<style").length - 1, dashboard.split("</style>").length - 1,
   "Dashboard stylesheet tags must be balanced.");
 assert.ok(dashboard.includes('id="omniscientDashboard"'), "Omniscient dashboard must be present.");
 assert.ok(dashboard.includes('id="darsOmniscientRuntime"'), "Omniscient runtime must be present.");
