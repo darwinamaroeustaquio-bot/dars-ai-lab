@@ -8,7 +8,7 @@ async function loadVerifiedStrategyStats() {
   const key = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
   if (!root || !key) return { trades: [], stats: {} };
   try {
-    const query = new URLSearchParams({ select: "strategy,status,closed_at,net_r,features", symbol: "eq.XAUUSD-STD", order: "closed_at.asc", limit: "2000" });
+    const query = new URLSearchParams({ select: "strategy,status,closed_at,net_r,features", symbol: "eq.XAUUSD-STD", status: "eq.CLOSED", order: "closed_at.desc", limit: "2000" });
     const response = await fetch(root + "/rest/v1/dars_paper_trades?" + query, { headers: { apikey: key, Authorization: "Bearer " + key } });
     if (!response.ok) return { trades: [], stats: {} };
     const trades = await response.json();
