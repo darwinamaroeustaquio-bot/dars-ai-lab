@@ -44,3 +44,81 @@ assert.ok(dashboard.includes('id="darsOmniscientRuntime"'), "Omniscient runtime 
 assert.ok(dashboard.includes("/api/dars-omniscient"), "Dashboard must call the authoritative analysis endpoint.");
 assert.ok(dashboard.includes("/api/mt5-candles"), "Dashboard must use the MT5 candle feed.");
 console.log("DARS dashboard integration smoke tests passed.");
+
+
+// DARS MT5 execution bridge foundation must fail closed and contain no order routing.
+const executionStatus = require("../api/dars-execution-status");
+(async () => {
+  const response = {
+    headers: {},
+    statusCode: 200,
+    setHeader(k, v) { this.headers[k] = v; return this; },
+    status(code) { this.statusCode = code; return this; },
+    json(body) { this.body = body; return this; },
+    end() { return this; }
+  };
+  await executionStatus({ method: "GET" }, response);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body.live_enabled, false);
+  assert.equal(response.body.paper_enabled, false);
+  assert.equal(response.body.emergency_stop, true);
+  assert.equal(response.body.order_submission_enabled, false);
+
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const gateway = fs.readFileSync(path.join(__dirname, "..", "mt5", "DARS_Execution_Gateway.mq5"), "utf8");
+  assert.ok(gateway.includes("input bool   InpEnableLiveTrading = false"));
+  assert.ok(gateway.includes("void OnTick()"));
+  assert.equal(gateway.includes("OrderSend"), false, "Foundation EA must not contain order submission.");
+  assert.equal(gateway.includes("CTrade"), false, "Foundation EA must not contain CTrade.");
+  console.log("DARS execution bridge fail-closed tests passed.");
+})().catch(error => { console.error(error); process.exitCode = 1; });
+
+
+// Execution-cost guard: reject abnormal absolute spread before issuing any setup.
+const wideSpread = analyzeDarsMarket({
+  now, symbol: "XAUUSD-STD",
+  quote: { bid: 4000, ask: 4000.75, received_at: new Date(now).toISOString() },
+  frames
+});
+assert.equal(wideSpread.decision, "WAIT");
+assert.ok(wideSpread.diagnostics.some(x => /Spread exceeds/.test(x)));
+assert.equal(wideSpread.quoteQuality.maxSpread, 0.50);
+assert.equal(wideSpread.engine, "DARS_OMNISCIENT_CORE_V2");
+console.log("DARS execution-cost quality gate tests passed.");
+
+
+// Adaptive strategy selector: regime candidate plus out-of-sample evidence gate.
+const { selectAdaptiveStrategy, performanceGate } = require("../lib/dars-adaptive-selector");
+const strongEvidence = {
+  totalTrades: 80, holdoutTrades: 35, expectancyR: 0.08,
+  profitFactor: 1.25, maxDrawdownR: 3.5, consecutiveLosses: 2
+};
+const trendCandidate = selectAdaptiveStrategy({ regime: "TRENDING", trend: "BULLISH" });
+assert.equal(trendCandidate.candidate, "TREND_FOLLOWING");
+assert.equal(trendCandidate.eligible, false);
+assert.equal(trendCandidate.status, "RESEARCH_ONLY_NOT_IMPLEMENTED");
+
+const rangeCandidate = selectAdaptiveStrategy({ regime: "RANGE_OR_TRANSITION", trend: "MIXED" });
+assert.equal(rangeCandidate.candidate, "MEAN_REVERSION");
+assert.equal(rangeCandidate.eligible, false);
+
+const volatilityCandidate = selectAdaptiveStrategy({ regime: "HIGH_VOLATILITY", trend: "BULLISH" });
+assert.equal(volatilityCandidate.candidate, "NO_TRADE");
+assert.equal(volatilityCandidate.eligible, false);
+
+const sweepUnproven = selectAdaptiveStrategy({
+  regime: "TRENDING", trend: "BULLISH", sweepLow: true, strategyStats: {}
+});
+assert.equal(sweepUnproven.candidate, "LIQUIDITY_RECLAIM");
+assert.equal(sweepUnproven.status, "BLOCKED_BY_EVIDENCE");
+assert.equal(sweepUnproven.eligible, false);
+
+const sweepProven = selectAdaptiveStrategy({
+  regime: "TRENDING", trend: "BULLISH", sweepLow: true,
+  strategyStats: { LIQUIDITY_RECLAIM: strongEvidence }
+});
+assert.equal(sweepProven.status, "PAPER_ELIGIBLE");
+assert.equal(sweepProven.eligible, true);
+assert.equal(performanceGate({ ...strongEvidence, holdoutTrades: 10 }).passed, false);
+console.log("DARS adaptive selector tests passed.");

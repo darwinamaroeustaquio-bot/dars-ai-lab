@@ -2,7 +2,7 @@ name: DARS Omniscient core tests
 
 on:
   push:
-    branches: [main, dars-omniscient-foundation]
+    branches: [main, dars-omniscient-foundation, dars-mt5-execution-bridge-foundation]
   pull_request:
     branches: [main]
 
