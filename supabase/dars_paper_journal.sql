@@ -15,5 +15,6 @@ create table if not exists public.dars_paper_trades (
 create index if not exists dars_paper_trades_strategy_history_idx on public.dars_paper_trades(symbol,strategy,status,closed_at);
 create index if not exists dars_paper_trades_open_idx on public.dars_paper_trades(symbol,status,entry_bar_time);
 alter table public.dars_paper_trades enable row level security;
-revoke all on table public.dars_paper_trades from anon,authenticated;\ngrant all on table public.dars_paper_trades to service_role;
+revoke all on table public.dars_paper_trades from anon,authenticated;
+grant all on table public.dars_paper_trades to service_role;
 comment on table public.dars_paper_trades is 'Server-authoritative paper trades. Only Vercel server-side service-role APIs may access this table.';
