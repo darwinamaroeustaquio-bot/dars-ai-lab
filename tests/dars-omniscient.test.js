@@ -130,10 +130,22 @@ console.log("DARS adaptive selector tests passed.");
 require("../api/dars-omniscient");
 const paperJournalApi = require("../api/dars-paper-journal");
 const { trainOutcomeModel, summarizeByStrategy } = require("../lib/dars-paper-research");
-const { buildCandidates } = require("../lib/dars-strategy-engines");
+const { STRATEGIES, buildCandidates } = require("../lib/dars-strategy-engines");
 assert.equal(trainOutcomeModel([]).ready, false);
 assert.equal(buildCandidates({ frames: {}, quote: {} }).length, 0);
 assert.equal(summarizeByStrategy([]).LIQUIDITY_RECLAIM.totalTrades, 0);
+assert.equal(STRATEGIES.length, 15, "DARS must expose fifteen independently tracked strategy engines.");
+assert.equal(new Set(STRATEGIES).size, 15, "Strategy identifiers must be unique.");
+assert.equal(Object.keys(summarizeByStrategy([])).length, 15, "Every strategy must have its own research metrics.");
+const candidateSelection = selectAdaptiveStrategy({
+  regime: "TRENDING", trend: "BULLISH", candidates: [{ strategy: "MOMENTUM" }], strategyStats: {}
+});
+assert.equal(candidateSelection.candidate, "MOMENTUM");
+assert.equal(candidateSelection.status, "BLOCKED_BY_EVIDENCE");
+assert.equal(candidateSelection.eligible, false);
+const noSetupSelection = selectAdaptiveStrategy({ regime: "TRENDING", trend: "BULLISH", candidates: [] });
+assert.equal(noSetupSelection.status, "NO_SETUP");
+
 (async () => {
   const response = {
     statusCode: 200,
