@@ -124,3 +124,26 @@ assert.equal(sweepProven.status, "PAPER_ELIGIBLE");
 assert.equal(sweepProven.eligible, true);
 assert.equal(performanceGate({ ...strongEvidence, holdoutTrades: 10 }).passed, false);
 console.log("DARS adaptive selector tests passed.");
+
+
+// New adaptive journal modules must load safely and fail closed without server credentials.
+require("../api/dars-omniscient");
+const paperJournalApi = require("../api/dars-paper-journal");
+const { trainOutcomeModel, summarizeByStrategy } = require("../lib/dars-paper-research");
+const { buildCandidates } = require("../lib/dars-strategy-engines");
+assert.equal(trainOutcomeModel([]).ready, false);
+assert.equal(buildCandidates({ frames: {}, quote: {} }).length, 0);
+assert.equal(summarizeByStrategy([]).LIQUIDITY_RECLAIM.totalTrades, 0);
+(async () => {
+  const response = {
+    statusCode: 200,
+    headers: {},
+    setHeader(k, v) { this.headers[k] = v; },
+    status(code) { this.statusCode = code; return this; },
+    json(body) { this.body = body; return this; }
+  };
+  await paperJournalApi({ method: "GET" }, response);
+  assert.equal(response.statusCode, 503, "Journal API must fail closed until Supabase credentials/schema are configured.");
+  assert.equal(response.body.ok, false);
+  console.log("DARS server journal and learning module smoke tests passed.");
+})().catch(error => { console.error(error); process.exitCode = 1; });
