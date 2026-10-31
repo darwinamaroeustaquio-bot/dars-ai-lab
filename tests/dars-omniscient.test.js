@@ -91,17 +91,18 @@ console.log("DARS execution-cost quality gate tests passed.");
 // Adaptive strategy selector: regime candidate plus out-of-sample evidence gate.
 const { selectAdaptiveStrategy, performanceGate } = require("../lib/dars-adaptive-selector");
 const strongEvidence = {
-  totalTrades: 80, holdoutTrades: 35, expectancyR: 0.08,
-  profitFactor: 1.25, maxDrawdownR: 3.5, consecutiveLosses: 2
+  totalTrades: 100, holdoutTrades: 30, expectancyR: 0.08,
+  profitFactor: 1.25, maxDrawdownR: 3.5, consecutiveLosses: 2,
+  model: { validated: true, winProbability: 0.61 }
 };
 const trendCandidate = selectAdaptiveStrategy({ regime: "TRENDING", trend: "BULLISH" });
 assert.equal(trendCandidate.candidate, "TREND_FOLLOWING");
 assert.equal(trendCandidate.eligible, false);
-assert.equal(trendCandidate.status, "RESEARCH_ONLY_NOT_IMPLEMENTED");
+assert.equal(trendCandidate.status, "BLOCKED_BY_EVIDENCE");
 
 const rangeCandidate = selectAdaptiveStrategy({ regime: "RANGE_OR_TRANSITION", trend: "MIXED" });
 assert.equal(rangeCandidate.candidate, "MEAN_REVERSION");
-assert.equal(rangeCandidate.eligible, false);
+assert.equal(rangeCandidate.eligible, false);\nassert.equal(rangeCandidate.status, "BLOCKED_BY_EVIDENCE");
 
 const volatilityCandidate = selectAdaptiveStrategy({ regime: "HIGH_VOLATILITY", trend: "BULLISH" });
 assert.equal(volatilityCandidate.candidate, "NO_TRADE");
@@ -119,6 +120,6 @@ const sweepProven = selectAdaptiveStrategy({
   strategyStats: { LIQUIDITY_RECLAIM: strongEvidence }
 });
 assert.equal(sweepProven.status, "PAPER_ELIGIBLE");
-assert.equal(sweepProven.eligible, true);
+assert.equal(sweepProven.eligible, true);\nassert.equal(sweepProven.status, "PAPER_ELIGIBLE");
 assert.equal(performanceGate({ ...strongEvidence, holdoutTrades: 10 }).passed, false);
 console.log("DARS adaptive selector tests passed.");
