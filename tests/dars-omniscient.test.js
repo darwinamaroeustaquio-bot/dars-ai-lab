@@ -86,3 +86,39 @@ assert.ok(wideSpread.diagnostics.some(x => /Spread exceeds/.test(x)));
 assert.equal(wideSpread.quoteQuality.maxSpread, 0.50);
 assert.equal(wideSpread.engine, "DARS_OMNISCIENT_CORE_V2");
 console.log("DARS execution-cost quality gate tests passed.");
+
+
+// Adaptive strategy selector: regime candidate plus out-of-sample evidence gate.
+const { selectAdaptiveStrategy, performanceGate } = require("../lib/dars-adaptive-selector");
+const strongEvidence = {
+  totalTrades: 80, holdoutTrades: 35, expectancyR: 0.08,
+  profitFactor: 1.25, maxDrawdownR: 3.5, consecutiveLosses: 2
+};
+const trendCandidate = selectAdaptiveStrategy({ regime: "TRENDING", trend: "BULLISH" });
+assert.equal(trendCandidate.candidate, "TREND_FOLLOWING");
+assert.equal(trendCandidate.eligible, false);
+assert.equal(trendCandidate.status, "RESEARCH_ONLY_NOT_IMPLEMENTED");
+
+const rangeCandidate = selectAdaptiveStrategy({ regime: "RANGE_OR_TRANSITION", trend: "MIXED" });
+assert.equal(rangeCandidate.candidate, "MEAN_REVERSION");
+assert.equal(rangeCandidate.eligible, false);
+
+const volatilityCandidate = selectAdaptiveStrategy({ regime: "HIGH_VOLATILITY", trend: "BULLISH" });
+assert.equal(volatilityCandidate.candidate, "NO_TRADE");
+assert.equal(volatilityCandidate.eligible, false);
+
+const sweepUnproven = selectAdaptiveStrategy({
+  regime: "TRENDING", trend: "BULLISH", sweepLow: true, strategyStats: {}
+});
+assert.equal(sweepUnproven.candidate, "LIQUIDITY_RECLAIM");
+assert.equal(sweepUnproven.status, "BLOCKED_BY_EVIDENCE");
+assert.equal(sweepUnproven.eligible, false);
+
+const sweepProven = selectAdaptiveStrategy({
+  regime: "TRENDING", trend: "BULLISH", sweepLow: true,
+  strategyStats: { LIQUIDITY_RECLAIM: strongEvidence }
+});
+assert.equal(sweepProven.status, "PAPER_ELIGIBLE");
+assert.equal(sweepProven.eligible, true);
+assert.equal(performanceGate({ ...strongEvidence, holdoutTrades: 10 }).passed, false);
+console.log("DARS adaptive selector tests passed.");
