@@ -125,7 +125,7 @@ function renderAnalysis(a,quote,frames){
  const m5bars=frames.M5||[];const closed=m5bars.filter(b=>new Date(b.bar_time).getTime()+300000<=Date.now());
  say("candleCount","M5 "+closed.length+" · M15 "+(frames.M15||[]).length+" · H1 "+(frames.H1||[]).length);
  say("barTime",closed.length?"Last closed M5: "+time(closed[closed.length-1].bar_time):"No closed M5 candle");
- if(quote){say("quote",fmt(quote.bid)+" / "+fmt(quote.ask));say("quoteMeta","Spread "+fmt(n(quote.ask)-n(quote.bid))+" · Quote age "+(quote.age_seconds??"—")+"s");}
+ if(quote){const liveQuote=quote.quote||quote;say("quote",fmt(liveQuote.bid)+" / "+fmt(liveQuote.ask));say("quoteMeta","Spread "+fmt(n(liveQuote.ask)-n(liveQuote.bid))+" · Quote age "+(quote.age_seconds??"—")+"s");}
  const bar=closed[closed.length-1];if(bar&&bar.bar_time!==lastProcessedBar){lastProcessedBar=bar.bar_time;updateOpenTrade(closed);if(!book.open)createVirtualTrade(a,bar,quote?.quote||quote);save();}
  renderHistory();
 }
@@ -138,8 +138,8 @@ async function cycle(){
   // Send the exact same quote/candle inputs to the Robot core.
   const response=await fetch("/api/dars-omniscient",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body),cache:"no-store"});
   const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||"DARS analysis unavailable.");
-  renderAnalysis(result.analysis,q.quote,{M5:m5,M15:m15,H1:h1});say("feedStatus","Connected to fresh VT Markets MT5 quote and candle history. Paper simulator mirrors DARS core decisions.");setState("RUNNING");
- }catch(e){say("feedStatus",e.message+" No new virtual trade will be opened.");say("decision","WAIT");say("decisionMessage",e.message);say("setupState","FEED BLOCKED");setState("WAIT / FEED BLOCKED");}
+  renderAnalysis(result.analysis,q,{M5:m5,M15:m15,H1:h1});say("feedStatus","Connected to fresh VT Markets MT5 quote and candle history. Paper simulator mirrors DARS core decisions.");setState("RUNNING");
+ }catch(e){say("feedStatus",e.message+" No new virtual trade will be opened.");say("decision","WAIT");say("decisionMessage",e.message);say("setupState","FEED BLOCKED");say("side","WAIT");["entry","stop","tp1","tp2"].forEach(id=>say(id,"—"));setState("WAIT / FEED BLOCKED");}
  finally{busy=false;}
 }
 $("pause").addEventListener("click",()=>{running=false;setState("PAUSED");say("feedStatus","Paper monitoring paused by user.");});
