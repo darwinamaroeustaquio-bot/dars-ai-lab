@@ -44,3 +44,32 @@ assert.ok(dashboard.includes('id="darsOmniscientRuntime"'), "Omniscient runtime 
 assert.ok(dashboard.includes("/api/dars-omniscient"), "Dashboard must call the authoritative analysis endpoint.");
 assert.ok(dashboard.includes("/api/mt5-candles"), "Dashboard must use the MT5 candle feed.");
 console.log("DARS dashboard integration smoke tests passed.");
+
+
+// DARS MT5 execution bridge foundation must fail closed and contain no order routing.
+const executionStatus = require("../api/dars-execution-status");
+(async () => {
+  const response = {
+    headers: {},
+    statusCode: 200,
+    setHeader(k, v) { this.headers[k] = v; return this; },
+    status(code) { this.statusCode = code; return this; },
+    json(body) { this.body = body; return this; },
+    end() { return this; }
+  };
+  await executionStatus({ method: "GET" }, response);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body.live_enabled, false);
+  assert.equal(response.body.paper_enabled, false);
+  assert.equal(response.body.emergency_stop, true);
+  assert.equal(response.body.order_submission_enabled, false);
+
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const gateway = fs.readFileSync(path.join(__dirname, "..", "mt5", "DARS_Execution_Gateway.mq5"), "utf8");
+  assert.ok(gateway.includes("input bool   InpEnableLiveTrading = false"));
+  assert.ok(gateway.includes("void OnTick()"));
+  assert.ok(!/\\b(OrderSend|OrderSendAsync|CTrade|PositionOpen|Buy\\s*\\(|Sell\\s*\\()/.test(gateway),
+    "Foundation EA must not contain order-submission methods.");
+  console.log("DARS execution bridge fail-closed tests passed.");
+})().catch(error => { console.error(error); process.exitCode = 1; });
