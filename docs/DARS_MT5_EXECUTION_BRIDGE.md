@@ -9,7 +9,21 @@ Files:
 - `mt5/DARS_Execution_Gateway.mq5`: polls the status endpoint and displays a lock state. It has no `OrderSend`, `CTrade`, modify, or close calls.
 - A terminal Global Variable named `DARS_EMERGENCY_STOP` set to `1.0` displays a local emergency stop. The server-side status endpoint also remains locked.
 
-## Proposed risk policy for review (not active)
+
+## Adaptive strategy selection — research-stage implementation
+
+`lib/dars-adaptive-selector.js` classifies closed-candle market context into:
+- `TREND_FOLLOWING` for a directional trending regime.
+- `MEAN_REVERSION` for range/transition conditions.
+- `LIQUIDITY_RECLAIM` when a closed M5 candle sweeps and reclaims a prior range.
+- `NO_TRADE` during high volatility or unclear conditions.
+
+The selector is integrated into the analysis core. It deliberately does not invent entry rules for trend-following or mean-reversion; those remain research-only until implemented and tested. The existing liquidity-reclaim rules are also blocked from paper eligibility unless verified strategy-journal metrics pass all gates: at least 50 total paper trades, 30 untouched holdout trades, expectancy at least +0.02R, profit factor at least 1.10, maximum drawdown no more than 6R, and no more than 4 consecutive losses.
+
+At present, the analysis endpoint does not yet supply an authoritative persisted strategy journal, so the evidence gate is not satisfied by default and the selector will return WAIT rather than treating example/test metrics as real performance. This is intentional fail-closed behavior. A future journal integration must compute these metrics server-side from broker/MT5-observed paper fills, not accept them from browser input.
+
+This is not a self-learning model and does not establish profitability. It is a deterministic, auditable regime selector with an explicit evidence gate.
+\n## Proposed risk policy for review (not active)
 
 Initial conservative proposal for XAUUSD-STD:
 - Risk per trade: 0.25% of equity, hard maximum 0.25%.
