@@ -400,7 +400,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
       if(invalidated){trendStates.push(label+": rejected — structure broke between swing points");return;}
       const lineNow=at(end),linePrev=at(Math.max(0,end-1)),y1=y(a.v),y2=y(lineNow);
       if(y1<top-35||y1>bottom+35||y2<top-35||y2>bottom+35){trendStates.push(label+": outside visible price range");return;}
-      el(svg,"line",{x1:x(a.i),y1:y1,x2:x(end),y2:y2,stroke:color,"stroke-width":2.2,"stroke-dasharray":"7 4",opacity:.98});
+      el(svg,"line",{x1:x(a.i),y1:y1,x2:x(end),y2:y2,stroke:"#aeb6c2","stroke-width":2.2,"stroke-dasharray":"7 4",opacity:.98});
       const c=valid[end],p=valid[Math.max(0,end-1)];
       let status="WAITING",statusColor=color;
       if(direction==="down"){
