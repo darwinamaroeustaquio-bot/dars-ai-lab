@@ -728,7 +728,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   <label class="note">Spread benchmark $/oz <input id="engineSpread" type="number" min="0" max="10" step=".01" value=".28" style="width:85px;display:inline-block"></label>
   <label class="note">Round-trip slippage $/oz <input id="engineSlip" type="number" min="0" max="10" step=".01" value=".05" style="width:85px;display:inline-block"></label>
   <label class="note">Commission $/oz <input id="engineCommission" type="number" min="0" max="10" step=".01" value="0" style="width:75px;display:inline-block"></label>
-  <button class="btn primary" id="run15EngineLab" type="button">Run 15-engine backtest</button>
+  <button class="btn primary" id="run15EngineLab" type="button">Run 15 engines · 75 candidates</button>
  </div>
  <div class="metrics" style="margin-top:12px">
   <div class="metric"><div class="eyebrow">M5 candles</div><strong id="engineM5Count">—</strong><small>Verified MT5 history</small></div>
@@ -736,8 +736,8 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   <div class="metric"><div class="eyebrow">Paper review</div><strong id="engineQualified">—</strong><small>Strict evidence gates</small></div>
   <div class="metric"><div class="eyebrow">Top holdout exp.</div><strong id="engineTopExp">—</strong><small>After modeled costs</small></div>
  </div>
- <p class="note" id="engineLabMessage" role="status">Ready when verified M5, M15 and H1 candles are available.</p>
- <div class="tablewrap"><table><thead><tr><th>Strategy engine</th><th>Dev trades</th><th>Holdout trades</th><th>Win rate</th><th>Net R</th><th>Exp R</th><th>PF</th><th>Max DD</th><th>Decision</th></tr></thead><tbody id="engineLabResults"><tr><td colspan="9" class="empty">Run the historical replay to see all 15 engines.</td></tr></tbody></table></div>
+ <p class="note" id="engineLabMessage" role="status">Ready when verified M5, M15 and H1 candles are available.</p><div class="row" style="justify-content:flex-start;gap:8px;margin:8px 0"><button class="btn" id="copy15EngineResult" type="button" disabled>Copy result</button><span class="note" id="copy15EngineStatus" aria-live="polite">Run the lab first.</span></div>
+ <div class="tablewrap"><table><thead><tr><th>Candidate ID</th><th>Engine</th><th>Rules</th><th>Dev trades</th><th>Holdout trades</th><th>Win rate</th><th>Net R</th><th>Exp R</th><th>PF</th><th>Max DD</th><th>Decision</th></tr></thead><tbody id="engineLabResults"><tr><td colspan="11" class="empty">Run the historical replay to see all candidates.</td></tr></tbody></table></div>
  <p class="note">A strategy is only marked FORWARD PAPER REVIEW when it has at least 100 development and 100 holdout trades, positive expectancy in both, holdout PF above 1.10, drawdown at or below 12R, and remains positive under +$0.05/+0.10 per oz slippage stress. This is a research gate, not a profitability guarantee or live-trading authorization. Historical spread is unavailable in OHLC candles; the spread field is an assumption.</p>
 </section>
 
@@ -1596,8 +1596,10 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
  const $=id=>document.getElementById(id),btn=$("run15EngineLab");
  if(!btn)return;
  const fmt=n=>Number(n||0).toFixed(2),pct=n=>(Number(n||0)*100).toFixed(1)+"%";
+ let last15EngineReport="";
+ $("copy15EngineResult")?.addEventListener("click",async()=>{if(!last15EngineReport)return;try{await navigator.clipboard.writeText(last15EngineReport);$("copy15EngineStatus").textContent="Copied!";}catch(e){window.prompt("Copy the full candidate report:",last15EngineReport);$("copy15EngineStatus").textContent="Copy from the prompt.";}});
  btn.addEventListener("click",async()=>{
-  btn.disabled=true;btn.textContent="⏳ RUNNING...";$("engineLabStatus").textContent="RUNNING...";$("engineLabMessage").textContent="⏳ RUNNING... Kinukuha ang verified M5/M15/H1 candles at sinusuri ang 15 strategy engines. Huwag pindutin ulit habang tumatakbo.";
+  btn.disabled=true;btn.textContent="⏳ RUNNING...";$("copy15EngineResult").disabled=true;$("copy15EngineStatus").textContent="Waiting for results...";$("engineLabStatus").textContent="RUNNING...";$("engineLabMessage").textContent="⏳ RUNNING... Kinukuha ang verified M5/M15/H1 candles at sinusuri ang 15 strategy engines. Huwag pindutin ulit habang tumatakbo.";
   try{
    const qs=new URLSearchParams({symbol:(document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD",spreadPrice:$("engineSpread").value,slippagePrice:$("engineSlip").value,commissionPrice:$("engineCommission").value});
    const response=await fetch("/api/candidate-lab?engineReplay=1&"+qs.toString(),{cache:"no-store",headers:{Accept:"application/json"}});
@@ -1612,10 +1614,12 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
     const tr=document.createElement("tr"),vals=[x.strategy,x.development.trades,x.holdout.trades,pct(x.holdout.winRate),fmt(x.holdout.netR)+"R",fmt(x.holdout.expectancyR)+"R",fmt(x.holdout.profitFactor),fmt(x.holdout.maxDrawdownR)+"R",x.qualifiedForPaperReview?"FORWARD PAPER REVIEW":"NOT QUALIFIED"];
     vals.forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td);});body.appendChild(tr);
    });
-   $("engineLabStatus").textContent="Complete · "+d.engineCount+" engines";
+   last15EngineReport="DARS AI LAB — 15 ENGINE / "+d.candidateCount+" CANDIDATE REPORT\\nSymbol: "+d.symbol+"\\nCandles: "+JSON.stringify(d.counts)+"\\nSplit: "+JSON.stringify(d.split)+"\\n"+d.results.map(x=>[x.id,x.strategy,"SLx"+x.variant.stopMultiplier,"TP"+x.variant.targetR+"R","hold "+x.holdout.trades,"win "+pct(x.holdout.winRate),"net "+fmt(x.holdout.netR)+"R","exp "+fmt(x.holdout.expectancyR)+"R","PF "+fmt(x.holdout.profitFactor),"DD "+fmt(x.holdout.maxDrawdownR)+"R",x.status].join(" | ")).join("\\n");
+   $("copy15EngineResult").disabled=false;
+   $("engineLabStatus").textContent="Complete · "+d.engineCount+" engines · "+d.candidateCount+" candidates";
    $("engineLabMessage").textContent="Chronological 70/30 · "+d.counts.M5+" M5 / "+d.counts.M15+" M15 / "+d.counts.H1+" H1 candles. Costs: spread $"+fmt(d.costModel.spreadPrice)+", slippage $"+fmt(d.costModel.slippagePrice)+", commission $"+fmt(d.costModel.commissionPrice)+" per oz. "+d.execution+" "+d.qualification;
   }catch(e){$("engineLabStatus").textContent="Unavailable";$("engineLabMessage").textContent=e.message;}
-  finally{btn.disabled=false;btn.textContent="Run 15-engine backtest";}
+  finally{btn.disabled=false;btn.textContent="Run 15 engines · 75 candidates";}
  });
 })();
 </script>
