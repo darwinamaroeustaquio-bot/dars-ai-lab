@@ -85,6 +85,58 @@ body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#
 .omni-indicator b{display:block;padding-bottom:6px;border-bottom:1px solid #1e3045;color:#b8cbe0}
 @media(max-width:520px){#omniChart{min-height:210px}.omni-toggle-list{gap:6px}.omni-toggle-list label{font-size:10px;padding:4px 5px}}
 </style>
+<style id="dars-no-overlap-responsive">
+/* Keep dashboard content readable at every viewport width. */
+html{width:100%;overflow-x:hidden}
+body{min-width:0;overflow-x:hidden}
+.wrap,#dashboardContent,#omniscientDashboard,.omni-card,.omni-hero,.omni-grid,.omni-metrics,.omni-metric{min-width:0;max-width:100%}
+#dashboardContent *{min-width:0}
+#dashboardContent h1,#dashboardContent h2,#dashboardContent h3,
+#dashboardContent p,#dashboardContent small,#dashboardContent label,
+#dashboardContent strong,#dashboardContent span,#dashboardContent a,
+#dashboardContent button{overflow-wrap:anywhere;word-break:normal}
+.omni-hero,.omni-grid{grid-template-columns:minmax(0,1.5fr) minmax(0,.7fr)}
+.omni-grid{grid-template-columns:minmax(0,1.4fr) minmax(0,.8fr)}
+.omni-controls{min-width:0;max-width:100%;flex-wrap:wrap}
+.omni-controls>*{max-width:100%}
+.omni-controls select,.omni-controls button{min-width:0;white-space:normal}
+.omni-status{max-width:100%;white-space:normal;flex-wrap:wrap}
+.omni-levels,.omni-indicator-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.omni-level,.omni-indicator,.omni-reason,.omni-check{min-width:0;overflow-wrap:anywhere}
+.omni-level strong,.omni-price,.omni-metric strong{max-width:100%;overflow-wrap:anywhere;word-break:break-word}
+.omni-chat{grid-template-columns:minmax(0,1fr) auto}
+.omni-chat button{white-space:normal;max-width:100%}
+.omni-chart-wrap,.omni-chart-tools{min-width:0;max-width:100%}
+.omni-toggle-list{min-width:0}
+.omni-toggle-list label{white-space:normal;max-width:100%;overflow-wrap:anywhere}
+#dashboardContent table{display:block;max-width:100%;overflow-x:auto}
+#dashboardContent input,#dashboardContent select,#dashboardContent textarea{max-width:100%;min-width:0}
+@media(max-width:850px){
+ .omni-hero,.omni-grid{grid-template-columns:minmax(0,1fr)}
+ .omni-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:520px){
+ .wrap{padding:10px}
+ .omni-card{padding:12px}
+ .omni-title{font-size:clamp(23px,7vw,32px);letter-spacing:-.025em}
+ .omni-price{font-size:clamp(24px,7vw,32px)}
+ .omni-controls{align-items:stretch}
+ .omni-controls>*{flex:1 1 auto}
+ .omni-controls .omni-status{flex:1 1 100%}
+ .omni-controls select,.omni-controls button,.omni-nav-link{width:100%;min-width:0}
+ .omni-levels,.omni-indicator-grid{grid-template-columns:minmax(0,1fr)}
+ .omni-chat{grid-template-columns:minmax(0,1fr)}
+ .omni-chat button{width:100%}
+ .omni-metric{padding:10px}
+ .omni-metric strong{font-size:clamp(15px,4.5vw,19px)}
+ .omni-eyebrow{letter-spacing:.09em;overflow-wrap:anywhere}
+}
+@media(max-width:360px){
+ .omni-metrics{grid-template-columns:minmax(0,1fr)}
+ .omni-card{padding:10px}
+ .omni-level strong{font-size:14px}
+}
+</style>
 </head>
 <body><main class="wrap">
 <section class="panel auth-panel" id="supabasePanel">
