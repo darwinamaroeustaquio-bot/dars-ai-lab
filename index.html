@@ -181,7 +181,7 @@ body{min-width:0;overflow-x:hidden}
    </div>
    <div class="omni-chart-tools">
     <div class="omni-toggle-list">
-     <label><input type="checkbox" data-overlay="ema20" checked> EMA 20</label><label><input type="checkbox" data-overlay="ema50" checked> EMA 50</label><label><input type="checkbox" data-overlay="ema200"> EMA 200</label><label><input type="checkbox" data-overlay="bb"> Bollinger</label><label><input type="checkbox" data-overlay="vwap"> VWAP</label><label><input type="checkbox" data-overlay="sr" checked> Support / Resistance</label><label><input type="checkbox" data-overlay="poi" checked> POI · Supply / Demand</label><label><input type="checkbox" data-overlay="equal" checked> Equal Highs / Lows</label><label><input type="checkbox" data-overlay="trendline" checked> Trendlines</label><label><input type="checkbox" data-overlay="structure" checked> BOS / MSS / Sweep</label><label><input type="checkbox" data-overlay="trade" checked> Entry / SL / TP</label><label><input type="checkbox" data-panel="omniRSI" checked> RSI panel</label><label><input type="checkbox" data-panel="omniSTOCH" checked> Stochastic panel</label><label><input type="checkbox" data-panel="omniCCI" checked> CCI panel</label><label><input type="checkbox" data-panel="omniMACD" checked> MACD panel</label>
+     <label><input type="checkbox" data-overlay="ema20" checked> EMA 20</label><label><input type="checkbox" data-overlay="ema50" checked> EMA 50</label><label><input type="checkbox" data-overlay="ema200"> EMA 200</label><label><input type="checkbox" data-overlay="bb"> Bollinger</label><label><input type="checkbox" data-overlay="vwap"> VWAP</label><label><input type="checkbox" data-overlay="sr" checked> Support / Resistance</label><label><input type="checkbox" data-overlay="poi" checked> POI · Supply / Demand</label><label><input type="checkbox" data-overlay="equal" checked> Equal Highs / Lows</label><label><input type="checkbox" data-overlay="trendline" checked> Trendlines</label><label><input type="checkbox" data-overlay="structure" checked> BOS / MSS / Sweep</label><label><input type="checkbox" data-overlay="marketStructure" checked> High / Low · HH / HL / LH / LL</label><label><input type="checkbox" data-overlay="trade" checked> Entry / SL / TP</label><label><input type="checkbox" data-panel="omniRSI" checked> RSI panel</label><label><input type="checkbox" data-panel="omniSTOCH" checked> Stochastic panel</label><label><input type="checkbox" data-panel="omniCCI" checked> CCI panel</label><label><input type="checkbox" data-panel="omniMACD" checked> MACD panel</label>
     </div>
    </div>
    <div class="omni-chart-wrap"><svg id="omniChart" viewBox="0 0 800 360" role="img" aria-label="Live MT5 candlestick chart with selectable technical overlays"></svg></div>
@@ -284,6 +284,24 @@ body{min-width:0;overflow-x:hidden}
     for(let k=1;k<=radius;k++){if(highs[i]<=highs[i-k]||highs[i]<highs[i+k])isHigh=false;if(lows[i]>=lows[i-k]||lows[i]>lows[i+k])isLow=false;}
     if(isHigh)pivotHighs.push({i,v:highs[i]});
     if(isLow)pivotLows.push({i,v:lows[i]});
+  }
+  // Classify confirmed swing points against the previous swing of the same type.
+  // HH/LH compare highs; HL/LL compare lows. The first confirmed pivot is H or L.
+  if(enabled("marketStructure")){
+    const classify=(pivots,type)=>{
+      let previous=null;
+      pivots.forEach(p=>{
+        const label=previous===null?(type==="high"?"H":"L"):
+          type==="high"?(p.v>previous.v?"HH":"LH"):(p.v>previous.v?"HL":"LL");
+        const color=label==="HH"||label==="HL"?"#48e0ad":label==="LH"?"#ffad75":label==="LL"?"#ff7187": "#c5d5e8";
+        const py=type==="high"?y(p.v)-13:y(p.v)+18;
+        el(svg,"circle",{cx:x(p.i),cy:y(p.v),r:3.2,fill:color,stroke:"#07111e","stroke-width":1});
+        chartLabel(x(p.i),py,label,{fill:color,"font-size":10,"font-weight":900,"text-anchor":"middle"});
+        previous=p;
+      });
+    };
+    classify(pivotHighs,"high");
+    classify(pivotLows,"low");
   }
   const drawLevel=(v,color,label,dash="5 4")=>{const yy=y(v);if(yy<top||yy>bottom)return;el(svg,"line",{x1:left,x2:right,y1:yy,y2:yy,stroke:color,"stroke-width":1.25,"stroke-dasharray":dash,opacity:.9});chartLabel(right-5,yy-5,label+" "+fmt(v),{fill:color,"font-size":9,"font-weight":700,"text-anchor":"end"});};
   // POI means Supply/Demand zones only. A pivot qualifies only when
