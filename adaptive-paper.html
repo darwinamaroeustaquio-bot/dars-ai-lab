@@ -2,7 +2,23 @@
 <style>
 :root{color-scheme:dark;--bg:#07111f;--panel:#101d2d;--line:#26384e;--muted:#91a4ba;--text:#edf5ff;--green:#39d9a0;--gold:#f3c66d;--red:#ff7d89}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 45% -15%,#1b3a5a 0,transparent 48%),var(--bg);color:var(--text);font:14px system-ui,sans-serif}.wrap{max-width:1120px;margin:auto;padding:16px}.panel,.metric{background:linear-gradient(145deg,#122238,#0c1726);border:1px solid var(--line);border-radius:14px;padding:15px;margin:0 0 14px}.row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.muted,small{color:var(--muted);line-height:1.6}.tag{color:var(--gold);font-size:12px}.btn{font:inherit;padding:10px 13px;border-radius:8px;border:1px solid var(--line);background:#091522;color:var(--text);cursor:pointer}.primary{background:var(--green);color:#07111f;font-weight:800}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric strong{display:block;font-size:22px;margin:6px 0}.level{padding:11px;border:1px solid var(--line);border-radius:10px;background:#091522;min-width:0}.level strong{display:block;margin-top:5px;overflow-wrap:anywhere}.status{padding:12px;background:#091522;border:1px solid var(--line);border-radius:10px;line-height:1.6}.levels{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.scroll{overflow:auto}table{width:100%;min-width:780px;border-collapse:collapse}td,th{text-align:left;border-bottom:1px solid var(--line);padding:9px;font-size:12px}th{color:var(--muted)}.pill{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:4px 8px;font-size:11px;color:var(--muted)}.good{color:var(--green)}.bad{color:var(--red)}@media(max-width:760px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.levels{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:10px}}
-</style></head><body><main class="wrap">
+</style><style id="dars-no-overlap-responsive">
+html,body{width:100%;min-width:0;overflow-x:hidden}
+.wrap,*{box-sizing:border-box}
+.wrap{max-width:100%;min-width:0}
+.panel,.row,.controls,.metrics,.metric,.grid,.levels,.level,.scroll{min-width:0;max-width:100%}
+h1,h2,h3,p,small,label,strong,span,a,button,td,th{overflow-wrap:anywhere;word-break:normal}
+.row,.controls{flex-wrap:wrap}
+.row>*,.controls>*{min-width:0;max-width:100%}
+button,.btn{white-space:normal;max-width:100%}
+input,select,textarea{min-width:0;max-width:100%}
+.metric strong,.level strong{overflow-wrap:anywhere;word-break:break-word}
+.scroll{overflow-x:auto;overscroll-behavior-x:contain}
+table{max-width:100%}
+@media(max-width:760px){.wrap{padding:10px}.grid{grid-template-columns:minmax(0,1fr)}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.levels{grid-template-columns:repeat(2,minmax(0,1fr))}.panel,.metric{padding:12px}.row>*,.controls>*{flex:0 1 auto}}
+@media(max-width:380px){.metrics,.levels{grid-template-columns:minmax(0,1fr)}.metric strong{font-size:18px}}
+</style>
+</head><body><main class="wrap">
 <header class="row"><div><div class="tag">DARS AI LAB · QUANT RESEARCH</div><h1 style="margin:5px 0">Adaptive Paper Trading</h1><p class="muted">Fifteen strategy engines · persistent Supabase journal · outcome-learning model · no broker orders.</p></div><a class="btn" href="/">← Dashboard</a></header>
 <section class="panel"><div class="row"><div><b>Server journal: <span id="state" class="tag">CONNECTING</span></b><p class="muted" id="feed">Waiting for verified MT5 feed…</p></div><div class="row"><button id="pause" class="btn">Pause</button><button id="resume" class="btn primary">Resume</button><button id="export" class="btn">Export CSV</button></div></div><div class="status" id="message">DARS is verifying the latest quote and closed MT5 candles. Shadow candidates are recorded even while strategy eligibility is blocked.</div></section>
 <section class="metrics">
