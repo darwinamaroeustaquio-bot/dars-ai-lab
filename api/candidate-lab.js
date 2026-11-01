@@ -1,5 +1,6 @@
 // Gold-only candidate generator and conservative OHLC backtest. Research only; never places orders.
 const ALLOWED = new Set(["XAUUSD-STD","XAUUSD"]);
+const run15EngineBacktest = require("../lib/dars-15-engine-backtest");
 function send(res,status,body){res.status(status);res.setHeader("Content-Type","application/json; charset=utf-8");res.setHeader("Cache-Control","no-store, max-age=0");return res.json(body);}
 function ema(a,p){const out=Array(a.length).fill(null);if(a.length<p)return out;let e=a.slice(0,p).reduce((x,y)=>x+y,0)/p;out[p-1]=e;const k=2/(p+1);for(let i=p;i<a.length;i++){e=a[i]*k+out[i-1]*(1-k);out[i]=e;}return out;}
 function rsi(a,p=14){const o=Array(a.length).fill(null);for(let i=p;i<a.length;i++){let up=0,dn=0;for(let j=i-p+1;j<=i;j++){const d=a[j]-a[j-1];if(d>0)up+=d;else dn-=d;}o[i]=dn===0?(up===0?50:100):100-100/(1+up/dn);}return o;}
@@ -226,6 +227,7 @@ function makeCandidates(){
  return out;
 }
 module.exports=async(req,res)=>{
+ if(req.query && req.query.engineReplay === "1") return run15EngineBacktest(req,res);
  if(req.method!=="GET")return send(res,405,{ok:false,error:"GET only"});
  const symbol=String(req.query.symbol||"XAUUSD-STD"),timeframe=String(req.query.timeframe||"M5");
  if(!ALLOWED.has(symbol)||!["M1","M5","M15","H1"].includes(timeframe))return send(res,400,{ok:false,error:"Gold XAUUSD-STD and M1/M5/M15/H1 only."});
