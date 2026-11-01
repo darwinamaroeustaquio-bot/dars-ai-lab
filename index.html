@@ -168,6 +168,26 @@ button.primary,.btn.primary{background:linear-gradient(120deg,#2876c7,#16a47a)!i
 #omniChart text{fill:inherit}
 </style>
 
+
+<style id="dars-chart-only-white">
+/* Restore the dashboard to its dark theme; keep only the plotting canvas white. */
+:root{color-scheme:dark;--bg:#070d18;--panel:#101a2a;--panel2:#0b1422;--line:#24354b;--muted:#8fa4bd;--text:#edf4ff;--green:#48e0ad;--blue:#65b5ff;--gold:#f3c66d;--red:#ff7187}
+html,body{background:#070d18!important;color:#edf4ff!important}
+body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#070d18!important}
+.panel,.omni-card{background:linear-gradient(145deg,#111f32,#0b1422)!important;color:#edf4ff!important;border-color:#24354b!important;box-shadow:none}
+.omni-title,.omni-card h1,.omni-card h2,.omni-card h3,.omni-card strong,.omni-card b,.omni-card p{color:#edf4ff}
+.omni-card .omni-eyebrow,.omni-card .omni-muted,.omni-card .omni-foot,.omni-card .omni-metric small,.omni-card label,.note,.sub,.muted{color:#8fa4bd!important}
+.omni-status,.omni-metric,.omni-level,.omni-reason,.omni-check,.omni-chat input,.omni-chart-tools,.omni-indicator{background:#0a1422!important;color:#edf4ff!important;border-color:#24354b!important}
+.omni-level small,.omni-indicator b{color:#8fa4bd!important}
+.omni-controls select,.omni-controls button:not(.omni-primary),.omni-chat input,
+input,select,textarea{background:#091522!important;color:#edf4ff!important;border-color:#263b53!important}
+.omni-toggle-list label{background:#0a1725!important;color:#b8c9dc!important;border-color:#22364d!important}
+.omni-toggle-list label:has(input:checked){background:#11243a!important;color:#e5f1ff!important;border-color:#426b8d!important}
+#omniscientDashboard{color:#edf4ff!important}
+/* The chart plot area alone stays white. */
+#omniChart,.omni-chart-wrap{background:#fff!important}
+#omniChart text{fill:inherit}
+</style>
 </head>
 <body><main class="wrap">
 <section class="panel auth-panel" id="supabasePanel">
