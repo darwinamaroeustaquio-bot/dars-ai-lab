@@ -15,7 +15,7 @@
 body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#070d18}
 #dashboardContent>.top{padding:14px 0 18px;margin-bottom:14px;border-bottom:1px solid var(--line)}
 #dashboardContent>.top .sub{font-size:11px;letter-spacing:.08em;text-transform:uppercase}
-#dashboardContent>section:not(#omniscientDashboard),#dashboardContent>.metrics,#dashboardContent>.layout{display:none!important}
+#dashboardContent>section:not(#omniscientDashboard):not(#fifteenEngineLab),#dashboardContent>.metrics,#dashboardContent>.layout{display:none!important}
 #omniscientDashboard{display:grid;gap:14px;margin-bottom:18px}
 .omni-hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(240px,.7fr);gap:14px}
 .omni-card{background:linear-gradient(145deg,#111f32,#0b1422);border:1px solid var(--line);border-radius:18px;padding:18px;min-width:0}
@@ -293,6 +293,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   </div>
  </div>
  <p class="omni-foot">Research / paper mode only. DARS does not place broker orders. BUY / SELL labels are analytical outputs, not guaranteed outcomes. Verify spread, execution, stop distance and your own risk before manually copying any setup.</p>
+<div class="omni-card" style="padding:12px 14px;border-color:#397d70"><div class="row"><div><div class="omni-eyebrow">RESEARCH WORKSPACE</div><strong style="display:block;margin-top:4px">15-Engine Historical Backtesting</strong><span class="omni-muted">I-test at i-rank ang 15 strategy engines gamit ang verified MT5 history.</span></div><a class="omni-nav-link" href="#fifteenEngineLab">Open 15-Engine Lab ↓</a></div></div>
 </section>
 
 <script id="darsOmniscientRuntime">
