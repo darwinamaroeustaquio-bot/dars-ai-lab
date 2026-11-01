@@ -378,12 +378,27 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
     // Pivots are already confirmed with 3 closed candles on each side.
     // Require meaningful spacing and reject lines invalidated between anchors.
     const latestPair=(pivots,direction)=>{
-      if(pivots.length<2)return null;
-      const a=pivots[pivots.length-2],b=pivots[pivots.length-1];
-      if(b.i-a.i<5)return null;
-      if(direction==="up"&&b.v<=a.v)return null;
-      if(direction==="down"&&b.v>=a.v)return null;
-      return [a,b];
+      // Search backward for the newest valid pair, not only the final two pivots.
+      // This prevents one alternating/noisy swing from hiding an otherwise valid trend.
+      for(let bi=pivots.length-1;bi>=1;bi--){
+        const b=pivots[bi];
+        for(let ai=bi-1;ai>=0;ai--){
+          const a=pivots[ai];
+          if(b.i-a.i<5)continue;
+          if(direction==="up"&&b.v<=a.v)continue;
+          if(direction==="down"&&b.v>=a.v)continue;
+          const slope=(b.v-a.v)/(b.i-a.i),at=i=>a.v+slope*(i-a.i);
+          const avgRange=valid.slice(-14).reduce((sum,candle)=>sum+Number(candle.high)-Number(candle.low),0)/Math.min(14,valid.length);
+          const tol=Math.max(avgRange*.18,.02);
+          let broken=false;
+          for(let k=a.i+1;k<b.i;k++){
+            if(direction==="up"&&closes[k]<at(k)-tol)broken=true;
+            if(direction==="down"&&closes[k]>at(k)+tol)broken=true;
+          }
+          if(!broken)return [a,b];
+        }
+      }
+      return null;
     };
     const line=(pivots,color,label,direction)=>{
       const pair=latestPair(pivots,direction);
@@ -392,12 +407,6 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
       const at=i=>a.v+slope*(i-a.i);
       const avgRange=valid.slice(-14).reduce((sum,candle)=>sum+Number(candle.high)-Number(candle.low),0)/Math.min(14,valid.length);
       const tol=Math.max(avgRange*.18,.02);
-      let invalidated=false;
-      for(let k=a.i+1;k<b.i;k++){
-        if(direction==="up"&&closes[k]<at(k)-tol)invalidated=true;
-        if(direction==="down"&&closes[k]>at(k)+tol)invalidated=true;
-      }
-      if(invalidated){trendStates.push(label+": rejected — structure broke between swing points");return;}
       const lineNow=at(end),linePrev=at(Math.max(0,end-1)),y1=y(a.v),y2=y(lineNow);
       if(y1<top-35||y1>bottom+35||y2<top-35||y2>bottom+35){trendStates.push(label+": outside visible price range");return;}
       el(svg,"line",{x1:x(a.i),y1:y1,x2:x(end),y2:y2,stroke:"#aeb6c2","stroke-width":2.2,"stroke-dasharray":"7 4",opacity:.98});
