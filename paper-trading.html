@@ -8,6 +8,22 @@
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 45% -15%,#1b3a5a 0,transparent 48%),var(--bg);color:var(--text);font:14px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 .wrap{max-width:1180px;margin:auto;padding:18px}.panel,.metric{background:linear-gradient(145deg,#122238,#0c1726);border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:14px}.row,.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric{margin:0;min-width:0}.metric small,.note{color:var(--muted);font-size:12px;line-height:1.6}.metric strong{display:block;font-size:22px;margin:8px 0}.btn{font:inherit;padding:10px 13px;border-radius:8px;border:1px solid var(--line);background:#091522;color:var(--text);cursor:pointer;text-decoration:none}.primary{background:var(--green);color:#07111f;font-weight:800}.tag{color:var(--gold);font-size:12px}.good{color:var(--green)}.bad{color:var(--red)}.status{padding:12px;border:1px solid var(--line);border-radius:10px;background:#091522;line-height:1.6}.pill{display:inline-block;padding:4px 8px;border:1px solid var(--line);border-radius:99px;font-size:11px;color:var(--muted)}.levels{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.level{padding:11px;border:1px solid var(--line);border-radius:10px;background:#091522}.level small{color:var(--muted);display:block;font-size:11px}.level strong{display:block;margin-top:5px;font-size:16px;overflow-wrap:anywhere}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px;font-size:12px;vertical-align:top}th{color:var(--muted);font-weight:600}.empty{color:var(--muted);padding:16px;text-align:center}@media(max-width:760px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.levels{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:10px}.metric strong{font-size:19px}}
 </style>
+<style id="dars-no-overlap-responsive">
+html,body{width:100%;min-width:0;overflow-x:hidden}
+.wrap,*{box-sizing:border-box}
+.wrap{max-width:100%;min-width:0}
+.panel,.row,.controls,.metrics,.metric,.grid,.levels,.level,.scroll{min-width:0;max-width:100%}
+h1,h2,h3,p,small,label,strong,span,a,button,td,th{overflow-wrap:anywhere;word-break:normal}
+.row,.controls{flex-wrap:wrap}
+.row>*,.controls>*{min-width:0;max-width:100%}
+button,.btn{white-space:normal;max-width:100%}
+input,select,textarea{min-width:0;max-width:100%}
+.metric strong,.level strong{overflow-wrap:anywhere;word-break:break-word}
+.scroll{overflow-x:auto;overscroll-behavior-x:contain}
+table{max-width:100%}
+@media(max-width:760px){.wrap{padding:10px}.grid{grid-template-columns:minmax(0,1fr)}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.levels{grid-template-columns:repeat(2,minmax(0,1fr))}.panel,.metric{padding:12px}.row>*,.controls>*{flex:0 1 auto}}
+@media(max-width:380px){.metrics,.levels{grid-template-columns:minmax(0,1fr)}.metric strong{font-size:18px}}
+</style>
 </head>
 <body><main class="wrap">
 <header class="row"><div><div class="tag">DARS AI LAB · SAME ENGINE AS THE ROBOT</div><h1 style="margin:6px 0">Adaptive Paper Trading</h1><p class="note">One decision source: DARS Omniscient adaptive analysis. No legacy GOLD candidate strategies, no parallel strategy contest, and no broker orders.</p></div><a class="btn" href="/">← Back to DARS dashboard</a></header>
