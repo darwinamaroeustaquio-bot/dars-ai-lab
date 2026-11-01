@@ -238,6 +238,7 @@ body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#
  }
  $("omniRefresh").addEventListener("click",analyze);
  $("omniTimeframe").addEventListener("change",refreshChartOnly);
+ document.querySelectorAll("[data-overlay]").forEach(n=>n.addEventListener("change",drawChart));
  $("omniChatForm").addEventListener("submit",e=>{
   e.preventDefault();const input=$("omniChatInput"),q=input.value.trim();if(!q)return;
   message("You: "+q);input.value="";
