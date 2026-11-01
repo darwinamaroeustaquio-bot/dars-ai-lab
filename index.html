@@ -1596,7 +1596,7 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
  if(!btn)return;
  const fmt=n=>Number(n||0).toFixed(2),pct=n=>(Number(n||0)*100).toFixed(1)+"%";
  btn.addEventListener("click",async()=>{
-  btn.disabled=true;btn.textContent="Replaying 15 engines…";$("engineLabStatus").textContent="Running";$("engineLabMessage").textContent="Loading verified M5/M15/H1 candles and replaying the exact live engine logic. This may take a little time.";
+  btn.disabled=true;btn.textContent="⏳ RUNNING...";$("engineLabStatus").textContent="RUNNING...";$("engineLabMessage").textContent="⏳ RUNNING... Kinukuha ang verified M5/M15/H1 candles at sinusuri ang 15 strategy engines. Huwag pindutin ulit habang tumatakbo.";
   try{
    const qs=new URLSearchParams({symbol:(document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD",spreadPrice:$("engineSpread").value,slippagePrice:$("engineSlip").value,commissionPrice:$("engineCommission").value});
    const response=await fetch("/api/candidate-lab?engineReplay=1&"+qs.toString(),{cache:"no-store",headers:{Accept:"application/json"}});
