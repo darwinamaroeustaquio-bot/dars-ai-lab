@@ -246,6 +246,23 @@ body{min-width:0;overflow-x:hidden}
   let min=Math.min(...lows),max=Math.max(...highs);[ema20,ema50,ema200,vwap].forEach(a=>{min=Math.min(min,...a.filter(Number.isFinite));max=Math.max(max,...a.filter(Number.isFinite));});if(enabled("bb")){min=Math.min(min,...bbL.filter(Number.isFinite));max=Math.max(max,...bbU.filter(Number.isFinite));}
   if(!(max>min)){min-=1;max+=1;}const pad=(max-min)*.09;min-=pad;max+=pad;
   const left=22,right=710,top=22,bottom=292,plotH=bottom-top,step=(right-left)/valid.length,w=Math.max(2,Math.min(9,step*.62)),y=v=>bottom-(v-min)/(max-min)*plotH,x=i=>left+(i+.5)*step;
+  // Shared collision-aware annotation layout: labels are nudged into free lanes.
+  const placedLabels=[];
+  const chartLabel=(px,py,text,attrs={})=>{
+    const fs=Number(attrs["font-size"]||10),anchor=attrs["text-anchor"]||"start";
+    const width=Math.max(24,String(text).length*fs*.62),height=fs+5;
+    let cx=Math.max(left+width/2,Math.min(right-width/2,px));
+    if(anchor==="start")cx=Math.min(right-width/2,px+width/2);
+    if(anchor==="end")cx=Math.max(left+width/2,px-width/2);
+    const candidates=[0,-1,1,-2,2,-3,3,-4,4,-5,5,-6,6].map(n=>py+n*(height+3));
+    let cy=Math.max(top+height/2,Math.min(bottom-height/2,py));
+    for(const candidate of candidates){
+      const yy=Math.max(top+height/2,Math.min(bottom-height/2,candidate));
+      const box={x:cx-width/2,y:yy-height/2,w:width,h:height};
+      if(!placedLabels.some(b=>box.x<b.x+b.w+4&&box.x+box.w+4>b.x&&box.y<b.y+b.h+3&&box.y+box.h+3>b.y)){cy=yy;placedLabels.push(box);break;}
+    }
+    return el(svg,"text",{...attrs,x:cx,y:cy,"text-anchor":"middle", "paint-order":"stroke",stroke:"#07111e","stroke-width":3,"stroke-linejoin":"round"},text);
+  };
   for(let i=0;i<=5;i++){const yy=top+plotH*i/5,p=max-(max-min)*i/5;el(svg,"line",{x1:left,y1:yy,x2:right,y2:yy,stroke:"#20334a","stroke-width":1});el(svg,"text",{x:720,y:yy+4,fill:"#9db0c6","font-size":11},p.toFixed(2));}
   el(svg,"line",{x1:714,y1:top-4,x2:714,y2:bottom+2,stroke:"#2a4059"});
   const candleTime=i=>{const raw=valid[i].bar_time||valid[i].time||valid[i].timestamp;if(!raw)return "";const d=new Date(raw);return Number.isNaN(d.getTime())?"":d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});};
@@ -256,9 +273,9 @@ body{min-width:0;overflow-x:hidden}
   if(enabled("vwap"))path(vwap,"#f3c66d",1.7,"5 3");
   valid.forEach((c,i)=>{const o=opens[i],h=highs[i],l=lows[i],cl=closes[i],col=cl>=o?"#48e0ad":"#ff7187";el(svg,"line",{x1:x(i),y1:y(h),x2:x(i),y2:y(l),stroke:col,"stroke-width":1.3});el(svg,"rect",{x:x(i)-w/2,y:Math.min(y(o),y(cl)),width:w,height:Math.max(1.5,Math.abs(y(o)-y(cl))),fill:col,rx:1});});
   if(enabled("ema20"))path(ema20,"#65b5ff",1.6);if(enabled("ema50"))path(ema50,"#f3c66d",1.6);if(enabled("ema200"))path(ema200,"#e6a1ff",1.8);
-  if(enabled("sr")){const hi=Math.max(...highs.slice(-30)),lo=Math.min(...lows.slice(-30));[[hi,"#ffad75","RESISTANCE"],[lo,"#65b5ff","SUPPORT"]].forEach(([v,c,t])=>{const yy=y(v);el(svg,"line",{x1:left,x2:right,y1:yy,y2:yy,stroke:c,"stroke-dasharray":"4 4","stroke-width":1.3});el(svg,"text",{x:right-4,y:yy-4,"text-anchor":"end",fill:c,"font-size":10},t+" "+fmt(v));});}
+  if(enabled("sr")){const hi=Math.max(...highs.slice(-30)),lo=Math.min(...lows.slice(-30));[[hi,"#ffad75","RESISTANCE"],[lo,"#65b5ff","SUPPORT"]].forEach(([v,c,t])=>{const yy=y(v);el(svg,"line",{x1:left,x2:right,y1:yy,y2:yy,stroke:c,"stroke-dasharray":"4 4","stroke-width":1.3});chartLabel(right-4,yy-4,t+" "+fmt(v),{fill:c,"font-size":10,"text-anchor":"end"});});}
 
-  if(enabled("structure")&&valid.length>=8){const i=valid.length-1,priorHigh=Math.max(...highs.slice(-8,-1)),priorLow=Math.min(...lows.slice(-8,-1)),last=valid[i];if(closes[i]>priorHigh){const reversal=closes.slice(-8,-1).every((v,j,a)=>j===0||v<=a[j-1]);el(svg,"text",{x:x(i),y:y(highs[i])-12,"text-anchor":"middle",fill:"#48e0ad","font-size":10,"font-weight":800},reversal?"MSS ↑":"BOS ↑");}else if(closes[i]<priorLow){const reversal=closes.slice(-8,-1).every((v,j,a)=>j===0||v>=a[j-1]);el(svg,"text",{x:x(i),y:y(lows[i])+18,"text-anchor":"middle",fill:"#ff7187","font-size":10,"font-weight":800},reversal?"MSS ↓":"BOS ↓");}else if(highs[i]>priorHigh&&closes[i]<priorHigh){el(svg,"text",{x:x(i),y:y(highs[i])-12,"text-anchor":"middle",fill:"#f3c66d","font-size":10,"font-weight":800},"LIQUIDITY SWEEP");}else if(lows[i]<priorLow&&closes[i]>priorLow){el(svg,"text",{x:x(i),y:y(lows[i])+18,"text-anchor":"middle",fill:"#f3c66d","font-size":10,"font-weight":800},"LIQUIDITY SWEEP");}}
+  if(enabled("structure")&&valid.length>=8){const i=valid.length-1,priorHigh=Math.max(...highs.slice(-8,-1)),priorLow=Math.min(...lows.slice(-8,-1)),last=valid[i];if(closes[i]>priorHigh){const reversal=closes.slice(-8,-1).every((v,j,a)=>j===0||v<=a[j-1]);chartLabel(x(i),y(highs[i])-12,reversal?"MSS ↑":"BOS ↑",{fill:"#48e0ad","font-size":10,"font-weight":800});}else if(closes[i]<priorLow){const reversal=closes.slice(-8,-1).every((v,j,a)=>j===0||v>=a[j-1]);chartLabel(x(i),y(lows[i])+18,reversal?"MSS ↓":"BOS ↓",{fill:"#ff7187","font-size":10,"font-weight":800});}else if(highs[i]>priorHigh&&closes[i]<priorHigh){chartLabel(x(i),y(highs[i])-12,"LIQUIDITY SWEEP",{fill:"#f3c66d","font-size":10,"font-weight":800});}else if(lows[i]<priorLow&&closes[i]>priorLow){chartLabel(x(i),y(lows[i])+18,"LIQUIDITY SWEEP",{fill:"#f3c66d","font-size":10,"font-weight":800});}}
   // Confirmed swing pivots use closed bars only (3 bars on each side).
   // These are chart POIs, not guaranteed institutional order-flow levels.
   const pivotHighs=[],pivotLows=[],radius=3;
@@ -268,7 +285,7 @@ body{min-width:0;overflow-x:hidden}
     if(isHigh)pivotHighs.push({i,v:highs[i]});
     if(isLow)pivotLows.push({i,v:lows[i]});
   }
-  const drawLevel=(v,color,label,dash="5 4")=>{const yy=y(v);if(yy<top||yy>bottom)return;el(svg,"line",{x1:left,x2:right,y1:yy,y2:yy,stroke:color,"stroke-width":1.25,"stroke-dasharray":dash,opacity:.9});el(svg,"text",{x:right-5,y:yy-5,"text-anchor":"end",fill:color,"font-size":9,"font-weight":700},label+" "+fmt(v));};
+  const drawLevel=(v,color,label,dash="5 4")=>{const yy=y(v);if(yy<top||yy>bottom)return;el(svg,"line",{x1:left,x2:right,y1:yy,y2:yy,stroke:color,"stroke-width":1.25,"stroke-dasharray":dash,opacity:.9});chartLabel(right-5,yy-5,label+" "+fmt(v),{fill:color,"font-size":9,"font-weight":700,"text-anchor":"end"});};
   // POI means Supply/Demand zones only. A pivot qualifies only when
   // the following closed candles show displacement away from its base.
   if(enabled("poi")){
@@ -276,7 +293,7 @@ body{min-width:0;overflow-x:hidden}
     const zones=[];
     for(const p of pivotHighs){if(p.i+3>=valid.length)continue;const impulse=closes[p.i]-Math.min(...lows.slice(p.i+1,p.i+4));if(impulse<avgRange*1.25)continue;const z={kind:"SUPPLY",top:highs[p.i],bottom:Math.max(opens[p.i],closes[p.i]),i:p.i};if(z.top>z.bottom)zones.push(z);}
     for(const p of pivotLows){if(p.i+3>=valid.length)continue;const impulse=Math.max(...highs.slice(p.i+1,p.i+4))-closes[p.i];if(impulse<avgRange*1.25)continue;const z={kind:"DEMAND",top:Math.min(opens[p.i],closes[p.i]),bottom:lows[p.i],i:p.i};if(z.top>z.bottom)zones.push(z);}
-    zones.slice(-6).forEach(z=>{const yy=y(z.top),yb=y(z.bottom),height=Math.max(3,yb-yy),color=z.kind==="SUPPLY"?"#ff7187":"#48e0ad";if(yy>bottom||yb<top)return;el(svg,"rect",{x:x(z.i),y:yy,width:Math.max(1,right-x(z.i)),height,fill:color,opacity:.13,stroke:color,"stroke-width":1});el(svg,"text",{x:Math.min(right-6,x(z.i)+6),y:Math.max(top+10,yy-4),"text-anchor":"start",fill:color,"font-size":9,"font-weight":800},z.kind+" POI");});
+    zones.slice(-6).forEach(z=>{const yy=y(z.top),yb=y(z.bottom),height=Math.max(3,yb-yy),color=z.kind==="SUPPLY"?"#ff7187":"#48e0ad";if(yy>bottom||yb<top)return;el(svg,"rect",{x:x(z.i),y:yy,width:Math.max(1,right-x(z.i)),height,fill:color,opacity:.13,stroke:color,"stroke-width":1});chartLabel(Math.min(right-8,x(z.i)+8),Math.max(top+12,yy+height/2+10),z.kind+" · POI",{fill:color,"font-size":9,"font-weight":800,"text-anchor":"start"});});
   }
   if(enabled("equal")){
     const tolerance=Math.max((Math.max(...highs)-Math.min(...lows))*.0015,.03);
@@ -302,14 +319,14 @@ body{min-width:0;overflow-x:hidden}
         else if(Number(c.low)<lineNow&&Number(c.close)>=lineNow){status="FALSE BREAK / REJECTION";statusColor="#f3c66d";}
         else if(Math.abs(Number(c.close)-lineNow)<=tol||(Number(c.low)<=lineNow&&Number(c.high)>=lineNow)){status="TRENDLINE TOUCH";statusColor="#f3c66d";}
       }
-      el(svg,"text",{x:x(end)-5,y:Math.max(top+10,Math.min(bottom-4,y2-17)),"text-anchor":"end",fill:color,"font-size":9,"font-weight":700},label);
-      if(status!=="WAITING"){el(svg,"text",{x:x(end)-5,y:Math.max(top+20,Math.min(bottom+12,y2+12)),"text-anchor":"end",fill:statusColor,"font-size":9,"font-weight":800},status);trendStates.push(label+": "+status);}
+      chartLabel(x(end)-5,Math.max(top+12,Math.min(bottom-5,y2-17)),label,{fill:color,"font-size":9,"font-weight":700,"text-anchor":"end"});
+      if(status!=="WAITING"){chartLabel(x(end)-5,Math.max(top+18,Math.min(bottom-6,y2+12)),status,{fill:statusColor,"font-size":9,"font-weight":800,"text-anchor":"end"});trendStates.push(label+": "+status);}
       else trendStates.push(label+": no confirmed interaction");
     };
     line(pivotHighs,"#ff9c87","DOWN TRENDLINE","resistance");line(pivotLows,"#53d9b0","UP TRENDLINE","support");
   }
-  const decision=state.analysis?.decision;if(enabled("structure")&&(decision==="BUY"||decision==="SELL")){const i=valid.length-1,up=decision==="BUY";el(svg,"text",{x:x(i),y:up?y(lows[i])+30:y(highs[i])-25,"text-anchor":"middle",fill:up?"#48e0ad":"#ff7187","font-size":11,"font-weight":900},decision);}
-  const setup=state.analysis?.setup;if(enabled("trade")&&setup){[["ENTRY",setup.entry,"#65b5ff"],["SL",setup.stopLoss,"#ff7187"],["TP1",setup.takeProfit1,"#48e0ad"],["TP2",setup.takeProfit2,"#80e8c1"]].forEach(([label,v,col])=>{const yy=y(Number(v));if(Number.isFinite(yy)&&yy>=top&&yy<=bottom){el(svg,"line",{x1:left,x2:right,y1:yy,y2:yy,stroke:col,"stroke-width":1.7,"stroke-dasharray":"7 4"});el(svg,"text",{x:right-4,y:yy-5,"text-anchor":"end",fill:col,"font-size":11,"font-weight":700},label+" "+fmt(v));}});}
+  const decision=state.analysis?.decision;if(enabled("structure")&&(decision==="BUY"||decision==="SELL")){const i=valid.length-1,up=decision==="BUY";chartLabel(x(i),up?y(lows[i])+30:y(highs[i])-25,decision,{fill:up?"#48e0ad":"#ff7187","font-size":11,"font-weight":900});}
+  const setup=state.analysis?.setup;if(enabled("trade")&&setup){[["ENTRY",setup.entry,"#65b5ff"],["SL",setup.stopLoss,"#ff7187"],["TP1",setup.takeProfit1,"#48e0ad"],["TP2",setup.takeProfit2,"#80e8c1"]].forEach(([label,v,col])=>{const yy=y(Number(v));if(Number.isFinite(yy)&&yy>=top&&yy<=bottom){el(svg,"line",{x1:left,x2:right,y1:yy,y2:yy,stroke:col,"stroke-width":1.7,"stroke-dasharray":"7 4"});chartLabel(right-4,yy-5,label+" "+fmt(v),{fill:col,"font-size":11,"font-weight":700,"text-anchor":"end"});}});}
   const last=valid[valid.length-1],stamp=last.bar_time||last.time||last.timestamp||"",lastPrice=closes[closes.length-1],lastY=y(lastPrice);
   el(svg,"line",{x1:left,x2:right,y1:lastY,y2:lastY,stroke:"#65b5ff","stroke-width":1,"stroke-dasharray":"4 4",opacity:.85});
   el(svg,"rect",{x:718,y:lastY-10,width:78,height:20,rx:4,fill:"#17466b"});el(svg,"text",{x:757,y:lastY+4,fill:"#f0f7ff","font-size":11,"font-weight":800,"text-anchor":"middle"},fmt(lastPrice));
