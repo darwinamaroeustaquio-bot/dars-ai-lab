@@ -736,7 +736,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   <div class="metric"><div class="eyebrow">Paper review</div><strong id="engineQualified">—</strong><small>Strict evidence gates</small></div>
   <div class="metric"><div class="eyebrow">Top holdout exp.</div><strong id="engineTopExp">—</strong><small>After modeled costs</small></div>
  </div>
- <p class="note" id="engineLabMessage" role="status">Ready when verified M5, M15 and H1 candles are available.</p><div class="row" style="justify-content:flex-start;gap:8px;margin:8px 0"><button class="btn" id="copy15EngineResult" type="button" disabled>Copy result</button><span class="note" id="copy15EngineStatus" aria-live="polite">Run the lab first.</span></div>
+ <p class="note" id="engineLabMessage" role="status">Ready when verified M5, M15 and H1 candles are available.</p><div class="metrics" id="engineContextMetrics" style="margin:10px 0"><div class="metric"><div class="eyebrow">News calendar</div><strong id="engineNewsStatus">—</strong><small id="engineNewsCount">No events loaded</small></div><div class="metric"><div class="eyebrow">London session</div><strong id="engineLondonTrades">—</strong><small id="engineLondonExp">Awaiting replay</small></div><div class="metric"><div class="eyebrow">New York session</div><strong id="engineNYTrades">—</strong><small id="engineNYExp">Awaiting replay</small></div><div class="metric"><div class="eyebrow">News ±30 min</div><strong id="engineNewsTrades">—</strong><small id="engineNewsExp">Awaiting replay</small></div></div><p class="note" id="engineContextNote">Session and news analysis will appear after a successful replay. News proximity is observational only; no entries are blocked.</p><div class="row" style="justify-content:flex-start;gap:8px;margin:8px 0"><button class="btn" id="copy15EngineResult" type="button" disabled>Copy result</button><span class="note" id="copy15EngineStatus" aria-live="polite">Run the lab first.</span></div>
  <div class="tablewrap"><table><thead><tr><th>Candidate ID</th><th>Engine</th><th>Entry profile</th><th>Exit rules</th><th>Dev trades</th><th>Holdout trades</th><th>Win rate</th><th>Net R</th><th>Exp R</th><th>PF</th><th>Max DD</th><th>Decision</th></tr></thead><tbody id="engineLabResults"><tr><td colspan="11" class="empty">Run the historical replay to see all candidates.</td></tr></tbody></table></div>
  <p class="note">A strategy is only marked FORWARD PAPER REVIEW when it has at least 100 development and 100 holdout trades, positive expectancy in both, holdout PF above 1.10, drawdown at or below 12R, and remains positive under +$0.05/+0.10 per oz slippage stress. This is a research gate, not a profitability guarantee or live-trading authorization. Historical spread is unavailable in OHLC candles; the spread field is an assumption.</p>
 </section>
@@ -1610,11 +1610,25 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
    $("engineCount").textContent=String(d.engineCount);$("engineQualified").textContent=String(qualified.length);
    $("engineTopExp").textContent=d.results.length?fmt(d.results[0].holdout.expectancyR)+"R":"—";
    const body=$("engineLabResults");body.replaceChildren();
+   const sumRows=d.results;
+   const aggregate=(key)=>sumRows.reduce((acc,x)=>{const m=x.sessionAnalysis?.holdout?.[key];if(m){acc.trades+=m.trades||0;acc.netR+=m.netR||0;}return acc;},{trades:0,netR:0});
+   const london=aggregate("LONDON"),ny=aggregate("NEW_YORK");
+   const news= sumRows.reduce((acc,x)=>{const m=x.newsAnalysis?.holdout?.within30Minutes;if(m){acc.trades+=m.trades||0;acc.netR+=m.netR||0;}return acc;},{trades:0,netR:0});
+   $("engineNewsStatus").textContent=d.newsCalendar?.status||"UNKNOWN";
+   $("engineNewsCount").textContent=(d.newsCalendar?.eventCount??0)+" historical events · "+(d.newsCalendar?.source||"source unavailable");
+   $("engineLondonTrades").textContent=london.trades.toLocaleString();
+   $("engineLondonExp").textContent="Aggregate "+fmt(london.netR)+"R across candidates";
+   $("engineNYTrades").textContent=ny.trades.toLocaleString();
+   $("engineNYExp").textContent="Aggregate "+fmt(ny.netR)+"R across candidates";
+   $("engineNewsTrades").textContent=news.trades.toLocaleString();
+   $("engineNewsExp").textContent="Aggregate "+fmt(news.netR)+"R across candidates";
+   $("engineContextNote").textContent="Session totals are summed across all candidates (not unique trades). News ±30m is an observational entry-time comparison only. Calendar status: "+(d.newsCalendar?.status||"UNKNOWN")+(d.newsCalendar?.error?" · "+d.newsCalendar.error:"")+".";
+
    d.results.forEach(x=>{
     const tr=document.createElement("tr"),vals=[x.id,x.strategy,x.entryProfile,"SL×"+x.variant.stopMultiplier+" · TP "+x.variant.targetR+"R · "+x.variant.maxHold+" bars",x.development.trades,x.holdout.trades,pct(x.holdout.winRate),fmt(x.holdout.netR)+"R",fmt(x.holdout.expectancyR)+"R",fmt(x.holdout.profitFactor),fmt(x.holdout.maxDrawdownR)+"R",x.qualifiedForPaperReview?"FORWARD PAPER REVIEW":"NOT QUALIFIED"];
     vals.forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td);});body.appendChild(tr);
    });
-   last15EngineReport="DARS AI LAB — 15 ENGINE / "+d.candidateCount+" CANDIDATE REPORT\\nSymbol: "+d.symbol+"\\nCandles: "+JSON.stringify(d.counts)+"\\nSplit: "+JSON.stringify(d.split)+"\\n"+d.results.map(x=>[x.id,x.strategy,x.entryProfile,"SLx"+x.variant.stopMultiplier,"TP"+x.variant.targetR+"R","hold "+x.holdout.trades,"win "+pct(x.holdout.winRate),"net "+fmt(x.holdout.netR)+"R","exp "+fmt(x.holdout.expectancyR)+"R","PF "+fmt(x.holdout.profitFactor),"DD "+fmt(x.holdout.maxDrawdownR)+"R",x.status].join(" | ")).join("\\n");
+   last15EngineReport="DARS AI LAB — 15 ENGINE / "+d.candidateCount+" CANDIDATE REPORT\\nSymbol: "+d.symbol+"\\nCandles: "+JSON.stringify(d.counts)+"\\nSplit: "+JSON.stringify(d.split)+"\\nNews calendar: "+JSON.stringify(d.newsCalendar)+"\\n"+d.results.map(x=>[x.id,x.strategy,x.entryProfile,"SLx"+x.variant.stopMultiplier,"TP"+x.variant.targetR+"R","hold "+x.holdout.trades,"win "+pct(x.holdout.winRate),"net "+fmt(x.holdout.netR)+"R","exp "+fmt(x.holdout.expectancyR)+"R","PF "+fmt(x.holdout.profitFactor),"DD "+fmt(x.holdout.maxDrawdownR)+"R",x.status].join(" | ")).join("\\n");
    $("copy15EngineResult").disabled=false;
    $("engineLabStatus").textContent="Complete · "+d.engineCount+" engines · "+d.candidateCount+" candidates";
    $("engineLabMessage").textContent="Chronological 70/30 · "+d.counts.M5+" M5 / "+d.counts.M15+" M15 / "+d.counts.H1+" H1 candles. Costs: spread $"+fmt(d.costModel.spreadPrice)+", slippage $"+fmt(d.costModel.slippagePrice)+", commission $"+fmt(d.costModel.commissionPrice)+" per oz. "+d.execution+" "+d.qualification;
