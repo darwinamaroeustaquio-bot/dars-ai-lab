@@ -1,5 +1,5 @@
 // Dars AI Lab - VT Markets MT5 Read-only Quote + Candle Bridge
-// Sends quote snapshots and M1/M5/M15/H1 candle history. DOES NOT trade.
+// Sends quote snapshots and M1/M5/M15/M30/H1/H4 candle history. DOES NOT trade.
 #property strict
 #property version "1.24"
 #property description "Read-only quote and candle sender for Dars AI Lab"
@@ -107,11 +107,15 @@ void SendCandles(const string sym)
    string m1=FrameJson(sym,PERIOD_M1,"M1");
    string m5=FrameJson(sym,PERIOD_M5,"M5");
    string m15=FrameJson(sym,PERIOD_M15,"M15");
+   string m30=FrameJson(sym,PERIOD_M30,"M30");
    string h1=FrameJson(sym,PERIOD_H1,"H1");
+   string h4=FrameJson(sym,PERIOD_H4,"H4");
    PostFrame(sym,"M1",m1);
    PostFrame(sym,"M5",m5);
    PostFrame(sym,"M15",m15);
+   PostFrame(sym,"M30",m30);
    PostFrame(sym,"H1",h1);
+   PostFrame(sym,"H4",h4);
 }
 void OnTimer()
 {
