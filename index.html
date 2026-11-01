@@ -344,7 +344,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
       pivots.forEach(p=>{
         const label=previous===null?(type==="high"?"H":"L"):
           type==="high"?(p.v>previous.v?"HH":"LH"):(p.v>previous.v?"HL":"LL");
-        const color=label==="HH"||label==="HL"?"#48e0ad":label==="LH"?"#ffad75":label==="LL"?"#ff7187": "#c5d5e8";
+        const color=label==="HH"||label==="HL"?"#ff4d5e":label==="LH"||label==="LL"?"#35c98a": "#c5d5e8";
         const py=type==="high"?y(p.v)-13:y(p.v)+18;
         el(svg,"circle",{cx:x(p.i),cy:y(p.v),r:3.2,fill:color,stroke:"#ffffff","stroke-width":1});
         chartLabel(x(p.i),py,label,{fill:color,"font-size":10,"font-weight":900,"text-anchor":"middle"});
