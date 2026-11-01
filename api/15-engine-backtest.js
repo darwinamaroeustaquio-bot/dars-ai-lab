@@ -94,7 +94,7 @@ module.exports = async (req, res) => {
       if (!r.ok) throw new Error("Supabase candle query failed for " + tf + " (" + r.status + ").");
       const page = await r.json(); rows.push(...page); if (page.length < pageSize) break;
     }
-    return rows.reverse().map(x => ({ ...x, open: +x.open, high: +x.high, low: +x.low, close: +x.close }))
+    return rows.reverse().map(x => ({ ...x, timeMs: Date.parse(x.bar_time), open: +x.open, high: +x.high, low: +x.low, close: +x.close }))
       .filter(x => [x.open,x.high,x.low,x.close].every(Number.isFinite) && x.high >= Math.max(x.open,x.close,x.low) && x.low <= Math.min(x.open,x.close,x.high));
   }
   try {
