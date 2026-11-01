@@ -1611,7 +1611,7 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
    $("engineTopExp").textContent=d.results.length?fmt(d.results[0].holdout.expectancyR)+"R":"—";
    const body=$("engineLabResults");body.replaceChildren();
    d.results.forEach(x=>{
-    const tr=document.createElement("tr"),vals=[x.strategy,x.development.trades,x.holdout.trades,pct(x.holdout.winRate),fmt(x.holdout.netR)+"R",fmt(x.holdout.expectancyR)+"R",fmt(x.holdout.profitFactor),fmt(x.holdout.maxDrawdownR)+"R",x.qualifiedForPaperReview?"FORWARD PAPER REVIEW":"NOT QUALIFIED"];
+    const tr=document.createElement("tr"),vals=[x.id,x.strategy,"SL×"+x.variant.stopMultiplier+" · TP "+x.variant.targetR+"R · "+x.variant.maxHold+" bars",x.development.trades,x.holdout.trades,pct(x.holdout.winRate),fmt(x.holdout.netR)+"R",fmt(x.holdout.expectancyR)+"R",fmt(x.holdout.profitFactor),fmt(x.holdout.maxDrawdownR)+"R",x.qualifiedForPaperReview?"FORWARD PAPER REVIEW":"NOT QUALIFIED"];
     vals.forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td);});body.appendChild(tr);
    });
    last15EngineReport="DARS AI LAB — 15 ENGINE / "+d.candidateCount+" CANDIDATE REPORT\\nSymbol: "+d.symbol+"\\nCandles: "+JSON.stringify(d.counts)+"\\nSplit: "+JSON.stringify(d.split)+"\\n"+d.results.map(x=>[x.id,x.strategy,"SLx"+x.variant.stopMultiplier,"TP"+x.variant.targetR+"R","hold "+x.holdout.trades,"win "+pct(x.holdout.winRate),"net "+fmt(x.holdout.netR)+"R","exp "+fmt(x.holdout.expectancyR)+"R","PF "+fmt(x.holdout.profitFactor),"DD "+fmt(x.holdout.maxDrawdownR)+"R",x.status].join(" | ")).join("\\n");
