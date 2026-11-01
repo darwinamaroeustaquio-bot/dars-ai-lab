@@ -116,7 +116,7 @@ body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#
    </div>
    <div class="omni-chart-tools">
     <div class="omni-toggle-list">
-     <label><input type="checkbox" data-overlay="ema20" checked> EMA 20</label><label><input type="checkbox" data-overlay="ema50" checked> EMA 50</label><label><input type="checkbox" data-overlay="ema200"> EMA 200</label><label><input type="checkbox" data-overlay="bb"> Bollinger</label><label><input type="checkbox" data-overlay="vwap"> VWAP</label><label><input type="checkbox" data-overlay="sr" checked> Support / Resistance</label><label><input type="checkbox" data-overlay="zones"> Supply / Demand</label><label><input type="checkbox" data-overlay="structure" checked> BOS / MSS / Sweep</label><label><input type="checkbox" data-overlay="trade" checked> Entry / SL / TP</label>
+     <label><input type="checkbox" data-overlay="ema20" checked> EMA 20</label><label><input type="checkbox" data-overlay="ema50" checked> EMA 50</label><label><input type="checkbox" data-overlay="ema200"> EMA 200</label><label><input type="checkbox" data-overlay="bb"> Bollinger</label><label><input type="checkbox" data-overlay="vwap"> VWAP</label><label><input type="checkbox" data-overlay="sr" checked> Support / Resistance</label><label><input type="checkbox" data-overlay="zones"> Supply / Demand</label><label><input type="checkbox" data-overlay="structure" checked> BOS / MSS / Sweep</label><label><input type="checkbox" data-overlay="trade" checked> Entry / SL / TP</label><label><input type="checkbox" data-panel="omniRSI" checked> RSI panel</label><label><input type="checkbox" data-panel="omniSTOCH" checked> Stochastic panel</label><label><input type="checkbox" data-panel="omniCCI" checked> CCI panel</label><label><input type="checkbox" data-panel="omniMACD" checked> MACD panel</label>
     </div>
    </div>
    <div class="omni-chart-wrap"><svg id="omniChart" viewBox="0 0 800 330" role="img" aria-label="Live MT5 candlestick chart with selectable technical overlays"></svg></div>
@@ -240,6 +240,7 @@ body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#
  $("omniRefresh").addEventListener("click",analyze);
  $("omniTimeframe").addEventListener("change",refreshChartOnly);
  document.querySelectorAll("[data-overlay]").forEach(n=>n.addEventListener("change",drawChart));
+ document.querySelectorAll("[data-panel]").forEach(n=>n.addEventListener("change",()=>{const svg=$(n.dataset.panel);if(svg?.parentElement)svg.parentElement.style.display=n.checked?"block":"none";}));
  $("omniChatForm").addEventListener("submit",e=>{
   e.preventDefault();const input=$("omniChatInput"),q=input.value.trim();if(!q)return;
   message("You: "+q);input.value="";
