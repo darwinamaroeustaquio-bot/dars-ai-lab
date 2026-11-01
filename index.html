@@ -257,6 +257,17 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
    <div class="omni-list" id="omniDiagnostics"><div class="omni-check">Waiting for first analysis…</div></div>
   </div>
  </div>
+ <div class="omni-card">
+  <div class="row" style="align-items:flex-start"><div><div class="omni-eyebrow">15-engine adaptive intelligence</div><h2 style="margin:7px 0">Strategy engine competition</h2><p class="omni-muted">All engines scan closed MT5 candles. Each nominates its setup; the central selector ranks regime-matched candidates. Only strategies that pass the evidence gate can become active paper candidates.</p></div><span class="omni-status" id="engineBoardStatus">Awaiting verified data</span></div>
+  <div class="omni-metrics" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px">
+   <div class="omni-metric"><small>MARKET REGIME</small><strong id="engineRegime">—</strong></div>
+   <div class="omni-metric"><small>SETUPS DETECTED</small><strong id="engineDetected">0 / 15</strong></div>
+   <div class="omni-metric"><small>ACTIVE PAPER ELIGIBLE</small><strong id="engineEligible">0</strong></div>
+  </div>
+  <div class="omni-reason" id="engineChampion">Central selector: waiting for verified market data.</div>
+  <div class="tablewrap"><table><thead><tr><th>Engine</th><th>Signal</th><th>Evidence</th><th>Decision</th></tr></thead><tbody id="engineBoardRows"><tr><td colspan="4" class="empty">Waiting for MT5 candles and quote.</td></tr></tbody></table></div>
+  <p class="omni-foot">A detected setup is not automatically a winner. The selector requires at least 100 closed trades, 30 holdout trades, positive expectancy, PF above 1.10, drawdown within limits, no excessive loss streak, and a validated outcome model. If no engine qualifies, DARS stays in shadow research / WAIT.</p>
+ </div>
  <div class="omni-grid">
   <div class="omni-card">
    <div class="omni-eyebrow">Research & validation</div><h2 style="margin:7px 0">Proof before promotion</h2>
@@ -463,6 +474,23 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   set("omniRiskNote",s?"Entry uses current ask for BUY / bid for SELL. SL is structure + ATR based. TP1 = 1.5R; TP2 = 2.5R. Lot sizing is intentionally withheld until verified broker tick value, tick size, volume step and stop-level metadata are available.":"No entry or targets issued. DARS waits for fresh quote, sufficient closed candles and aligned multi-timeframe evidence.");
   const list=$("omniDiagnostics");list.replaceChildren();
   (a.diagnostics||[]).forEach(t=>{const row=document.createElement("div");row.className="omni-check";row.textContent=t;list.appendChild(row);});
+  const board=Array.isArray(a.engineBoard)?a.engineBoard:[];
+  const selection=a.strategySelection||{};
+  $("engineRegime").textContent=f.M5?.regime||"—";
+  $("engineDetected").textContent=board.filter(x=>x.detected).length+" / 15";
+  $("engineEligible").textContent=board.filter(x=>x.eligible).length;
+  $("engineBoardStatus").textContent=board.length?"15 engines evaluated":"Waiting for data";
+  $("engineChampion").textContent=selection.candidate
+    ? "Central selector: "+selection.candidate+" · "+selection.status+" · "+(selection.rationale||selection.adaptation||"")
+    : "Central selector: no verified engine ranking yet.";
+  const engineRows=$("engineBoardRows");engineRows.replaceChildren();
+  board.forEach(x=>{
+    const tr=document.createElement("tr");
+    const values=[x.strategy,x.detected?(x.side+" · "+fmt(x.entry)):"No setup",x.totalTrades+" closed / "+x.holdoutTrades+" holdout",x.eligible?"PAPER ELIGIBLE":(x.detected?"SHADOW · "+x.gateReason:"SHADOW · "+x.gateReason)];
+    values.forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;td.style.fontSize="11px";td.style.padding="9px 6px";if(i===3&&x.eligible)td.style.color="var(--green)";tr.appendChild(td);});
+    engineRows.appendChild(tr);
+  });
+  if(!board.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=4;td.className="empty";td.textContent="No engine evaluation returned. Verify MT5 quote and M5/M15/H1 candles.";tr.appendChild(td);engineRows.appendChild(tr);}
   drawChart();
  }
  async function analyze(){
