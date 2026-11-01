@@ -54,7 +54,7 @@ function replay(candles, m15Rows, h1Rows, start, end, costs) {
       const list = tradesBy[candidate.strategy];
       if (list.length && list[list.length - 1]._exitIndex >= i + 1) continue;
       const dir = candidate.side === "BUY" ? 1 : -1;
-      const entry = entryMid + dir * costs.spreadPrice / 2;
+      const entry = entryMid;
       const stop = candidate.stopLoss;
       const risk = Math.abs(entry - stop);
       if (!(risk > 0) || risk < f5.atr14 * .2 || risk > f5.atr14 * 3) continue;
