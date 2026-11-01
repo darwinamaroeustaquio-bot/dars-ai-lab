@@ -1592,7 +1592,7 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
   btn.disabled=true;btn.textContent="Replaying 15 engines…";$("engineLabStatus").textContent="Running";$("engineLabMessage").textContent="Loading verified M5/M15/H1 candles and replaying the exact live engine logic. This may take a little time.";
   try{
    const qs=new URLSearchParams({symbol:(document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD",spreadPrice:$("engineSpread").value,slippagePrice:$("engineSlip").value,commissionPrice:$("engineCommission").value});
-   const response=await fetch("/api/15-engine-backtest?"+qs.toString(),{cache:"no-store",headers:{Accept:"application/json"}});
+   const response=await fetch("/api/candidate-lab?engineReplay=1&"+qs.toString(),{cache:"no-store",headers:{Accept:"application/json"}});
    const d=await response.json();if(!response.ok||!d.ok)throw new Error(d.error||"15-engine backtest failed.");
    $("engineM5Count").textContent=Number(d.counts?.M5||0).toLocaleString();
    if(!d.ready){$("engineLabStatus").textContent="Waiting for data";$("engineLabMessage").textContent=d.message;return;}
