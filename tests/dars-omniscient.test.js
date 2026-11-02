@@ -96,7 +96,7 @@ const strongEvidence = {
   model: { validated: true, winProbability: 0.61 }
 };
 const trendCandidate = selectAdaptiveStrategy({ regime: "TRENDING", trend: "BULLISH" });
-assert.equal(trendCandidate.candidate, "TREND_FOLLOWING");
+assert.equal(trendCandidate.candidate, "SUPERTREND");
 assert.equal(trendCandidate.eligible, false);
 assert.equal(trendCandidate.status, "BLOCKED_BY_EVIDENCE");
 
