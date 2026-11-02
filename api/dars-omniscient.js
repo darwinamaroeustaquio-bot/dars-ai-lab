@@ -15,6 +15,7 @@ module.exports = async (req,res) => {
     if(base.diagnostics?.length || !base.frames?.M5?.ok || !base.frames?.M15?.ok || !base.frames?.H1?.ok){
       base.engine="DARS_SEVEN_CANDIDATE_ROBOT_V1";
       base.strategySelection={candidate:"NO_TRADE",status:"BLOCKED_BY_MARKET_DATA",eligible:false,rationale:base.engineBlockReason||"Verified market data is not ready.",evaluatedCandidates:7,strategyRanking:[]};
+      base.engineBoard=[];
       base.decision="WAIT";base.setup=null;
       return res.status(200).json({ok:true,analysis:base});
     }
