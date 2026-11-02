@@ -208,7 +208,7 @@ const wfSummary = rows => ({
   profitFactor: 2,
   maxDrawdownR: 0
 });
-const wf = chronologicalWalkForward(wfTrades, 0, 900_000, wfSummary, 3);
+const wf = chronologicalWalkForward(wfTrades, 0, 720_000, wfSummary, 3);
 assert.equal(wf.folds.length, 3);
 assert.equal(wf.profitableFolds, 3);
 assert.equal(wf.stable, true);
