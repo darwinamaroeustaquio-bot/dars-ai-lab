@@ -272,7 +272,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   </div>
   <div class="omni-reason" id="engineChampion">Central selector: waiting for verified market data.</div>
   <div class="tablewrap"><table><thead><tr><th>Engine</th><th>Signal</th><th>Evidence</th><th>Decision</th></tr></thead><tbody id="engineBoardRows"><tr><td colspan="4" class="empty">Waiting for MT5 candles and quote.</td></tr></tbody></table></div>
-  <p class="omni-foot">A detected setup is not automatically a winner. The selector requires at least 10 closed paper trades and 10 holdout trades, positive expectancy, PF above 1.10, drawdown within limits, no excessive loss streak, and a validated outcome model. If no engine qualifies, DARS stays in shadow research / WAIT.</p>
+  <p class="omni-foot">A detected setup is not automatically a winner. This is the separate forward-paper promotion gate after historical review: at least 10 closed paper trades plus 10 holdout trades, positive expectancy, PF above 1.10, controlled drawdown and loss streak, and a validated outcome model. Historical candidates must first pass the stricter 20-dev / 20-holdout, 2-of-3 walk-forward, PF above 1.15, max 10R drawdown and slippage-stress gates. If either stage fails, DARS stays in shadow research / WAIT.</p>
  </div>
  <div class="omni-grid">
   <div class="omni-card">
