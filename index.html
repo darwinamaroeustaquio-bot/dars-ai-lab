@@ -344,11 +344,13 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   if(quoteFresh&&bbInput.length>=20){const window=bbInput.slice(-20),m=window.reduce((a,b)=>a+b,0)/20,dev=Math.sqrt(window.reduce((z,v)=>z+(v-m)**2,0)/20);mid[mid.length-1]=m;sd[sd.length-1]=dev;}
   const bbU=mid.map((v,i)=>v==null?null:v+2*sd[i]),bbL=mid.map((v,i)=>v==null?null:v-2*sd[i]);
   const typical=valid.map(c=>(Number(c.high)+Number(c.low)+Number(c.close))/3),vol=valid.map(c=>Math.max(1,Number(c.tick_volume)||1));let cumPV=0,cumV=0;const vwap=typical.map((v,i)=>{cumPV+=v*vol[i];cumV+=vol[i];return cumPV/cumV;});
-  // Anchor the scale to verified candle history. The live quote may move
-  // only the final EMA/ribbon endpoint; it must not rescale historical points.
-  let min=Math.min(...lows),max=Math.max(...highs);
+  // Freeze the chart's vertical scale to CLOSED candles only. The forming
+  // candle and live quote are deliberately excluded, so live ticks can move
+  // the final EMA/ribbon tip without shifting the historical band.
+  const closedHighs=highs.slice(0,-1),closedLows=lows.slice(0,-1);
+  let min=Math.min(...closedLows),max=Math.max(...closedHighs);
   [ema20,ema50,ema100,ema200,vwap].forEach(a=>{const vals=a.slice(0,-1).filter(Number.isFinite);if(vals.length){min=Math.min(min,...vals);max=Math.max(max,...vals);}});
-  if(enabled("bb")){const lo=bbL.filter(Number.isFinite),hi=bbU.filter(Number.isFinite);if(lo.length&&hi.length){min=Math.min(min,...lo);max=Math.max(max,...hi);}}
+  if(enabled("bb")){const lo=bbL.slice(0,-1).filter(Number.isFinite),hi=bbU.slice(0,-1).filter(Number.isFinite);if(lo.length&&hi.length){min=Math.min(min,...lo);max=Math.max(max,...hi);}}
   if(!(max>min)){min-=1;max+=1;}const pad=(max-min)*.09;min-=pad;max+=pad;
   const left=22,right=690,top=22,bottom=385,plotH=bottom-top,step=(right-left)/valid.length,w=Math.max(2,Math.min(9,step*.62)),y=v=>bottom-(v-min)/(max-min)*plotH,x=i=>left+(i+.5)*step;
   // Shared collision-aware annotation layout: labels are nudged into free lanes.
