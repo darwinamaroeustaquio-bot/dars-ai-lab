@@ -1,5 +1,20 @@
 const assert = require("node:assert/strict");
 const { analyzeDarsMarket } = require("../lib/dars-omniscient");
+const { filterClosedCandles } = require("../lib/dars-market-data");
+
+// Historical research must exclude the MT5 bridge still-forming bar.
+const fixedNow = Date.UTC(2026, 10, 2, 12, 0, 0);
+const closeBar = { bar_time: new Date(fixedNow - 600_000).toISOString(), open: 1, high: 2, low: 0.5, close: 1.5 };
+const formingBar = { bar_time: new Date(fixedNow - 120_000).toISOString(), open: 1.5, high: 2, low: 1, close: 1.8 };
+const closedOnly = filterClosedCandles([closeBar, formingBar], "M5", fixedNow);
+assert.equal(closedOnly.candles.length, 1);
+assert.equal(closedOnly.candles[0].bar_time, closeBar.bar_time);
+assert.equal(closedOnly.excludedForming, 1);
+assert.equal(closedOnly.excludedInvalidTime, 0);
+const closedH1 = filterClosedCandles([{ bar_time: new Date(fixedNow - 3_600_000).toISOString() }, { bar_time: new Date(fixedNow - 1_800_000).toISOString() }], "H1", fixedNow);
+assert.equal(closedH1.candles.length, 1);
+assert.equal(closedH1.excludedForming, 1);
+
 
 const now = Date.now();
 const freshQuote = { bid: 4000, ask: 4000.2, received_at: new Date(now).toISOString() };
@@ -43,6 +58,10 @@ assert.ok(dashboard.includes('id="omniscientDashboard"'), "Omniscient dashboard 
 assert.ok(dashboard.includes('id="darsOmniscientRuntime"'), "Omniscient runtime must be present.");
 assert.ok(dashboard.includes("/api/dars-omniscient"), "Dashboard must call the authoritative analysis endpoint.");
 assert.ok(dashboard.includes("/api/mt5-candles"), "Dashboard must use the MT5 candle feed.");
+const candidateLabSource = fs.readFileSync(path.join(__dirname, "..", "api", "candidate-lab.js"), "utf8");
+const engineReplaySource = fs.readFileSync(path.join(__dirname, "..", "lib", "dars-15-engine-backtest.js"), "utf8");
+assert.ok(candidateLabSource.includes("filterClosedCandles"), "Candidate Lab must exclude unfinished MT5 candles.");
+assert.ok(engineReplaySource.includes("filterClosedCandles"), "19-engine replay must exclude unfinished MT5 candles.");
 console.log("DARS dashboard integration smoke tests passed.");
 
 
