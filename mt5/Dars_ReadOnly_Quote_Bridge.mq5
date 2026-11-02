@@ -1,11 +1,11 @@
 // Dars AI Lab - VT Markets MT5 Read-only Quote + Candle Bridge
 // Sends quote snapshots and M1/M5/M15/M30/H1/H4 candle history. DOES NOT trade.
 #property strict
-#property version "1.24"
+#property version "1.25"
 #property description "Read-only quote and candle sender for Dars AI Lab"
 
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
-input string CandleEndpoint = "https://dars-indol.vercel.app/api/mt5-candles";
+input string CandleEndpoint = "https://dars-indol.vercel.app/api/mt5-candles";\ninput string HistoryEndpoint = "https://dars-indol.vercel.app/api/mt5-history";\ninput int SendNewsEverySeconds = 300;
 input string BridgeToken = "SET_THE_SAME_RANDOM_TOKEN_IN_VERCEL";
 input string SymbolsCsv = "XAUUSD-STD";
 input int SendEverySeconds = 3;
@@ -15,7 +15,7 @@ input int BarsPerTimeframe = 500;
 string symbols[];
 int candleTimer = 0;
 int quoteSendCount = 0;
-int quoteTickMissCount = 0;
+int quoteTickMissCount = 0;\nint newsElapsed = 0;
 
 int OnInit()
 {
@@ -48,7 +48,67 @@ bool PostJson(const string endpoint,const string payload,const string label)
          ". Check MT5 WebRequest allow-list, exact BridgeToken, endpoint and Vercel Function Logs.");
    return false;
 }
-void SendQuote(const string sym)
+
+string EscapeNewsJson(string s)
+{
+   StringReplace(s, "\\\\", "\\\\\\\\");
+   StringReplace(s, "\\\"", "\\\\"");
+   StringReplace(s, "\\r", "");
+   StringReplace(s, "\\n", " ");
+   return s;
+}
+string NewsImportance(const ENUM_CALENDAR_EVENT_IMPORTANCE importance)
+{
+   if(importance==CALENDAR_IMPORTANCE_HIGH) return "high";
+   if(importance==CALENDAR_IMPORTANCE_MODERATE) return "moderate";
+   if(importance==CALENDAR_IMPORTANCE_LOW) return "low";
+   return "unknown";
+}
+string NewsMetric(const long value)
+{
+   if(value==LONG_MIN) return "null";
+   return DoubleToString((double)value/1000000.0,6);
+}
+void SendNewsCalendar(const string sym)
+{
+   MqlCalendarValue values[];
+   datetime from=TimeCurrent()-86400;
+   datetime to=TimeCurrent()+30*86400;
+   ResetLastError();
+   int total=CalendarValueHistory(values,from,to);
+   if(total<0)
+   {
+      Print("DARS NEWS UNAVAILABLE: MT5 CalendarValueHistory error=",GetLastError());
+      return;
+   }
+   int sent=0;
+   string news="[";
+   for(int i=0;i<MathMin(total,900);i++)
+   {
+      MqlCalendarEvent event;
+      MqlCalendarCountry country;
+      if(!CalendarEventById(values[i].event_id,event)) continue;
+      if(!CalendarCountryById(event.country_id,country)) continue;
+      if(country.currency!="USD") continue;
+      if(sent>0) news+=",";
+      news+="{\\"event_id\\":"+(string)values[i].event_id+
+         ",\\"event_time\\":"+(string)(long)values[i].time+
+         ",\\"currency\\":\\"USD\\""+
+         ",\\"event_name\\":\\""+EscapeNewsJson(event.name)+"\\""+
+         ",\\"importance\\":\\""+NewsImportance(event.importance)+"\\""+
+         ",\\"impact_type\\":"+(string)values[i].impact_type+
+         ",\\"actual_value\\":"+NewsMetric(values[i].actual_value)+
+         ",\\"forecast_value\\":"+NewsMetric(values[i].forecast_value)+
+         ",\\"previous_value\\":"+NewsMetric(values[i].prev_value)+"}";
+      sent++;
+   }
+   news+="]";
+   string payload="{\\"version\\":1,\\"account\\":\\""+(string)AccountInfoInteger(ACCOUNT_LOGIN)+
+      "\\",\\"symbol\\":\\""+sym+"\\",\\"candles\\":[],\\"deals\\":[],\\"news\\":"+news+"}";
+   if(PostJson(HistoryEndpoint,payload,"news calendar "+sym))
+      Print("DARS NEWS UPLOADED: ",sent," USD economic-calendar events.");
+}
+\nvoid SendQuote(const string sym)
 {
    MqlTick tick;
    if(!SymbolInfoTick(sym,tick)||tick.bid<=0||tick.ask<=0){
@@ -80,7 +140,7 @@ string FrameJson(const string sym,const ENUM_TIMEFRAMES tf,const string frameNam
    ResetLastError();
    int copied=CopyRates(sym,tf,0,wanted,rates);
    int copyError=GetLastError();
-   if(copied<10){Print("Dars waiting for enough ",frameName," bars on ",sym,". CopyRates=",copied," error=",copyError,". Keep MT5 connected and allow history to synchronize.");return "";}
+   int minimumBars=MathMin(10,wanted);\n   if(copied<minimumBars){Print("Dars waiting for enough ",frameName," bars on ",sym,". CopyRates=",copied," required=",minimumBars," error=",copyError,". Keep MT5 connected and allow history to synchronize.");return "";}
    // MT5 bar timestamps use broker-server clock. Convert to UTC before storing.
    // The same offset is applied to every bar in this short, current upload batch.
    long serverUtcOffset=(long)(TimeCurrent()-TimeGMT());
@@ -137,7 +197,7 @@ void OnTimer()
       string sym=symbols[i];
       if(StringLen(sym)>0){SendQuote(sym);SendLiveCandles(sym);}
    }
-   candleTimer+=MathMax(1,SendEverySeconds);
+   newsElapsed+=MathMax(1,SendEverySeconds);\n   if(newsElapsed>=MathMax(60,SendNewsEverySeconds)){\n      newsElapsed=0;\n      for(int i=0;i<ArraySize(symbols);i++){string sym=symbols[i];if(StringLen(sym)>0)SendNewsCalendar(sym);}\n   }\n   candleTimer+=MathMax(1,SendEverySeconds);
    if(candleTimer>=MathMax(10,SendCandlesEverySeconds)){
       candleTimer=0;
       for(int i=0;i<ArraySize(symbols);i++){string sym=symbols[i];if(StringLen(sym)>0)SendCandles(sym);}
