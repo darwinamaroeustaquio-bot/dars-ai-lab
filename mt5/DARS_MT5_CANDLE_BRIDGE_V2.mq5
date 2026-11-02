@@ -1,7 +1,7 @@
-// Dars AI Lab - VT Markets MT5 Read-only Broker-Clock Candle Bridge V2
+// Dars AI Lab - VT Markets MT5 Read-only Broker-Clock Fast Quote Bridge V3
 // Sends quote snapshots and M1/M5/M15/M30/H1/H4 candle history. DOES NOT trade.
 #property strict
-#property version "2.00"
+#property version "3.00"
 #property description "Read-only broker-clock quote, candle and USD news bridge for Dars AI Lab. No trading functions."
 
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
@@ -10,8 +10,8 @@ input string HistoryEndpoint = "https://dars-indol.vercel.app/api/mt5-history";
 input int SendNewsEverySeconds = 300;
 input string BridgeToken = "SET_THE_SAME_RANDOM_TOKEN_IN_VERCEL";
 input string InpSymbolsCsv = "XAUUSD-STD";
-input int SendEverySeconds = 3;
-input int SendCandlesEverySeconds = 60;
+input int SendEverySeconds = 1;
+input int SendCandlesEverySeconds = 10;
 input int BarsPerTimeframe = 500;
 
 string symbols[];
@@ -19,6 +19,8 @@ int candleTimer = 0;
 int quoteSendCount = 0;
 int quoteTickMissCount = 0;
 int newsElapsed = 0;
+int candleElapsed = 0;
+int candleFrameIndex = 0;
 
 int OnInit()
 {
@@ -44,7 +46,7 @@ bool PostJson(const string endpoint,const string payload,const string label)
    if(ArraySize(data)>0)ArrayResize(data,ArraySize(data)-1);
    string headers="Content-Type: application/json\r\nX-Bridge-Token: "+BridgeToken+"\r\n";
    ResetLastError();
-   int code=WebRequest("POST",endpoint,headers,10000,data,result,resultHeaders);
+   int code=WebRequest("POST",endpoint,headers,2500,data,result,resultHeaders);
    string responseText=CharArrayToString(result,0,-1,CP_UTF8);
    if(code>=200 && code<300){ Print("Dars ",label," HTTP OK: ",code," response=",responseText); return true; }
    Print("Dars ",label," failed. HTTP=",code," MT5 error=",GetLastError()," response=",responseText,
@@ -184,6 +186,20 @@ void SendCandles(const string sym)
    PostFrame(sym,"H1",h1);
    PostFrame(sym,"H4",h4);
 }
+void SendOneCandleFrame(const string sym,const int frameIndex)
+{
+   // Upload only one timeframe per cycle so quote delivery stays the priority.
+   switch(frameIndex)
+   {
+      case 0: PostFrame(sym,"M1",FrameJson(sym,PERIOD_M1,"M1",BarsPerTimeframe)); break;
+      case 1: PostFrame(sym,"M5",FrameJson(sym,PERIOD_M5,"M5",BarsPerTimeframe)); break;
+      case 2: PostFrame(sym,"M15",FrameJson(sym,PERIOD_M15,"M15",BarsPerTimeframe)); break;
+      case 3: PostFrame(sym,"M30",FrameJson(sym,PERIOD_M30,"M30",BarsPerTimeframe)); break;
+      case 4: PostFrame(sym,"H1",FrameJson(sym,PERIOD_H1,"H1",BarsPerTimeframe)); break;
+      case 5: PostFrame(sym,"H4",FrameJson(sym,PERIOD_H4,"H4",BarsPerTimeframe)); break;
+   }
+   candleFrameIndex=(candleFrameIndex+1)%6;
+}
 void SendLiveCandles(const string sym)
 {
    // Refresh only the newest bars frequently; do not resend hundreds of bars every few seconds.
@@ -196,18 +212,33 @@ void SendLiveCandles(const string sym)
 }
 void OnTimer()
 {
-   for(int i=0;i<ArraySize(symbols);i++){
+   // Fast path: send the latest broker tick first on every timer event.
+   for(int i=0;i<ArraySize(symbols);i++)
+   {
       string sym=symbols[i];
-      if(StringLen(sym)>0){SendQuote(sym);SendLiveCandles(sym);}
+      if(StringLen(sym)>0) SendQuote(sym);
    }
+
    newsElapsed+=MathMax(1,SendEverySeconds);
-   if(newsElapsed>=MathMax(60,SendNewsEverySeconds)){
+   if(newsElapsed>=MathMax(60,SendNewsEverySeconds))
+   {
       newsElapsed=0;
-      for(int i=0;i<ArraySize(symbols);i++){string sym=symbols[i];if(StringLen(sym)>0)SendNewsCalendar(sym);}
+      for(int i=0;i<ArraySize(symbols);i++)
+      {
+         string sym=symbols[i];
+         if(StringLen(sym)>0) SendNewsCalendar(sym);
+      }
    }
-   candleTimer+=MathMax(1,SendEverySeconds);
-   if(candleTimer>=MathMax(10,SendCandlesEverySeconds)){
-      candleTimer=0;
-      for(int i=0;i<ArraySize(symbols);i++){string sym=symbols[i];if(StringLen(sym)>0)SendCandles(sym);}
+
+   // One timeframe per interval; rotate six frames rather than posting all six every 3 seconds.
+   candleElapsed+=MathMax(1,SendEverySeconds);
+   if(candleElapsed>=MathMax(10,SendCandlesEverySeconds))
+   {
+      candleElapsed=0;
+      for(int i=0;i<ArraySize(symbols);i++)
+      {
+         string sym=symbols[i];
+         if(StringLen(sym)>0) SendOneCandleFrame(sym,candleFrameIndex);
+      }
    }
 }
