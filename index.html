@@ -559,7 +559,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 </div>
 <p class="note" id="newsFilterExplanation">The MT5 EA checks its built-in economic calendar for high-impact events affecting the symbol currencies (including USD events for XAU/XAG and BTC/ETH symbols). If the calendar query fails, it blocks new entries. This panel displays configured defaults only; it does not verify live calendar data or EA compilation.</p>
 <div class="row" style="justify-content:flex-start"><a class="btn" href="https://github.com/darwinamaroeustaquio-bot/dars-ai-lab/blob/main/mt5/Dars_AutoTrader_SafetyLocked.mq5" target="_blank" rel="noopener noreferrer" style="text-decoration:none">Open MT5 EA code</a><button class="btn" id="newsFilterInfo" type="button">Check setup notes</button></div>
-<p class="note" id="newsFilterInfoText" hidden>In MetaEditor, compile the EA and review the Errors tab. The built-in calendar filter must be validated on your MT5 terminal; do not enable live orders until compilation, calendar behavior, order sizing, SL/TP and stop controls are tested. Economic-calendar functions may not work in Strategy Tester the same way as a live terminal, so validate this limitation separately.</p>
+<p class="note" id="newsFilterInfoText" hidden>The news filter must use the independent external economic-calendar feed, never the broker/MT5 calendar. Keep the filter in WAIT / unavailable state until the external feed is authenticated, timestamped and verified. Do not infer or fabricate events.</p>
 </section>
 <section class="panel" id="adaptiveSignalPanel" style="margin-bottom:15px;border-color:#356a61">
 <div class="row"><div><div class="eyebrow">Adaptive multi-timeframe monitor</div><h2 style="margin:5px 0 8px">Automatic setup watch</h2></div><span class="tag" id="adaptiveFeedStatus">Waiting for candle feed</span></div>
@@ -1628,7 +1628,7 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
    const aggregate=(key)=>sumRows.reduce((acc,x)=>{const m=x.sessionAnalysis?.holdout?.[key];if(m){acc.trades+=m.trades||0;acc.netR+=m.netR||0;}return acc;},{trades:0,netR:0});
    const london=aggregate("LONDON"),ny=aggregate("NEW_YORK");
    const news= sumRows.reduce((acc,x)=>{const m=x.newsAnalysis?.holdout?.within30Minutes;if(m){acc.trades+=m.trades||0;acc.netR+=m.netR||0;}return acc;},{trades:0,netR:0});
-   $("engineNewsStatus").textContent=(d.newsCalendar?.status||"UNKNOWN")+(d.newsCalendar?.verified===false?" · BROKER FEED ONLY":"");
+   $("engineNewsStatus").textContent=(d.newsCalendar?.status||"UNKNOWN");
    $("engineNewsCount").textContent=(d.newsCalendar?.eventCount??0)+" historical events · "+(d.newsCalendar?.source||"source unavailable");
    $("engineLondonTrades").textContent=london.trades.toLocaleString();
    $("engineLondonExp").textContent="Aggregate "+fmt(london.netR)+"R across candidates";
