@@ -27,7 +27,7 @@ assert.equal(result.setup.side,"BUY");
 assert.equal(result.setup.maxBars,12);
 assert.equal(result.setup.stopMultiple,1);
 assert.equal(result.setup.targetR,1.5);
-assert.ok(Math.abs(result.setup.stopLoss-result.setup.entry-1)<1e-8);
+assert.ok(Math.abs(result.setup.entry-result.setup.stopLoss-1)<1e-8);
 assert.ok(Math.abs(result.setup.takeProfit2-result.setup.entry-1.5)<1e-8);
 
 const trendResult=analyzeSevenCandidatePool({frames:{...frames,M5:{...frame,regime:"TRENDING"}},quote:{bid:100,ask:100.1},paperTrades:[]});
