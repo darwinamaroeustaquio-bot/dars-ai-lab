@@ -242,7 +242,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
    </div>
    <div class="omni-chart-tools">
     <div class="omni-toggle-list">
-     <label><input type="checkbox" data-overlay="ema20" checked> EMA 20</label><label><input type="checkbox" data-overlay="ema50" checked> EMA 50</label><label><input type="checkbox" data-overlay="ema100" checked> EMA 100</label><label><input type="checkbox" data-overlay="ema200" checked> EMA 200 · LONG-TERM TREND</label><label><input type="checkbox" data-overlay="bb"> Bollinger</label><label><input type="checkbox" data-overlay="vwap"> VWAP</label><label><input type="checkbox" data-overlay="sr" checked> Support / Resistance</label><label><input type="checkbox" data-overlay="poi" checked> POI · Supply / Demand</label><label><input type="checkbox" data-overlay="equal" checked> Equal Highs / Lows</label><label><input type="checkbox" data-overlay="trendline" checked> Trendlines</label><label><input type="checkbox" data-overlay="structure" checked> BOS / MSS / Sweep</label><label><input type="checkbox" data-overlay="marketStructure" checked> High / Low · HH / HL / LH / LL</label><label><input type="checkbox" data-overlay="trade" checked> Entry / SL / TP</label><label><input type="checkbox" data-panel="omniRSI" checked> RSI panel</label><label><input type="checkbox" data-panel="omniSTOCH" checked> Stochastic panel</label><label><input type="checkbox" data-panel="omniCCI" checked> CCI panel</label><label><input type="checkbox" data-panel="omniMACD" checked> MACD panel</label>
+     <label><input type="checkbox" data-overlay="ema20" checked> EMA 20</label><label><input type="checkbox" data-overlay="ema50" checked> EMA 50</label><label><input type="checkbox" data-overlay="ema100" checked> EMA 100</label><label><input type="checkbox" data-overlay="ema200" checked> EMA 200 · LONG-TERM TREND</label><label><input type="checkbox" data-overlay="emaBands" checked> EMA RIBBON BANDS</label><label><input type="checkbox" data-overlay="bb"> Bollinger</label><label><input type="checkbox" data-overlay="vwap"> VWAP</label><label><input type="checkbox" data-overlay="sr" checked> Support / Resistance</label><label><input type="checkbox" data-overlay="poi" checked> POI · Supply / Demand</label><label><input type="checkbox" data-overlay="equal" checked> Equal Highs / Lows</label><label><input type="checkbox" data-overlay="trendline" checked> Trendlines</label><label><input type="checkbox" data-overlay="structure" checked> BOS / MSS / Sweep</label><label><input type="checkbox" data-overlay="marketStructure" checked> High / Low · HH / HL / LH / LL</label><label><input type="checkbox" data-overlay="trade" checked> Entry / SL / TP</label><label><input type="checkbox" data-panel="omniRSI" checked> RSI panel</label><label><input type="checkbox" data-panel="omniSTOCH" checked> Stochastic panel</label><label><input type="checkbox" data-panel="omniCCI" checked> CCI panel</label><label><input type="checkbox" data-panel="omniMACD" checked> MACD panel</label>
     </div>
    </div>
    <div class="omni-chart-wrap"><svg id="omniChart" viewBox="0 0 800 460" role="img" aria-label="Live MT5 candlestick chart with selectable technical overlays"></svg></div>
@@ -264,14 +264,14 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   </div>
  </div>
  <div class="omni-card">
-  <div class="row" style="align-items:flex-start"><div><div class="omni-eyebrow">19-engine adaptive intelligence</div><h2 style="margin:7px 0">Strategy engine competition</h2><p class="omni-muted">All engines scan closed MT5 candles. Each nominates its setup; the central selector ranks regime-matched candidates. Only strategies that pass the evidence gate can become active paper candidates.</p></div><span class="omni-status" id="engineBoardStatus">Awaiting verified data</span></div>
+  <div class="row" style="align-items:flex-start"><div><div class="omni-eyebrow">7-CANDIDATE ADAPTIVE INTELLIGENCE</div><h2 style="margin:7px 0">Live strategy scoring</h2><p class="omni-muted">Seven research candidates are re-scored against the latest verified MT5 market conditions. Scores are strategy-fit rankings, not win probabilities; paper outcomes gradually influence the score when matching forward trades exist.</p></div><span class="omni-status" id="engineBoardStatus">Awaiting verified data</span></div>
   <div class="omni-metrics" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px">
    <div class="omni-metric"><small>MARKET REGIME</small><strong id="engineRegime">—</strong></div>
-   <div class="omni-metric"><small>SETUPS DETECTED</small><strong id="engineDetected">0 / 19</strong></div>
+   <div class="omni-metric"><small>SETUPS DETECTED</small><strong id="engineDetected">0 / 7</strong></div>
    <div class="omni-metric"><small>ACTIVE PAPER ELIGIBLE</small><strong id="engineEligible">0</strong></div>
   </div>
   <div class="omni-reason" id="engineChampion">Central selector: waiting for verified market data.</div>
-  <div class="tablewrap"><table><thead><tr><th>Engine</th><th>Signal</th><th>Evidence</th><th>Decision</th></tr></thead><tbody id="engineBoardRows"><tr><td colspan="4" class="empty">Waiting for MT5 candles and quote.</td></tr></tbody></table></div>
+  <div class="tablewrap"><table><thead><tr><th>Strategy</th><th>Live score</th><th>Signal</th><th>Paper evidence</th><th>Status</th></tr></thead><tbody id="engineBoardRows"><tr><td colspan="5" class="empty">Waiting for MT5 candles and quote.</td></tr></tbody></table></div>
   <p class="omni-foot">A detected setup is not automatically a winner. This is the separate forward-paper promotion gate after historical review: at least 100 closed forward-paper trades, including 30 untouched chronological holdout trades, positive expectancy, PF above 1.15, drawdown no more than 6R, no more than 4 consecutive losses, and a validated outcome model with at least 55% estimated win probability. Paper review can collect evidence before promotion; no strategy is declared a winner before all gates pass. Historical candidates must first pass the stricter 20-dev / 20-holdout, 2-of-3 walk-forward, PF above 1.15, max 10R drawdown and slippage-stress gates. If promotion gates fail, DARS stays in paper review / WAIT and never sends live orders.</p>
  </div>
  <div class="omni-grid">
@@ -352,6 +352,8 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   [0,Math.floor((valid.length-1)/3),Math.floor(2*(valid.length-1)/3),valid.length-1].forEach(i=>{const t=candleTime(i);if(t)el(svg,"text",{x:x(i),y:410,fill:"#64748b","font-size":10,"text-anchor":"middle"},t);});
   el(svg,"text",{x:left,y:442,fill:"#64748b","font-size":9},"XAUUSD-STD · "+tf+" · MT5");
   const path=(arr,color,width=1.6,dash="")=>{let d="";arr.forEach((v,i)=>{if(!Number.isFinite(v))return;d+=(d?" L":"M")+x(i)+" "+y(v);});if(d)el(svg,"path",{d,fill:"none",stroke:color,"stroke-width":width,"stroke-dasharray":dash});};
+  const ribbon=(a,b,color)=>{const ids=[];for(let i=0;i<Math.min(a.length,b.length);i++)if(Number.isFinite(a[i])&&Number.isFinite(b[i]))ids.push(i);if(ids.length<2)return;let d="M"+ids.map(i=>x(i)+" "+y(a[i])).join(" L")+" L"+ids.slice().reverse().map(i=>x(i)+" "+y(b[i])).join(" L")+" Z";el(svg,"path",{d,fill:color,opacity:.13,stroke:"none"});};
+  if(enabled("emaBands")){ribbon(ema20,ema50,"#079669");ribbon(ema50,ema100,"#2876c7");ribbon(ema100,ema200,"#d69a24");}
   if(enabled("bb")){path(bbU,"#9b83e8",1.2);path(mid,"#9b83e8",.8,"3 3");path(bbL,"#9b83e8",1.2);}
   if(enabled("vwap"))path(vwap,"#f3c66d",1.7,"5 3");
   valid.forEach((c,i)=>{const o=opens[i],h=highs[i],l=lows[i],cl=closes[i],col=cl>=o?"#48e0ad":"#ff7187";el(svg,"line",{x1:x(i),y1:y(h),x2:x(i),y2:y(l),stroke:col,"stroke-width":1.3});el(svg,"rect",{x:x(i)-w/2,y:Math.min(y(o),y(cl)),width:w,height:Math.max(1.5,Math.abs(y(o)-y(cl))),fill:col,rx:1});});
@@ -495,20 +497,23 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const board=Array.isArray(a.engineBoard)?a.engineBoard:[];
   const selection=a.strategySelection||{};
   $("engineRegime").textContent=f.M5?.regime||"—";
-  $("engineDetected").textContent=board.filter(x=>x.detected).length+" / "+(board.length||19);
+  $("engineDetected").textContent=board.filter(x=>x.detected).length+" / 7;
   $("engineEligible").textContent=board.filter(x=>x.eligible).length;
-  $("engineBoardStatus").textContent=board.length?"19 engines evaluated":"Waiting for data";
+  $("engineBoardStatus").textContent=board.length?"7 strategies scored · live refresh":"Waiting for verified data";
   $("engineChampion").textContent=selection.candidate
     ? "Central selector: "+selection.candidate+" · "+selection.status+" · "+(selection.rationale||selection.adaptation||"")
     : "Central selector: no verified engine ranking yet.";
   const engineRows=$("engineBoardRows");engineRows.replaceChildren();
   board.forEach(x=>{
     const tr=document.createElement("tr");
-    const values=[x.strategy,x.detected?(x.side+" · "+fmt(x.entry)):"No setup",x.totalTrades+" closed / "+x.holdoutTrades+" holdout",x.eligible?"PAPER ELIGIBLE":(x.detected?"SHADOW · "+x.gateReason:"SHADOW · "+x.gateReason)];
-    values.forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;td.style.fontSize="11px";td.style.padding="9px 6px";if(i===3&&x.eligible)td.style.color="var(--green)";tr.appendChild(td);});
+    const score=Number.isFinite(Number(x.score))?Number(x.score):null;
+    const evidence=Number(x.forwardTrades)>0?String(x.forwardTrades)+" forward · "+Number(x.forwardWinRate||0).toFixed(1)+"% WR":String(x.holdoutTrades||0)+" holdout · no forward sample";
+    const status=x.paused?"PAUSED":x.eligible?"PAPER SETUP":(x.reason||"SHADOW · WAIT");
+    const values=[x.strategy,score===null?"—":score.toFixed(1)+"%",x.detected?(x.side+" · "+fmt(x.entry)):"No setup",evidence,status];
+    values.forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;td.style.fontSize="11px";td.style.padding="9px 6px";if(i===1){td.style.fontWeight="850";td.style.color=score>=75?"var(--green)":score>=60?"var(--gold)":"var(--muted)";}if(i===4&&x.eligible)td.style.color="var(--green)";if(i===4&&x.paused)td.style.color="var(--red)";tr.appendChild(td);});
     engineRows.appendChild(tr);
   });
-  if(!board.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=4;td.className="empty";td.textContent="No engine evaluation returned. Verify MT5 quote and M5/M15/H1 candles.";tr.appendChild(td);engineRows.appendChild(tr);}
+  if(!board.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=5;td.className="empty";td.textContent="Waiting for all verified MT5 frames and quote before scoring the seven strategies.";tr.appendChild(td);engineRows.appendChild(tr);}
   drawChart();
  }
  async function analyze(){
