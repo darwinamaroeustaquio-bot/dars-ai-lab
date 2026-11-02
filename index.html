@@ -1628,8 +1628,8 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
    const aggregate=(key)=>sumRows.reduce((acc,x)=>{const m=x.sessionAnalysis?.holdout?.[key];if(m){acc.trades+=m.trades||0;acc.netR+=m.netR||0;}return acc;},{trades:0,netR:0});
    const london=aggregate("LONDON"),ny=aggregate("NEW_YORK");
    const news= sumRows.reduce((acc,x)=>{const m=x.newsAnalysis?.holdout?.within30Minutes;if(m){acc.trades+=m.trades||0;acc.netR+=m.netR||0;}return acc;},{trades:0,netR:0});
-   $("engineNewsStatus").textContent=d.newsCalendar?.status||"UNKNOWN";
-   $("engineNewsCount").textContent=(d.newsCalendar?.eventCount??0)+" historical events · "+(d.newsCalendar?.source||"source unavailable");
+   $("engineNewsStatus").textContent=(d.newsCalendar?.status||"UNKNOWN")+(d.newsCalendar?.verified===false?" · BROKER FEED ONLY":"");
+   $("engineNewsCount").textContent=(d.newsCalendar?.eventCount??0)+" historical events · "+(d.newsCalendar?.source||"source unavailable")+" · NOT INDEPENDENTLY VERIFIED";
    $("engineLondonTrades").textContent=london.trades.toLocaleString();
    $("engineLondonExp").textContent="Aggregate "+fmt(london.netR)+"R across candidates";
    $("engineNYTrades").textContent=ny.trades.toLocaleString();
