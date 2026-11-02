@@ -49,7 +49,7 @@ table{max-width:100%}
   <div class="level"><small>Quote spread</small><strong id="spread">—</strong></div>
   <div class="level"><small>Engine</small><strong id="engineVersion">—</strong></div>
  </div>
- <p class="note" id="selectorReason">The Robot ranks only the seven approved Williams %R and Stochastic candidates. Minimum paper-entry score: 60%. A score is a research rating, not win probability.</p><p class="note">Research integrity: your report did not include exact oscillator periods/entry bands. The forward-paper build uses provisional 14-period standard bands (Stochastic 20/80 or 25/75; Williams %R -80/-20, -75/-25 or -70/-30). Stop, target and time limits follow your table. Do not compare new paper results as an exact reproduction of the historical report until the original entry parameters are confirmed.</p><div class="strategy-picker"><label for="strategyChoice"><strong>Strategy control</strong></label><select id="strategyChoice"><option value="ROBOT_AUTO">🤖 ROBOT AUTO — choose highest score with valid signal</option><option value="WILLIAMS_REVERSION-STRICT-V2">WILLIAMS REVERSION · STRICT V2</option><option value="STOCHASTIC_REVERSION-BASE-V4">STOCHASTIC REVERSION · BASE V4</option><option value="WILLIAMS_REVERSION-BASE-V4">WILLIAMS REVERSION · BASE V4</option><option value="WILLIAMS_REVERSION-SENSITIVE-V4">WILLIAMS REVERSION · SENSITIVE V4</option><option value="STOCHASTIC_REVERSION-STRICT-V4">STOCHASTIC REVERSION · STRICT V4</option><option value="WILLIAMS_REVERSION-STRICT-V4">WILLIAMS REVERSION · STRICT V4</option><option value="STOCHASTIC_REVERSION-BASE-V2">STOCHASTIC REVERSION · BASE V2</option></select><span id="strategyModeStatus" class="pill">ROBOT AUTO</span></div><p class="strategy-hint" id="strategyModeHint">Auto mode ranks the seven candidates and only selects one with a valid closed-candle signal. Manual mode will use only your selected strategy; it will not silently switch to another.</p><div class="scroll" style="margin-top:10px"><table style="min-width:1180px"><thead><tr><th>Strategy</th><th>Score %</th><th>Dev / Holdout</th><th>Holdout win</th><th>Net R</th><th>PF</th><th>Max DD</th><th>Forward trades</th><th>Forward exp.</th><th>Signal / status</th></tr></thead><tbody id="candidateBoard"><tr><td colspan="10" class="empty">Loading seven approved candidates…</td></tr></tbody></table></div>
+ <p class="note" id="selectorReason">The Robot ranks only the seven approved Williams %R and Stochastic candidates. Minimum paper-entry score: 60%. A score is a research rating, not win probability.</p><p class="note">Research integrity: your report did not include exact oscillator periods/entry bands. The forward-paper build uses provisional 14-period standard bands (Stochastic 20/80 or 25/75; Williams %R -80/-20, -75/-25 or -70/-30). Stop, target and time limits follow your table. Do not compare new paper results as an exact reproduction of the historical report until the original entry parameters are confirmed.</p><div class="strategy-picker"><label for="strategyChoice"><strong>Strategy control</strong></label><select id="strategyChoice"><option value="ROBOT_AUTO">🤖 ROBOT AUTO — choose highest score with valid signal</option><option value="WILLIAMS_REVERSION-STRICT-V2">WILLIAMS REVERSION · STRICT V2</option><option value="STOCHASTIC_REVERSION-BASE-V4">STOCHASTIC REVERSION · BASE V4</option><option value="WILLIAMS_REVERSION-BASE-V4">WILLIAMS REVERSION · BASE V4</option><option value="WILLIAMS_REVERSION-SENSITIVE-V4">WILLIAMS REVERSION · SENSITIVE V4</option><option value="STOCHASTIC_REVERSION-STRICT-V4">STOCHASTIC REVERSION · STRICT V4</option><option value="WILLIAMS_REVERSION-STRICT-V4">WILLIAMS REVERSION · STRICT V4</option><option value="STOCHASTIC_REVERSION-BASE-V2">STOCHASTIC REVERSION · BASE V2</option></select><span id="strategyModeStatus" class="pill">ROBOT AUTO</span></div><p class="strategy-hint" id="strategyModeHint">Auto mode ranks the seven candidates and only selects one with a valid closed-candle signal. Manual mode will use only your selected strategy; it will not silently switch to another.</p><div class="scroll" style="margin-top:10px"><table style="min-width:1600px"><thead><tr><th>Strategy</th><th>Score %</th><th>Dev / Holdout</th><th>Holdout win</th><th>Holdout Net R</th><th>Holdout Exp.</th><th>Holdout PF</th><th>Holdout DD</th><th>Forward trades</th><th>Forward W/L</th><th>Forward win %</th><th>Forward Net R</th><th>Forward Exp.</th><th>Forward PF</th><th>Forward DD</th><th>Signal / status</th></tr></thead><tbody id="candidateBoard"><tr><td colspan="16" class="empty">Loading seven approved candidates…</td></tr></tbody></table></div>
 </section>
 
 <section class="panel">
@@ -65,14 +65,14 @@ table{max-width:100%}
 </section>
 
 <section class="panel">
- <div class="row"><h2 style="margin:0">Paper-trade performance</h2><span class="pill">Browser-local journal · forward test</span></div>
+ <div class="row"><h2 style="margin:0">Paper-trade performance</h2><span class="pill">Seven independent virtual journals · browser-local</span></div>
  <div class="metrics" style="margin-top:12px">
   <div class="metric">Net result<strong id="netR">0.00R</strong><small>After simulated TP/SL outcomes</small></div>
   <div class="metric">Win rate<strong id="winRate">—</strong><small>Closed virtual positions</small></div>
   <div class="metric">Profit factor<strong id="profitFactor">—</strong><small>Gross wins ÷ gross losses</small></div>
   <div class="metric">Open positions<strong id="openCount">0</strong><small>Robot-generated only</small></div>
  </div>
- <p class="note">Journal is stored in this browser only; it is not yet a server-authoritative evidence journal and is not fed back into the Robot's evidence gate. After TP1, the simulator can close early if price closes back through TP1 or two consecutive candles close against the position; it records the actual simulated exit price and realized R instead of assuming a fixed profit. If SL and TP2 are both touched in one candle, SL is counted first conservatively. Results are simulated and do not prove live profitability; no extra slippage or commission model is applied here.</p>
+ <p class="note">Each of the seven candidates has an independent virtual journal; one open trade does not block the other six. After TP1, the simulator can close early if price closes back through TP1 or two consecutive candles close against the position; it records the actual simulated exit price and realized R. If SL and TP2 are both touched in one candle, SL is counted first conservatively. Journals are browser-local on this device and not yet server-authoritative. Results are simulated, not proof of live profitability; no extra slippage or commission model is applied.</p>
 </section>
 
 <section class="panel"><div class="row"><h2 style="margin:0">Virtual trade history</h2><span id="historyCount" class="pill">0 records</span></div><div class="scroll" style="margin-top:10px"><table><thead><tr><th>Opened</th><th>Approach</th><th>Side</th><th>Entry</th><th>SL</th><th>TP1 / TP2</th><th>Status</th><th>Exit reason</th><th>Net R</th></tr></thead><tbody id="history"><tr><td colspan="9" class="empty">No Robot-generated virtual trades yet. WAIT is a valid result.</td></tr></tbody></table></div></section>
@@ -99,7 +99,7 @@ let book={trades:[],open:null,netR:0};
 const n=v=>Number.isFinite(Number(v))?Number(v):0;
 const fmt=v=>Number.isFinite(Number(v))?Number(v).toFixed(2):"—";
 const time=v=>v?new Date(v).toLocaleString():"—";
-function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||"null");if(x&&Array.isArray(x.trades)){book=x;book.open=book.open||null;book.netR=n(book.netR);}}catch(e){}}
+function load(){try{const x=JSON.parse(localStorage.getItem(STORE)||"null");if(x&&Array.isArray(x.trades)){book=x;book.trades=book.trades||[];if(book.open&&!book.trades.some(t=>t.id===book.open.id))book.trades.push(book.open);delete book.open;book.netR=n(book.netR);}}catch(e){}}
 function save(){try{localStorage.setItem(STORE,JSON.stringify(book));}catch(e){$("feedStatus").textContent="Browser storage is full; journal could not be saved.";}}
 function say(id,value){$(id).textContent=value==null?"—":String(value);}
 function setState(value){say("engineState",value);$("engineState").className=value==="RUNNING"?"good":"tag";}
@@ -107,7 +107,7 @@ async function getJSON(url){const r=await fetch(url,{cache:"no-store",headers:{A
 async function getFrame(tf){const d=await getJSON("/api/mt5-candles?symbol="+SYMBOL+"&timeframe="+tf+"&limit=120");return d.candles||[];}
 function renderHistory(){
  const rows=book.trades.slice().reverse();$("historyCount").textContent=rows.length+" records";$("closedCount").textContent=book.trades.filter(t=>t.status==="CLOSED").length;
- $("openCount").textContent=book.open?1:0;
+ $("openCount").textContent=book.trades.filter(t=>t.status==="OPEN").length;
  const closed=book.trades.filter(t=>t.status==="CLOSED"),wins=closed.filter(t=>n(t.netR)>0),losses=closed.filter(t=>n(t.netR)<0),grossWin=wins.reduce((a,t)=>a+n(t.netR),0),grossLoss=Math.abs(losses.reduce((a,t)=>a+n(t.netR),0));
  const net=closed.reduce((a,t)=>a+n(t.netR),0),wr=closed.length?wins.length/closed.length*100:null,pf=grossLoss?grossWin/grossLoss:grossWin?Infinity:null;
  book.netR=Number(net.toFixed(4));say("netR",net.toFixed(2)+"R");say("winRate",wr===null?"—":wr.toFixed(1)+"%");say("profitFactor",pf===null?"—":pf===Infinity?"∞":pf.toFixed(2));say("tradePerformance",closed.length?closed.length+" closed · "+wins.length+" wins / "+losses.length+" losses":"No paper results yet");
@@ -119,64 +119,72 @@ function renderSetup(a){
  if(!s){say("side","WAIT");["entry","stop","tp1","tp2"].forEach(id=>say(id,"—"));say("setupState","NO ACTIVE SETUP");return;}
  say("side",s.side);say("entry",fmt(s.entry));say("stop",fmt(s.stopLoss));say("tp1",fmt(s.takeProfit1));say("tp2",fmt(s.takeProfit2));say("setupState","ROBOT SETUP READY");
 }
-function updateOpenTrade(bars){
- const t=book.open;if(!t)return;
- const realizedR=price=>Number(((t.side==="BUY"?price-t.entry:t.entry-price)/t.riskDistance).toFixed(4));
- for(const bar of bars){
-  const bt=bar.bar_time||bar.time;if(!bt||new Date(bt).getTime()<=new Date(t.entryBarTime).getTime())continue;
-  const hi=n(bar.high),lo=n(bar.low),open=n(bar.open),close=n(bar.close);
-  const slHit=t.side==="BUY"?lo<=t.stopLoss:hi>=t.stopLoss;
-  const tp1Hit=t.side==="BUY"?hi>=t.tp1:lo<=t.tp1;
-  const tp2Hit=t.side==="BUY"?hi>=t.tp2:lo<=t.tp2;
-  // Conservative intrabar ordering: if SL and any target are touched in one candle, count SL.
-  if(slHit){t.exitReason=tp2Hit?"SL and TP2 touched in same candle; conservative SL-first accounting":"Stop loss";t.netR=-Math.abs(Number(t.stopMultiple)||1);t.status="CLOSED";t.closedAt=bt;t.exit=t.stopLoss;book.open=null;save();break;}
-  if(tp2Hit){t.tp1Hit=true;t.exitReason="TP2 reached";t.netR=Number(t.targetR||2.5);t.status="CLOSED";t.closedAt=bt;t.exit=t.tp2;book.open=null;save();break;}
-  if(tp1Hit&&!t.tp1Hit){t.tp1Hit=true;t.tp1ReachedAt=bt;t.adverseCloses=0;t.exitReason="TP1 reached; monitoring momentum before TP2";save();}
-  if(t.tp1Hit){
-   const adverse=t.side==="BUY"?close<open:close>open;
-   t.adverseCloses=adverse?(Number(t.adverseCloses)||0)+1:0;
-   const crossedBack=t.side==="BUY"?close<t.tp1:close>t.tp1;
-   const twoWeakCloses=Number(t.adverseCloses)>=2;
-   if(crossedBack||twoWeakCloses){
-    t.status="CLOSED";t.closedAt=bt;t.exit=close;t.netR=realizedR(close);
-    t.exitReason=crossedBack
-      ?"Early TP1 protection: price closed back through TP1 before TP2"
-      :"Early TP1 protection: two consecutive candles closed against the position; TP2 momentum weakened";
-    book.open=null;save();break;
+function updateOpenTrades(bars){
+ const openTrades=book.trades.filter(t=>t.status==="OPEN");
+ for(const t of openTrades){
+  const realizedR=price=>Number(((t.side==="BUY"?price-t.entry:t.entry-price)/t.riskDistance).toFixed(4));
+  for(const bar of bars){
+   const bt=bar.bar_time||bar.time;if(!bt||new Date(bt).getTime()<=new Date(t.entryBarTime).getTime())continue;
+   const hi=n(bar.high),lo=n(bar.low),open=n(bar.open),close=n(bar.close);
+   const slHit=t.side==="BUY"?lo<=t.stopLoss:hi>=t.stopLoss;
+   const tp1Hit=t.side==="BUY"?hi>=t.tp1:lo<=t.tp1;
+   const tp2Hit=t.side==="BUY"?hi>=t.tp2:lo<=t.tp2;
+   if(slHit){t.exitReason=tp2Hit?"SL and TP2 touched in same candle; conservative SL-first accounting":"Stop loss";t.netR=-Math.abs(Number(t.stopMultiple)||1);t.status="CLOSED";t.closedAt=bt;t.exit=t.stopLoss;save();break;}
+   if(tp2Hit){t.tp1Hit=true;t.exitReason="TP2 reached";t.netR=Number(t.targetR||2.5);t.status="CLOSED";t.closedAt=bt;t.exit=t.tp2;save();break;}
+   if(tp1Hit&&!t.tp1Hit){t.tp1Hit=true;t.tp1ReachedAt=bt;t.adverseCloses=0;t.exitReason="TP1 reached; monitoring momentum before TP2";save();}
+   if(t.tp1Hit){
+    const adverse=t.side==="BUY"?close<open:close>open;
+    t.adverseCloses=adverse?(Number(t.adverseCloses)||0)+1:0;
+    const crossedBack=t.side==="BUY"?close<t.tp1:close>t.tp1;
+    if(crossedBack||t.adverseCloses>=2){
+     t.status="CLOSED";t.closedAt=bt;t.exit=close;t.netR=realizedR(close);
+     t.exitReason=crossedBack?"Early TP1 protection: close crossed back through TP1":"Early TP1 protection: two consecutive candles closed against the position";
+     save();break;
+    }
+    save();
    }
-   save();
+   const openedIndex=t.entryBarTime?new Date(t.entryBarTime).getTime():0,maxBars=Math.max(1,Number(t.maxBars)||12);
+   if(openedIndex&&new Date(bt).getTime()-openedIndex>=maxBars*300000){t.status="CLOSED";t.exitReason="Time exit after "+maxBars+" closed M5 candles";t.netR=realizedR(close);t.closedAt=bt;t.exit=close;save();break;}
   }
-  const openedIndex=t.entryBarTime?new Date(t.entryBarTime).getTime():0,maxBars=Math.max(1,Number(t.maxBars)||12);
-  if(openedIndex&&new Date(bt).getTime()-openedIndex>=maxBars*300000){t.status="CLOSED";t.exitReason="Time exit after "+maxBars+" closed M5 candles";t.netR=realizedR(close);t.closedAt=bt;t.exit=close;book.open=null;save();break;}
  }
 }
-function createVirtualTrade(a,bar,quote){
- if(!a||!["BUY","SELL"].includes(a.decision)||!a.setup)return;
- const s=a.setup,key=SYMBOL+"|"+(bar.bar_time||bar.time)+"|"+a.decision;
- if(key===lastSignalKey||book.trades.some(t=>t.signalKey===key)||book.open)return;
- if(![s.entry,s.stopLoss,s.takeProfit1,s.takeProfit2].every(v=>Number.isFinite(Number(v))))return;
- const risk=Math.abs(n(s.entry)-n(s.stopLoss));if(!(risk>0))return;
- const t={id:key,signalKey:key,openedAt:new Date().toISOString(),entryBarTime:bar.bar_time||bar.time,strategy:a.strategySelection?.candidate||s.strategyId||"DARS Seven Pool",strategyId:s.strategyId||s.strategy||a.strategySelection?.candidate,side:a.decision,entry:n(s.entry),stopLoss:n(s.stopLoss),tp1:n(s.takeProfit1),tp2:n(s.takeProfit2),riskDistance:risk,targetR:n(s.targetR)||2.5,maxBars:n(s.maxBars)||12,stopMultiple:n(s.stopMultiple)||1,tp1Hit:false,status:"OPEN",netR:0};
- book.trades.push(t);book.open=t;lastSignalKey=key;save();
+function createVirtualTrades(a,bar){
+ const setups=Array.isArray(a?.paperSetups)?a.paperSetups:(a?.setup?[a.setup]:[]);
+ const barTime=bar.bar_time||bar.time;if(!barTime)return;
+ for(const s of setups){
+  if(!s||!["BUY","SELL"].includes(s.side))continue;
+  const strategyId=s.strategyId||s.strategy;if(!strategyId)continue;
+  const key=SYMBOL+"|"+strategyId+"|"+barTime+"|"+s.side;
+  if(book.trades.some(t=>t.signalKey===key)||book.trades.some(t=>t.strategyId===strategyId&&t.status==="OPEN"))continue;
+  if(![s.entry,s.stopLoss,s.takeProfit1,s.takeProfit2].every(v=>Number.isFinite(Number(v))))continue;
+  const risk=Math.abs(n(s.entry)-n(s.stopLoss));if(!(risk>0))continue;
+  book.trades.push({id:key,signalKey:key,openedAt:new Date().toISOString(),entryBarTime:barTime,strategy:s.strategy||strategyId,strategyId,side:s.side,entry:n(s.entry),stopLoss:n(s.stopLoss),tp1:n(s.takeProfit1),tp2:n(s.takeProfit2),riskDistance:risk,targetR:n(s.targetR)||2.5,maxBars:n(s.maxBars)||12,stopMultiple:n(s.stopMultiple)||1,tp1Hit:false,status:"OPEN",netR:0});
+ }
+ save();
 }
 function renderCandidateBoard(rows){
  const body=$("candidateBoard");body.replaceChildren();
- const data=Array.isArray(rows)&&rows.length?rows:CANDIDATE_PRIORS.map(x=>({...x,score:scorePrior(x),forwardTrades:0,detected:false,paused:false,priorOnly:true}));
- data.forEach((x,i)=>{const tr=document.createElement("tr");
- const values=[
-  x.strategy||"—",
-  Number(x.score??scorePrior(x)).toFixed(1)+"%",
-  (x.developmentTrades??"—")+" / "+(x.holdoutTrades??"—"),
-  x.holdoutWinRate==null?"—":Number(x.holdoutWinRate).toFixed(1)+"%",
-  x.holdoutNetR==null?"—":Number(x.holdoutNetR).toFixed(2)+"R",
-  x.holdoutProfitFactor==null?"—":Number(x.holdoutProfitFactor).toFixed(2),
-  x.holdoutMaxDrawdownR==null?"—":Number(x.holdoutMaxDrawdownR).toFixed(2)+"R",
-  String(x.forwardTrades||0),
-  x.forwardExpectancyR==null?"—":Number(x.forwardExpectancyR).toFixed(3)+"R",
-  x.paused?"PAUSED · risk guard":x.detected&&!x.eligible?"SIGNAL · BELOW 60% GATE":x.eligible?"QUALIFIED SIGNAL":x.priorOnly?"AWAITING LIVE EVALUATION":"NO CURRENT SIGNAL"
- ];
- values.forEach((v,j)=>{const td=document.createElement("td");td.textContent=v;if(j===1){const span=document.createElement("span");span.className="score-chip";span.textContent=v;td.replaceChildren(span);}if(j===0&&x.strategy===strategyChoice)td.className="good";tr.appendChild(td);});
- body.appendChild(tr);
+ const data=Array.isArray(rows)&&rows.length?rows:CANDIDATE_PRIORS.map(x=>({...x,score:scorePrior(x),forwardTrades:0,forwardWins:0,forwardLosses:0,detected:false,paused:false,priorOnly:true}));
+ data.forEach(x=>{
+  const tr=document.createElement("tr");
+  const values=[
+   x.strategy||"—",Number(x.score??scorePrior(x)).toFixed(1)+"%",
+   (x.developmentTrades??"—")+" / "+(x.holdoutTrades??"—"),
+   x.holdoutWinRate==null?"—":Number(x.holdoutWinRate).toFixed(1)+"%",
+   x.holdoutNetR==null?"—":Number(x.holdoutNetR).toFixed(2)+"R",
+   x.holdoutExpectancyR==null?"—":Number(x.holdoutExpectancyR).toFixed(3)+"R",
+   x.holdoutProfitFactor==null?"—":Number(x.holdoutProfitFactor).toFixed(2),
+   x.holdoutMaxDrawdownR==null?"—":Number(x.holdoutMaxDrawdownR).toFixed(2)+"R",
+   String(x.forwardTrades||0),(x.forwardWins??0)+" / "+(x.forwardLosses??0),
+   x.forwardWinRate==null?"—":Number(x.forwardWinRate).toFixed(1)+"%",
+   x.forwardNetR==null?"—":Number(x.forwardNetR).toFixed(2)+"R",
+   x.forwardExpectancyR==null?"—":Number(x.forwardExpectancyR).toFixed(3)+"R",
+   x.forwardProfitFactor==null?"—":Number(x.forwardProfitFactor).toFixed(2),
+   x.forwardMaxDrawdownR==null?"—":Number(x.forwardMaxDrawdownR).toFixed(2)+"R",
+   x.paused?"PAUSED · risk guard":x.detected&&!x.eligible?"SIGNAL · BELOW 60% GATE":x.eligible?"QUALIFIED PAPER SIGNAL":x.priorOnly?"AWAITING LIVE EVALUATION":"NO CURRENT SIGNAL"
+  ];
+  values.forEach((v,j)=>{const td=document.createElement("td");td.textContent=v;if(j===1){const span=document.createElement("span");span.className="score-chip";span.textContent=v;td.replaceChildren(span);}if(j===0&&x.strategy===strategyChoice)td.className="good";tr.appendChild(td);});
+  body.appendChild(tr);
  });
 }
 function renderAnalysis(a,quote,frames){
@@ -192,7 +200,7 @@ function renderAnalysis(a,quote,frames){
  say("candleCount","M5 "+closed.length+" · M15 "+(frames.M15||[]).length+" · H1 "+(frames.H1||[]).length);
  say("barTime",closed.length?"Last closed M5: "+time(closed[closed.length-1].bar_time):"No closed M5 candle");
  if(quote){const liveQuote=quote.quote||quote;say("quote",fmt(liveQuote.bid)+" / "+fmt(liveQuote.ask));say("quoteMeta","Spread "+fmt(n(liveQuote.ask)-n(liveQuote.bid))+" · Quote age "+(quote.age_seconds??"—")+"s");}
- const bar=closed[closed.length-1];if(bar&&bar.bar_time!==lastProcessedBar){lastProcessedBar=bar.bar_time;updateOpenTrade(closed);if(!book.open)createVirtualTrade(a,bar,quote?.quote||quote);save();}
+ const bar=closed[closed.length-1];if(bar&&bar.bar_time!==lastProcessedBar){lastProcessedBar=bar.bar_time;updateOpenTrades(closed);createVirtualTrades(a,bar);save();}
  renderHistory();
 }
 async function cycle(){
@@ -210,7 +218,7 @@ async function cycle(){
 }
 $("pause").addEventListener("click",()=>{running=false;setState("PAUSED");say("feedStatus","Paper monitoring paused by user.");});
 $("resume").addEventListener("click",()=>{running=true;cycle();});
-$("reset").addEventListener("click",()=>{if(!confirm("Delete this browser's DARS adaptive paper-trade history?"))return;book={trades:[],open:null,netR:0};lastSignalKey="";save();renderHistory();});
+$("reset").addEventListener("click",()=>{if(!confirm("Delete this browser's DARS seven-candidate paper-trade history?"))return;book={trades:[],netR:0};lastSignalKey="";save();renderHistory();});
 $("export").addEventListener("click",()=>{const cols=["openedAt","strategy","side","entry","stopLoss","tp1","tp2","status","exit","exitReason","netR"];const lines=[cols.join(","),...book.trades.map(t=>cols.map(k=>JSON.stringify(t[k]??"")).join(","))];const blob=new Blob([lines.join("\n")],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="dars-adaptive-paper-trades.csv";a.click();URL.revokeObjectURL(url);});
 try{const saved=localStorage.getItem(CHOICE_STORE);if(saved==="ROBOT_AUTO"||CANDIDATE_PRIORS.some(x=>x.strategy===saved))strategyChoice=saved;}catch(e){}
 $("strategyChoice").value=strategyChoice;
