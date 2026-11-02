@@ -16,10 +16,10 @@ input int SendEverySeconds = 300;
 
 string EscapeJson(string s)
 {
-   StringReplace(s, "\", "\\\");
-   StringReplace(s, "\"", "\\"");
-   StringReplace(s, "\r", "");
-   StringReplace(s, "\n", " ");
+   StringReplace(s, "\\\\", "\\\\\\\\");
+   StringReplace(s, "\\\"", "\\\\\\\"");
+   StringReplace(s, "\\r", "");
+   StringReplace(s, "\\n", " ");
    return s;
 }
 bool IsAllowedFrame(ENUM_TIMEFRAMES tf)
@@ -104,7 +104,7 @@ string BuildCalendarEvents()
    datetime from=TimeCurrent()-(datetime)(MathMax(1,HistoryDays)*86400);
    datetime to=TimeCurrent()+30*86400;
    ResetLastError();
-   int total=CalendarValueHistory(values,from,to,"","USD");
+   int total=CalendarValueHistory(values,from,to);
    if(total<0)
    {
       Print("MT5 economic calendar unavailable. CalendarValueHistory error=",GetLastError(),
@@ -117,22 +117,25 @@ string BuildCalendarEvents()
    for(int i=0;i<count;i++)
    {
       MqlCalendarEvent event;
+      MqlCalendarCountry country;
       if(!CalendarEventById(values[i].event_id,event)) continue;
-      if(event.currency!="" && event.currency!="USD") continue;
+      string currency="UNKNOWN";
+      if(CalendarCountryById(event.country_id,country) && country.currency!="")
+         currency=country.currency;
       if(sent>0) out+=",";
-      out+="{\"event_id\":"+(string)values[i].event_id+
-         ",\"event_time\":"+(string)(long)values[i].time+
-         ",\"currency\":\""+EscapeJson(event.currency==""?"USD":event.currency)+"\""+
-         ",\"event_name\":\""+EscapeJson(event.name)+"\""+
-         ",\"importance\":\""+ImportanceName(event.importance)+"\""+
-         ",\"impact_type\":"+(string)values[i].impact_type+
-         ",\"actual_value\":"+CalendarMetric(values[i].actual_value)+
-         ",\"forecast_value\":"+CalendarMetric(values[i].forecast_value)+
-         ",\"previous_value\":"+CalendarMetric(values[i].previous_value)+"}";
+      out+="{\\"event_id\\":"+(string)values[i].event_id+
+         ",\\"event_time\\":"+(string)(long)values[i].time+
+         ",\\"currency\\":\\""+EscapeJson(currency)+"\\""+
+         ",\\"event_name\\":\\""+EscapeJson(event.name)+"\\""+
+         ",\\"importance\\":\\""+ImportanceName(event.importance)+"\\""+
+         ",\\"impact_type\\":"+(string)values[i].impact_type+
+         ",\\"actual_value\\":"+CalendarMetric(values[i].actual_value)+
+         ",\\"forecast_value\\":"+CalendarMetric(values[i].forecast_value)+
+         ",\\"previous_value\\":"+CalendarMetric(values[i].prev_value)+"}";
       sent++;
    }
    out+="]";
-   Print("Dars MT5 calendar prepared: ",sent," USD events; range ",
+   Print("Dars MT5 calendar prepared: ",sent," events; range ",
          TimeToString(from,TIME_DATE)," to ",TimeToString(to,TIME_DATE));
    return out;
 }
