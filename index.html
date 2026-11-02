@@ -1629,14 +1629,14 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
    const london=aggregate("LONDON"),ny=aggregate("NEW_YORK");
    const news= sumRows.reduce((acc,x)=>{const m=x.newsAnalysis?.holdout?.within30Minutes;if(m){acc.trades+=m.trades||0;acc.netR+=m.netR||0;}return acc;},{trades:0,netR:0});
    $("engineNewsStatus").textContent=(d.newsCalendar?.status||"UNKNOWN")+(d.newsCalendar?.verified===false?" · BROKER FEED ONLY":"");
-   $("engineNewsCount").textContent=(d.newsCalendar?.eventCount??0)+" historical events · "+(d.newsCalendar?.source||"source unavailable")+" · NOT INDEPENDENTLY VERIFIED";
+   $("engineNewsCount").textContent=(d.newsCalendar?.eventCount??0)+" historical events · "+(d.newsCalendar?.source||"source unavailable");
    $("engineLondonTrades").textContent=london.trades.toLocaleString();
    $("engineLondonExp").textContent="Aggregate "+fmt(london.netR)+"R across candidates";
    $("engineNYTrades").textContent=ny.trades.toLocaleString();
    $("engineNYExp").textContent="Aggregate "+fmt(ny.netR)+"R across candidates";
    $("engineNewsTrades").textContent=news.trades.toLocaleString();
    $("engineNewsExp").textContent="Aggregate "+fmt(news.netR)+"R across candidates";
-   $("engineContextNote").textContent="Session totals are summed across all candidates (not unique trades). News ±30m is an observational entry-time comparison only. Calendar status: "+(d.newsCalendar?.status||"UNKNOWN")+" · MT5 broker feed only; not independently verified"+(d.newsCalendar?.error?" · "+d.newsCalendar.error:"")+".";
+   $("engineContextNote").textContent="Session totals are summed across all candidates (not unique trades). News ±30m is an observational entry-time comparison only. Calendar status: "+(d.newsCalendar?.status||"UNKNOWN")+(d.newsCalendar?.error?" · "+d.newsCalendar.error:"")+".";
    const contextBody=$("engineContextByEngine");contextBody.replaceChildren();
    const byEngine=new Map();
    for(const x of d.results){const k=x.strategy;if(!byEngine.has(k))byEngine.set(k,{london:{trades:0,netR:0},ny:{trades:0,netR:0},news:{trades:0,netR:0}});const a=byEngine.get(k);for(const [dest,src] of [["london",x.sessionAnalysis?.holdout?.LONDON],["ny",x.sessionAnalysis?.holdout?.NEW_YORK],["news",x.newsAnalysis?.holdout?.within30Minutes]])if(src){a[dest].trades+=src.trades||0;a[dest].netR+=src.netR||0;}}
