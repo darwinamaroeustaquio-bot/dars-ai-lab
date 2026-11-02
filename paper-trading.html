@@ -6,7 +6,7 @@
 <style>
 :root{color-scheme:dark;--bg:#07111f;--panel:#101d2d;--line:#26384e;--muted:#91a4ba;--text:#edf5ff;--green:#39d9a0;--gold:#f3c66d;--red:#ff7d89;--blue:#7da7ff}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 45% -15%,#1b3a5a 0,transparent 48%),var(--bg);color:var(--text);font:14px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.wrap{max-width:1180px;margin:auto;padding:18px}.panel,.metric{background:linear-gradient(145deg,#122238,#0c1726);border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:14px}.row,.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric{margin:0;min-width:0}.metric small,.note{color:var(--muted);font-size:12px;line-height:1.6}.metric strong{display:block;font-size:22px;margin:8px 0}.btn{font:inherit;padding:10px 13px;border-radius:8px;border:1px solid var(--line);background:#091522;color:var(--text);cursor:pointer;text-decoration:none}.primary{background:var(--green);color:#07111f;font-weight:800}.tag{color:var(--gold);font-size:12px}.good{color:var(--green)}.bad{color:var(--red)}.status{padding:12px;border:1px solid var(--line);border-radius:10px;background:#091522;line-height:1.6}.pill{display:inline-block;padding:4px 8px;border:1px solid var(--line);border-radius:99px;font-size:11px;color:var(--muted)}.levels{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.level{padding:11px;border:1px solid var(--line);border-radius:10px;background:#091522}.level small{color:var(--muted);display:block;font-size:11px}.level strong{display:block;margin-top:5px;font-size:16px;overflow-wrap:anywhere}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px;font-size:12px;vertical-align:top}th{color:var(--muted);font-weight:600}.empty{color:var(--muted);padding:16px;text-align:center}@media(max-width:760px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.levels{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:10px}.metric strong{font-size:19px}}
+.wrap{max-width:1180px;margin:auto;padding:18px}.panel,.metric{background:linear-gradient(145deg,#122238,#0c1726);border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:14px}.row,.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric{margin:0;min-width:0}.metric small,.note{color:var(--muted);font-size:12px;line-height:1.6}.metric strong{display:block;font-size:22px;margin:8px 0}.btn{font:inherit;padding:10px 13px;border-radius:8px;border:1px solid var(--line);background:#091522;color:var(--text);cursor:pointer;text-decoration:none}.primary{background:var(--green);color:#07111f;font-weight:800}.tag{color:var(--gold);font-size:12px}.good{color:var(--green)}.bad{color:var(--red)}.score-chip{display:inline-block;min-width:58px;text-align:center;padding:5px 8px;border-radius:8px;background:#153a35;color:#75f0c2;font-weight:850}.strategy-picker{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px;background:#091522}.strategy-picker label{font-size:12px;color:var(--muted)}.strategy-picker select{min-width:260px;max-width:100%;padding:10px;border-radius:8px;background:#101d2d;color:var(--text);border:1px solid var(--line)}.strategy-hint{font-size:11px;color:var(--muted);line-height:1.5}.status{padding:12px;border:1px solid var(--line);border-radius:10px;background:#091522;line-height:1.6}.pill{display:inline-block;padding:4px 8px;border:1px solid var(--line);border-radius:99px;font-size:11px;color:var(--muted)}.levels{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.level{padding:11px;border:1px solid var(--line);border-radius:10px;background:#091522}.level small{color:var(--muted);display:block;font-size:11px}.level strong{display:block;margin-top:5px;font-size:16px;overflow-wrap:anywhere}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px;font-size:12px;vertical-align:top}th{color:var(--muted);font-weight:600}.empty{color:var(--muted);padding:16px;text-align:center}@media(max-width:760px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.levels{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:10px}.metric strong{font-size:19px}}
 </style>
 <style id="dars-no-overlap-responsive">
 html,body{width:100%;min-width:0;overflow-x:hidden}
@@ -49,7 +49,7 @@ table{max-width:100%}
   <div class="level"><small>Quote spread</small><strong id="spread">—</strong></div>
   <div class="level"><small>Engine</small><strong id="engineVersion">—</strong></div>
  </div>
- <p class="note" id="selectorReason">The Robot ranks only the seven approved Williams %R and Stochastic candidates.</p><p class="note">Research integrity: your report did not include exact oscillator periods/entry bands. The forward-paper build uses provisional 14-period standard bands (Stochastic 20/80 or 25/75; Williams %R -80/-20, -75/-25 or -70/-30). Stop, target and time limits follow your table. Do not compare new paper results as an exact reproduction of the historical report until the original entry parameters are confirmed.</p><div class="scroll" style="margin-top:10px"><table style="min-width:900px"><thead><tr><th>Candidate</th><th>Holdout net R</th><th>Holdout PF</th><th>Forward trades</th><th>Forward expectancy</th><th>Current signal</th><th>Rank score</th></tr></thead><tbody id="candidateBoard"><tr><td colspan="7" class="empty">Waiting for candidate evaluation…</td></tr></tbody></table></div>
+ <p class="note" id="selectorReason">The Robot ranks only the seven approved Williams %R and Stochastic candidates.</p><p class="note">Research integrity: your report did not include exact oscillator periods/entry bands. The forward-paper build uses provisional 14-period standard bands (Stochastic 20/80 or 25/75; Williams %R -80/-20, -75/-25 or -70/-30). Stop, target and time limits follow your table. Do not compare new paper results as an exact reproduction of the historical report until the original entry parameters are confirmed.</p><div class="strategy-picker"><label for="strategyChoice"><strong>Strategy control</strong></label><select id="strategyChoice"><option value="ROBOT_AUTO">🤖 ROBOT AUTO — choose highest score with valid signal</option><option value="WILLIAMS_REVERSION-STRICT-V2">WILLIAMS REVERSION · STRICT V2</option><option value="STOCHASTIC_REVERSION-BASE-V4">STOCHASTIC REVERSION · BASE V4</option><option value="WILLIAMS_REVERSION-BASE-V4">WILLIAMS REVERSION · BASE V4</option><option value="WILLIAMS_REVERSION-SENSITIVE-V4">WILLIAMS REVERSION · SENSITIVE V4</option><option value="STOCHASTIC_REVERSION-STRICT-V4">STOCHASTIC REVERSION · STRICT V4</option><option value="WILLIAMS_REVERSION-STRICT-V4">WILLIAMS REVERSION · STRICT V4</option><option value="STOCHASTIC_REVERSION-BASE-V2">STOCHASTIC REVERSION · BASE V2</option></select><span id="strategyModeStatus" class="pill">ROBOT AUTO</span></div><p class="strategy-hint" id="strategyModeHint">Auto mode ranks the seven candidates and only selects one with a valid closed-candle signal. Manual mode will use only your selected strategy; it will not silently switch to another.</p><div class="scroll" style="margin-top:10px"><table style="min-width:1180px"><thead><tr><th>Strategy</th><th>Score / 100</th><th>Dev / Holdout</th><th>Holdout win</th><th>Net R</th><th>PF</th><th>Max DD</th><th>Forward trades</th><th>Forward exp.</th><th>Signal / status</th></tr></thead><tbody id="candidateBoard"><tr><td colspan="10" class="empty">Loading seven approved candidates…</td></tr></tbody></table></div>
 </section>
 
 <section class="panel">
@@ -82,7 +82,18 @@ table{max-width:100%}
 <script>
 (function(){
 "use strict";
-const $=id=>document.getElementById(id), STORE="dars-adaptive-paper-v2", SYMBOL="XAUUSD-STD";
+const $=id=>document.getElementById(id), STORE="dars-adaptive-paper-v2", SYMBOL="XAUUSD-STD", CHOICE_STORE="dars-seven-strategy-choice-v1";
+const CANDIDATE_PRIORS=[
+ {strategy:"WILLIAMS_REVERSION-STRICT-V2",developmentTrades:64,holdoutTrades:30,holdoutWinRate:56.7,holdoutNetR:7.63,holdoutExpectancyR:.25,holdoutProfitFactor:1.54,holdoutMaxDrawdownR:3.39},
+ {strategy:"STOCHASTIC_REVERSION-BASE-V4",developmentTrades:49,holdoutTrades:24,holdoutWinRate:45.8,holdoutNetR:3.50,holdoutExpectancyR:.15,holdoutProfitFactor:1.27,holdoutMaxDrawdownR:3.10},
+ {strategy:"WILLIAMS_REVERSION-BASE-V4",developmentTrades:52,holdoutTrades:24,holdoutWinRate:45.8,holdoutNetR:3.52,holdoutExpectancyR:.15,holdoutProfitFactor:1.27,holdoutMaxDrawdownR:3.10},
+ {strategy:"WILLIAMS_REVERSION-SENSITIVE-V4",developmentTrades:63,holdoutTrades:27,holdoutWinRate:44.4,holdoutNetR:3.53,holdoutExpectancyR:.13,holdoutProfitFactor:1.23,holdoutMaxDrawdownR:3.91},
+ {strategy:"STOCHASTIC_REVERSION-STRICT-V4",developmentTrades:58,holdoutTrades:27,holdoutWinRate:44.4,holdoutNetR:3.52,holdoutExpectancyR:.13,holdoutProfitFactor:1.23,holdoutMaxDrawdownR:3.91},
+ {strategy:"WILLIAMS_REVERSION-STRICT-V4",developmentTrades:54,holdoutTrades:27,holdoutWinRate:40.7,holdoutNetR:3.06,holdoutExpectancyR:.11,holdoutProfitFactor:1.18,holdoutMaxDrawdownR:3.89},
+ {strategy:"STOCHASTIC_REVERSION-BASE-V2",developmentTrades:64,holdoutTrades:26,holdoutWinRate:50.0,holdoutNetR:2.26,holdoutExpectancyR:.09,holdoutProfitFactor:1.17,holdoutMaxDrawdownR:4.34}
+];
+function scorePrior(x){const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));const e=clamp(((x.holdoutExpectancyR+.05)/.35)*100,0,100),pf=clamp(((x.holdoutProfitFactor-.8)/1.2)*100,0,100),dd=clamp((8-x.holdoutMaxDrawdownR)/8*100,0,100),wr=clamp((x.holdoutWinRate-35)/30*100,0,100),sample=clamp(x.holdoutTrades/60*100,0,100);return Number((e*.30+pf*.25+dd*.20+wr*.10+sample*.15).toFixed(1));}
+let strategyChoice="ROBOT_AUTO";
 let running=true,busy=false,lastProcessedBar="",lastSignalKey="";
 let book={trades:[],open:null,netR:0};
 const n=v=>Number.isFinite(Number(v))?Number(v):0;
@@ -130,9 +141,24 @@ function createVirtualTrade(a,bar,quote){
  book.trades.push(t);book.open=t;lastSignalKey=key;save();
 }
 function renderCandidateBoard(rows){
- const body=$("candidateBoard");body.innerHTML="";
- if(!Array.isArray(rows)||!rows.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=7;td.className="empty";td.textContent="No candidate ranking available.";tr.appendChild(td);body.appendChild(tr);return;}
- rows.forEach((x,i)=>{const tr=document.createElement("tr");const vals=[x.strategy||"—",(Number(x.holdoutNetR)||0).toFixed(2)+"R",x.holdoutProfitFactor==null?"—":Number(x.holdoutProfitFactor).toFixed(2),String(x.forwardTrades||0),x.forwardExpectancyR==null?"—":Number(x.forwardExpectancyR).toFixed(3)+"R",x.paused?"PAUSED":x.detected?"SIGNAL":"—",Number(x.score||0).toFixed(3)];vals.forEach((v,j)=>{const td=document.createElement("td");td.textContent=v;if(j===0&&i===0)td.className="good";tr.appendChild(td);});body.appendChild(tr);});
+ const body=$("candidateBoard");body.replaceChildren();
+ const data=Array.isArray(rows)&&rows.length?rows:CANDIDATE_PRIORS.map(x=>({...x,score:scorePrior(x),forwardTrades:0,detected:false,paused:false,priorOnly:true}));
+ data.forEach((x,i)=>{const tr=document.createElement("tr");
+ const values=[
+  x.strategy||"—",
+  Number(x.score??scorePrior(x)).toFixed(1)+"/100",
+  (x.developmentTrades??"—")+" / "+(x.holdoutTrades??"—"),
+  x.holdoutWinRate==null?"—":Number(x.holdoutWinRate).toFixed(1)+"%",
+  x.holdoutNetR==null?"—":Number(x.holdoutNetR).toFixed(2)+"R",
+  x.holdoutProfitFactor==null?"—":Number(x.holdoutProfitFactor).toFixed(2),
+  x.holdoutMaxDrawdownR==null?"—":Number(x.holdoutMaxDrawdownR).toFixed(2)+"R",
+  String(x.forwardTrades||0),
+  x.forwardExpectancyR==null?"—":Number(x.forwardExpectancyR).toFixed(3)+"R",
+  x.paused?"PAUSED · risk guard":x.detected?"VALID SIGNAL":x.priorOnly?"AWAITING LIVE EVALUATION":"NO CURRENT SIGNAL"
+ ];
+ values.forEach((v,j)=>{const td=document.createElement("td");td.textContent=v;if(j===1){const span=document.createElement("span");span.className="score-chip";span.textContent=v;td.replaceChildren(span);}if(j===0&&x.strategy===strategyChoice)td.className="good";tr.appendChild(td);});
+ body.appendChild(tr);
+ });
 }
 function renderAnalysis(a,quote,frames){
  const sel=a.strategySelection||{},m5=a.frames?.M5;
@@ -140,7 +166,7 @@ function renderAnalysis(a,quote,frames){
  say("decisionMeta",a.setup?"Robot setup passed":"No validated setup");
  say("regime",m5?.regime||"UNAVAILABLE");say("strategy",sel.candidate||"NO SELECTION");say("eligibility",sel.status||"BLOCKED / WAIT");say("selectorStatus",sel.status||"WAITING FOR ANALYSIS");
  say("spread",a.quoteQuality?.spread==null?"—":fmt(a.quoteQuality.spread));say("engineVersion",a.engine||"—");
- say("selectorReason",[sel.rationale,sel.evidence?.reason,sel.implementation].filter(Boolean).join(" "));
+ say("selectorReason",[sel.rationale,sel.evidence?.reason,sel.implementation].filter(Boolean).join(" "));say("strategyModeStatus",strategyChoice==="ROBOT_AUTO"?"ROBOT AUTO":"MANUAL MODE");say("strategyModeHint",strategyChoice==="ROBOT_AUTO"?"DARS ranks all seven by the 0–100 score, then chooses the highest-ranked candidate that has a valid signal.":"Manual selection active: "+strategyChoice+". DARS will not switch to another candidate if this one has no signal or is paused.");
  const diagnostics=Array.isArray(a.diagnostics)?a.diagnostics:[];say("decisionMessage",a.decision==="WAIT"?(diagnostics.join(" ")||"DARS is waiting for a validated setup."):"DARS returned "+a.decision+" from verified MT5 data. A virtual position is being tracked; no broker order is sent.");
  renderSetup(a);renderCandidateBoard(sel.strategyRanking||[]);
  const m5bars=frames.M5||[];const closed=m5bars.filter(b=>new Date(b.bar_time).getTime()+300000<=Date.now());
@@ -155,7 +181,7 @@ async function cycle(){
  try{
   const [q,m5,m15,h1]=await Promise.all([getJSON("/api/mt5-quote?symbol="+SYMBOL),getFrame("M5"),getFrame("M15"),getFrame("H1")]);
   if(!q.connected||!q.quote)throw new Error("MT5 quote is not fresh. Paper entries are paused.");
-  const body={symbol:SYMBOL,quote:q.quote,frames:{M5:m5,M15:m15,H1:h1}};
+  const body={symbol:SYMBOL,quote:q.quote,frames:{M5:m5,M15:m15,H1:h1},strategyMode:strategyChoice==="ROBOT_AUTO"?"ROBOT_AUTO":"MANUAL",selectedStrategyId:strategyChoice==="ROBOT_AUTO"?null:strategyChoice};
   // Send the exact same quote/candle inputs to the Robot core.
   const response=await fetch("/api/dars-paper-analysis",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({...body,paperTrades:book.trades.slice(-5000)}),cache:"no-store"});
   const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||"DARS analysis unavailable.");
@@ -167,7 +193,10 @@ $("pause").addEventListener("click",()=>{running=false;setState("PAUSED");say("f
 $("resume").addEventListener("click",()=>{running=true;cycle();});
 $("reset").addEventListener("click",()=>{if(!confirm("Delete this browser's DARS adaptive paper-trade history?"))return;book={trades:[],open:null,netR:0};lastSignalKey="";save();renderHistory();});
 $("export").addEventListener("click",()=>{const cols=["openedAt","strategy","side","entry","stopLoss","tp1","tp2","status","exit","exitReason","netR"];const lines=[cols.join(","),...book.trades.map(t=>cols.map(k=>JSON.stringify(t[k]??"")).join(","))];const blob=new Blob([lines.join("\n")],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="dars-adaptive-paper-trades.csv";a.click();URL.revokeObjectURL(url);});
-load();renderHistory();cycle();setInterval(cycle,15000);
+try{const saved=localStorage.getItem(CHOICE_STORE);if(saved==="ROBOT_AUTO"||CANDIDATE_PRIORS.some(x=>x.strategy===saved))strategyChoice=saved;}catch(e){}
+$("strategyChoice").value=strategyChoice;
+$("strategyChoice").addEventListener("change",()=>{strategyChoice=$("strategyChoice").value;try{localStorage.setItem(CHOICE_STORE,strategyChoice);}catch(e){}say("strategyModeStatus",strategyChoice==="ROBOT_AUTO"?"ROBOT AUTO":"MANUAL MODE");say("strategyModeHint",strategyChoice==="ROBOT_AUTO"?"DARS ranks all seven by the 0–100 score, then chooses the highest-ranked candidate that has a valid signal.":"Manual selection active: "+strategyChoice+". DARS will not switch to another candidate if this one has no signal or is paused.");cycle();});
+load();renderCandidateBoard(CANDIDATE_PRIORS.map(x=>({...x,score:scorePrior(x),priorOnly:true})));renderHistory();cycle();setInterval(cycle,15000);
 })();
 </script>
 </body></html>
