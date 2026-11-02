@@ -129,7 +129,7 @@ function updateOpenTrades(bars){
    const slHit=t.side==="BUY"?lo<=t.stopLoss:hi>=t.stopLoss;
    const tp1Hit=t.side==="BUY"?hi>=t.tp1:lo<=t.tp1;
    const tp2Hit=t.side==="BUY"?hi>=t.tp2:lo<=t.tp2;
-   if(slHit){t.exitReason=tp2Hit?"SL and TP2 touched in same candle; conservative SL-first accounting":"Stop loss";t.netR=-Math.abs(Number(t.stopMultiple)||1);t.status="CLOSED";t.closedAt=bt;t.exit=t.stopLoss;save();break;}
+   if(slHit){t.exitReason=tp2Hit?"SL and TP2 touched in same candle; conservative SL-first accounting":"Stop loss";t.netR=t.strategyId==="DARS_EHL_BREAKOUT_V1_10"&&t.tp1Hit?0:-Math.abs(Number(t.stopMultiple)||1);t.status="CLOSED";t.closedAt=bt;t.exit=t.stopLoss;save();break;}
    if(tp2Hit){t.tp1Hit=true;t.exitReason="TP2 reached";t.netR=Number(t.targetR||2.5);t.status="CLOSED";t.closedAt=bt;t.exit=t.tp2;save();break;}
    if(tp1Hit&&!t.tp1Hit){t.tp1Hit=true;t.tp1ReachedAt=bt;t.adverseCloses=0;t.exitReason="TP1 reached; monitoring momentum before TP2";save();}
    if(t.tp1Hit){
@@ -137,7 +137,7 @@ function updateOpenTrades(bars){
     t.adverseCloses=adverse?(Number(t.adverseCloses)||0)+1:0;
     const crossedBack=t.side==="BUY"?close<t.tp1:close>t.tp1;
     if(crossedBack||t.adverseCloses>=2){
-     t.status="CLOSED";t.closedAt=bt;t.exit=close;t.netR=realizedR(close);
+     t.status="CLOSED";t.closedAt=bt;t.exit=close;t.netR=t.strategyId==="DARS_EHL_BREAKOUT_V1_10"&&t.tp1Hit?Number((.5+.5*realizedR(close)).toFixed(4)):realizedR(close);
      t.exitReason=crossedBack?"Early TP1 protection: close crossed back through TP1":"Early TP1 protection: two consecutive candles closed against the position";
      save();break;
     }
@@ -158,7 +158,7 @@ function createVirtualTrades(a,bar){
   if(book.trades.some(t=>t.signalKey===key)||book.trades.some(t=>t.strategyId===strategyId&&t.status==="OPEN"))continue;
   if(![s.entry,s.stopLoss,s.takeProfit1,s.takeProfit2].every(v=>Number.isFinite(Number(v))))continue;
   const risk=Math.abs(n(s.entry)-n(s.stopLoss));if(!(risk>0))continue;
-  book.trades.push({id:key,signalKey:key,openedAt:new Date().toISOString(),entryBarTime:barTime,strategy:s.strategy||strategyId,strategyId,side:s.side,entry:n(s.entry),stopLoss:n(s.stopLoss),tp1:n(s.takeProfit1),tp2:n(s.takeProfit2),riskDistance:risk,targetR:n(s.targetR)||2.5,maxBars:n(s.maxBars)||12,stopMultiple:n(s.stopMultiple)||1,tp1Hit:false,status:"OPEN",netR:0});
+  book.trades.push({id:key,signalKey:key,openedAt:new Date().toISOString(),entryBarTime:barTime,strategy:s.strategy||strategyId,strategyId,side:s.side,entry:n(s.entry),stopLoss:n(s.stopLoss),tp1:n(s.takeProfit1),tp2:n(s.takeProfit2),riskDistance:risk,targetR:n(s.targetR)||2.5,maxBars:n(s.maxBars)||12,stopMultiple:n(s.stopMultiple)||1,fixedLot:n(s.fixedLot)||0.01,partialCloseAtTp1:!!s.partialCloseAtTp1,breakevenAfterTp1:!!s.breakevenAfterTp1,reversalRule:s.reversalRule||null,tp1Hit:false,status:"OPEN",netR:0});
  }
  save();
 }
