@@ -26,6 +26,9 @@ module.exports = async (req, res) => {
     if (!ALLOWED.has(symbol)) return send(res,400,{ok:false,error:"Invalid symbol."});
     const incomingFrames = body.timeframe && Array.isArray(body.candles) ? { [String(body.timeframe).trim().toUpperCase()]: body.candles } : body.frames;
     if (!incomingFrames || typeof incomingFrames !== "object") return send(res,400,{ok:false,error:"Send timeframe + candles or frames object."});
+    const clockBasis = String(body.clock_basis || "utc").trim().toLowerCase();
+    if (!["utc", "broker"].includes(clockBasis)) return send(res,400,{ok:false,error:"clock_basis must be utc or broker."});
+    const source = clockBasis === "broker" ? "mt5_bridge_broker_clock" : "mt5_bridge";
     const rows = [];
     for (const [timeframe, candles] of Object.entries(incomingFrames)) {
       if (!FRAMES.has(timeframe) || !Array.isArray(candles)) return send(res,400,{ok:false,error:"Only M1, M5, M15, M30, H1 and H4 frames are accepted."});
@@ -33,7 +36,7 @@ module.exports = async (req, res) => {
       for (const c of candles) {
         const t = Number(c.time), o=Number(c.open), h=Number(c.high), l=Number(c.low), close=Number(c.close), volume=Number(c.tick_volume || 0);
         if (!Number.isFinite(t)||t<=0||![o,h,l,close,volume].every(Number.isFinite)||h<Math.max(o,close,l)||l>Math.min(o,close,h)||l<=0) return send(res,400,{ok:false,error:"Invalid OHLC candle data."});
-        rows.push({symbol,timeframe,bar_time:new Date(t*1000).toISOString(),open:o,high:h,low:l,close,tick_volume:Math.max(0,Math.trunc(volume)),source:"mt5_bridge",received_at:new Date().toISOString()});
+        rows.push({symbol,timeframe,bar_time:new Date(t*1000).toISOString(),open:o,high:h,low:l,close,tick_volume:Math.max(0,Math.trunc(volume)),source,received_at:new Date().toISOString()});
       }
     }
     if (!rows.length) return send(res,400,{ok:false,error:"No candle data received."});
@@ -50,11 +53,18 @@ module.exports = async (req, res) => {
     const limit=Math.min(200,Math.max(10,Number.parseInt(req.query.limit||"100",10)||100));
     if(!ALLOWED.has(symbol)||!FRAMES.has(timeframe)) return send(res,400,{ok:false,error:"Unsupported symbol or timeframe."});
     try {
-      const q=new URLSearchParams({select:"symbol,timeframe,bar_time,open,high,low,close,tick_volume,source,received_at",symbol:"eq."+symbol,timeframe:"eq."+timeframe,order:"bar_time.desc",limit:String(limit)});
-      const upstream=await fetch(root+"/rest/v1/mt5_candles?"+q.toString(),{headers:{apikey:key,Authorization:"Bearer "+key}});
+      const q=new URLSearchParams({select:"symbol,timeframe,bar_time,open,high,low,close,tick_volume,source,received_at",symbol:"eq."+symbol,timeframe:"eq."+timeframe,source:"eq.mt5_bridge_broker_clock",order:"bar_time.desc",limit:String(limit)});
+      let upstream=await fetch(root+"/rest/v1/mt5_candles?"+q.toString(),{headers:{apikey:key,Authorization:"Bearer "+key}});
       if(!upstream.ok) return send(res,502,{ok:false,error:"Could not read candle history. Check mt5_candles table.",upstream_status:upstream.status});
-      const rows=await upstream.json();
-      return send(res,200,{ok:true,symbol,timeframe,count:rows.length,candles:rows.reverse()});
+      let rows=await upstream.json();
+      // Prefer corrected broker-clock bars. Fall back to legacy rows until the new bridge uploads.
+      if(!rows.length){
+        q.set("source","eq.mt5_bridge");
+        upstream=await fetch(root+"/rest/v1/mt5_candles?"+q.toString(),{headers:{apikey:key,Authorization:"Bearer "+key}});
+        if(!upstream.ok) return send(res,502,{ok:false,error:"Could not read legacy candle history.",upstream_status:upstream.status});
+        rows=await upstream.json();
+      }
+      return send(res,200,{ok:true,symbol,timeframe,count:rows.length,clock_basis:rows[0]?.source==="mt5_bridge_broker_clock"?"broker":"legacy_utc",candles:rows.reverse()});
     } catch(_){return send(res,502,{ok:false,error:"Could not reach candle storage."});}
   }
   res.setHeader("Allow","GET, POST, OPTIONS");
