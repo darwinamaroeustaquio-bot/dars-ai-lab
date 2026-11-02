@@ -15,7 +15,7 @@ module.exports = async (req,res) => {
       base.engine="DARS_SEVEN_CANDIDATE_PAPER_V1";
       base.strategySelection={candidate:"NO_TRADE",status:"BLOCKED_BY_MARKET_DATA",eligible:false,rationale:base.engineBlockReason||"Verified market data is not ready.",evaluatedCandidates:7,strategyRanking:[]};
       base.decision="WAIT";base.setup=null;
-      return res.status(200).json({ok:true,analysis:base});
+      return res.status(200).json({ok:true,analysis:base,paperSetups:[]});
     }
     const requestedMode=body.strategyMode==="MANUAL"?"MANUAL":"ROBOT_AUTO";
     const requestedId=typeof body.selectedStrategyId==="string"?body.selectedStrategyId:null;
@@ -32,7 +32,15 @@ module.exports = async (req,res) => {
       upperThreshold:result.setup.upperThreshold,features:{atr:result.setup.atr14,oscillator:result.setup.oscillator},
       source:"Live VT Markets quote + verified closed MT5 candles; fixed seven-candidate pool",
       note:result.setup.note
-    }:null,strategySelection:result.selection,engineBoard:result.board,diagnostics:result.diagnostics};
+    }:null,strategySelection:result.selection,engineBoard:result.board,
+    paperSetups:(result.paperSetups||[]).map(s=>({
+      side:s.side,entry:s.entry,stopLoss:s.stopLoss,takeProfit1:s.takeProfit1,takeProfit2:s.takeProfit2,
+      riskDistance:s.riskDistance,rewardRiskTP1:s.rewardRiskTP1,rewardRiskTP2:s.rewardRiskTP2,
+      strategy:s.strategy,strategyId:s.strategyId,family:s.family,profile:s.profile,targetR:s.targetR,
+      stopMultiple:s.stopMultiple,maxBars:s.maxBars,signalBarTime:s.signalBarTime,
+      oscillator:s.oscillator,previousOscillator:s.previousOscillator,lowerThreshold:s.lowerThreshold,
+      upperThreshold:s.upperThreshold,features:{atr:s.atr14,oscillator:s.oscillator},note:s.note
+    })),diagnostics:result.diagnostics};
     return res.status(200).json({ok:true,analysis});
   }catch(error){
     return res.status(500).json({ok:false,error:"Seven-candidate paper analysis failed safely. No virtual entry was created."});
