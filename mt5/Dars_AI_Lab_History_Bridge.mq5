@@ -16,10 +16,10 @@ input int SendEverySeconds = 300;
 
 string EscapeJson(string s)
 {
-   StringReplace(s, "\\\\", "\\\\\\\\");
-   StringReplace(s, "\\\"", "\\\\\\\"");
-   StringReplace(s, "\\r", "");
-   StringReplace(s, "\\n", " ");
+   StringReplace(s, "\\", "\\\\");
+   StringReplace(s, "\"", "\\\"");
+   StringReplace(s, "\r", "");
+   StringReplace(s, "\n", " ");
    return s;
 }
 bool IsAllowedFrame(ENUM_TIMEFRAMES tf)
@@ -107,8 +107,7 @@ string BuildCalendarEvents()
    int total=CalendarValueHistory(values,from,to);
    if(total<0)
    {
-      Print("MT5 economic calendar unavailable. CalendarValueHistory error=",GetLastError(),
-            ". Confirm broker/terminal calendar support and connection.");
+      Print("MT5 economic calendar unavailable. CalendarValueHistory error=",GetLastError());
       return "";
    }
    int count=MathMin(total,900);
@@ -119,23 +118,23 @@ string BuildCalendarEvents()
       MqlCalendarEvent event;
       MqlCalendarCountry country;
       if(!CalendarEventById(values[i].event_id,event)) continue;
-      string currency="UNKNOWN";
-      if(CalendarCountryById(event.country_id,country) && country.currency!="")
-         currency=country.currency;
+      if(!CalendarCountryById(event.country_id,country)) continue;
+      // XAUUSD-focused calendar: keep USD events only.
+      if(country.currency!="USD") continue;
       if(sent>0) out+=",";
-      out+="{\\"event_id\\":"+(string)values[i].event_id+
-         ",\\"event_time\\":"+(string)(long)values[i].time+
-         ",\\"currency\\":\\""+EscapeJson(currency)+"\\""+
-         ",\\"event_name\\":\\""+EscapeJson(event.name)+"\\""+
-         ",\\"importance\\":\\""+ImportanceName(event.importance)+"\\""+
-         ",\\"impact_type\\":"+(string)values[i].impact_type+
-         ",\\"actual_value\\":"+CalendarMetric(values[i].actual_value)+
-         ",\\"forecast_value\\":"+CalendarMetric(values[i].forecast_value)+
-         ",\\"previous_value\\":"+CalendarMetric(values[i].prev_value)+"}";
+      out+="{\"event_id\":"+(string)values[i].event_id+
+         ",\"event_time\":"+(string)(long)values[i].time+
+         ",\"currency\":\"USD\""+
+         ",\"event_name\":\""+EscapeJson(event.name)+"\""+
+         ",\"importance\":\""+ImportanceName(event.importance)+"\""+
+         ",\"impact_type\":"+(string)values[i].impact_type+
+         ",\"actual_value\":"+CalendarMetric(values[i].actual_value)+
+         ",\"forecast_value\":"+CalendarMetric(values[i].forecast_value)+
+         ",\"previous_value\":"+CalendarMetric(values[i].prev_value)+"}";
       sent++;
    }
    out+="]";
-   Print("Dars MT5 calendar prepared: ",sent," events; range ",
+   Print("DARS XAUUSD calendar prepared: ",sent," USD events; range ",
          TimeToString(from,TIME_DATE)," to ",TimeToString(to,TIME_DATE));
    return out;
 }
