@@ -1,6 +1,6 @@
 // DARS MT5 Economic Calendar bridge — read-only, no trading functions.
 #property strict
-#property version   "1.00"
+#property version   "1.01"
 #property description "Uploads MT5 Economic Calendar events to DARS AI LAB. Does not place trades."
 
 input string BridgeEndpoint = "https://dars-indol.vercel.app/api/mt5-news";
@@ -63,7 +63,9 @@ bool UploadCalendar()
    for(int i=0;i<count;i++)
    {
       MqlCalendarEvent event;
+      MqlCalendarCountry country;
       if(!CalendarEventById(values[i].event_id,event)) continue;
+      if(!CalendarCountryById(event.country_id,country)) continue;
       string impact=ImportanceText(event.importance);
       if(impact=="none" || impact=="low") continue;
       if(!IncludeMediumImpact && impact!="high") continue;
@@ -73,8 +75,8 @@ bool UploadCalendar()
       events+="\"value_id\":\""+(string)values[i].id+"\",";
       events+="\"event_id\":\""+(string)values[i].event_id+"\",";
       events+="\"name\":\""+JsonEscape(event.name)+"\",";
-      events+="\"currency\":\""+JsonEscape(event.currency)+"\",";
-      events+="\"country_code\":\""+JsonEscape(event.country_code)+"\",";
+      events+="\"currency\":\""+JsonEscape(country.currency)+"\",";
+      events+="\"country_code\":\""+JsonEscape(country.code)+"\",";
       events+="\"importance\":\""+impact+"\",";
       events+="\"event_time_utc_epoch\":"+(string)eventUtc+",";
       events+="\"event_time_server\":\""+TimeToString(values[i].time,TIME_DATE|TIME_SECONDS)+"\",";
