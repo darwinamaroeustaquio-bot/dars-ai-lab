@@ -17,7 +17,9 @@ module.exports = async (req,res) => {
       base.decision="WAIT";base.setup=null;
       return res.status(200).json({ok:true,analysis:base});
     }
-    const result=analyzeSevenCandidatePool({frames:base.frames,quote:body.quote,paperTrades:Array.isArray(body.paperTrades)?body.paperTrades.slice(-5000):[]});
+    const requestedMode=body.strategyMode==="MANUAL"?"MANUAL":"ROBOT_AUTO";
+    const requestedId=typeof body.selectedStrategyId==="string"?body.selectedStrategyId:null;
+    const result=analyzeSevenCandidatePool({frames:base.frames,quote:body.quote,paperTrades:Array.isArray(body.paperTrades)?body.paperTrades.slice(-5000):[],preferredCandidateId:requestedMode==="MANUAL"?requestedId:null});
     const analysis={...base,engine:"DARS_SEVEN_CANDIDATE_PAPER_V1",decision:result.setup?.side||"WAIT",setup:result.setup?{
       side:result.setup.side,entry:result.setup.entry,stopLoss:result.setup.stopLoss,
       takeProfit1:result.setup.takeProfit1,takeProfit2:result.setup.takeProfit2,
