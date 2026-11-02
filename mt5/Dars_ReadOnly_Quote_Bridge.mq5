@@ -1,7 +1,7 @@
 // Dars AI Lab - VT Markets MT5 Read-only Quote + Candle Bridge
 // Sends quote snapshots and M1/M5/M15/M30/H1/H4 candle history. DOES NOT trade.
 #property strict
-#property version "1.26"
+#property version "1.27"
 #property description "Read-only quote, candle and USD news bridge for Dars AI Lab"
 
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
@@ -42,9 +42,7 @@ bool PostJson(const string endpoint,const string payload,const string label)
    char data[],result[]; string resultHeaders;
    StringToCharArray(payload,data,0,WHOLE_ARRAY,CP_UTF8);
    if(ArraySize(data)>0)ArrayResize(data,ArraySize(data)-1);
-   string headers="Content-Type: application/json\r
-X-Bridge-Token: "+BridgeToken+"\r
-";
+   string headers="Content-Type: application/json\r\nX-Bridge-Token: "+BridgeToken+"\r\n";
    ResetLastError();
    int code=WebRequest("POST",endpoint,headers,10000,data,result,resultHeaders);
    string responseText=CharArrayToString(result,0,-1,CP_UTF8);
