@@ -73,22 +73,26 @@ void SendQuote(const string sym)
                " successful_posts=",quoteSendCount);
    }
 }
-string FrameJson(const string sym,const ENUM_TIMEFRAMES tf,const string frameName)
+string FrameJson(const string sym,const ENUM_TIMEFRAMES tf,const string frameName,const int requestedBars)
 {
    MqlRates rates[];ArraySetAsSeries(rates,false);
-   int wanted=MathMax(30,MathMin(5000,BarsPerTimeframe));
+   int wanted=MathMax(2,MathMin(5000,requestedBars));
    ResetLastError();
    int copied=CopyRates(sym,tf,0,wanted,rates);
    int copyError=GetLastError();
    if(copied<10){Print("Dars waiting for enough ",frameName," bars on ",sym,". CopyRates=",copied," error=",copyError,". Keep MT5 connected and allow history to synchronize.");return "";}
+   // MT5 bar timestamps use broker-server clock. Convert to UTC before storing.
+   // The same offset is applied to every bar in this short, current upload batch.
+   long serverUtcOffset=(long)(TimeCurrent()-TimeGMT());
    string out="\""+frameName+"\":[";
    for(int j=0;j<copied;j++){
       if(j>0)out+=",";
       int digits=(int)SymbolInfoInteger(sym,SYMBOL_DIGITS);
+      datetime utcBarTime=(datetime)((long)rates[j].time-serverUtcOffset);
       out+=StringFormat("{\"time\":%I64d,\"open\":%s,\"high\":%s,\"low\":%s,\"close\":%s,\"tick_volume\":%I64d}",
-         (long)rates[j].time,DoubleToString(rates[j].open,digits),DoubleToString(rates[j].high,digits),DoubleToString(rates[j].low,digits),DoubleToString(rates[j].close,digits),(long)rates[j].tick_volume);
+         (long)utcBarTime,DoubleToString(rates[j].open,digits),DoubleToString(rates[j].high,digits),DoubleToString(rates[j].low,digits),DoubleToString(rates[j].close,digits),(long)rates[j].tick_volume);
    }
-   Print("Dars prepared candles: ",sym," ",frameName," bars=",copied," oldest=",TimeToString(rates[0].time,TIME_DATE|TIME_MINUTES)," newest=",TimeToString(rates[copied-1].time,TIME_DATE|TIME_MINUTES));
+   Print("Dars prepared candles: ",sym," ",frameName," bars=",copied," server_utc_offset_sec=",serverUtcOffset," server_newest=",TimeToString(rates[copied-1].time,TIME_DATE|TIME_MINUTES)," utc_newest=",TimeToString((datetime)((long)rates[copied-1].time-serverUtcOffset),TIME_DATE|TIME_MINUTES));
    return out+"]";
 }
 void PostFrame(const string sym,const string frameName,const string frameJson)
@@ -104,12 +108,12 @@ void PostFrame(const string sym,const string frameName,const string frameJson)
 }
 void SendCandles(const string sym)
 {
-   string m1=FrameJson(sym,PERIOD_M1,"M1");
-   string m5=FrameJson(sym,PERIOD_M5,"M5");
-   string m15=FrameJson(sym,PERIOD_M15,"M15");
-   string m30=FrameJson(sym,PERIOD_M30,"M30");
-   string h1=FrameJson(sym,PERIOD_H1,"H1");
-   string h4=FrameJson(sym,PERIOD_H4,"H4");
+   string m1=FrameJson(sym,PERIOD_M1,"M1",BarsPerTimeframe);
+   string m5=FrameJson(sym,PERIOD_M5,"M5",BarsPerTimeframe);
+   string m15=FrameJson(sym,PERIOD_M15,"M15",BarsPerTimeframe);
+   string m30=FrameJson(sym,PERIOD_M30,"M30",BarsPerTimeframe);
+   string h1=FrameJson(sym,PERIOD_H1,"H1",BarsPerTimeframe);
+   string h4=FrameJson(sym,PERIOD_H4,"H4",BarsPerTimeframe);
    PostFrame(sym,"M1",m1);
    PostFrame(sym,"M5",m5);
    PostFrame(sym,"M15",m15);
@@ -117,9 +121,22 @@ void SendCandles(const string sym)
    PostFrame(sym,"H1",h1);
    PostFrame(sym,"H4",h4);
 }
+void SendLiveCandles(const string sym)
+{
+   // Refresh only the newest bars frequently; do not resend hundreds of bars every few seconds.
+   PostFrame(sym,"M1",FrameJson(sym,PERIOD_M1,"M1",3));
+   PostFrame(sym,"M5",FrameJson(sym,PERIOD_M5,"M5",3));
+   PostFrame(sym,"M15",FrameJson(sym,PERIOD_M15,"M15",3));
+   PostFrame(sym,"M30",FrameJson(sym,PERIOD_M30,"M30",3));
+   PostFrame(sym,"H1",FrameJson(sym,PERIOD_H1,"H1",3));
+   PostFrame(sym,"H4",FrameJson(sym,PERIOD_H4,"H4",3));
+}
 void OnTimer()
 {
-   for(int i=0;i<ArraySize(symbols);i++){string sym=symbols[i];if(StringLen(sym)>0)SendQuote(sym);}
+   for(int i=0;i<ArraySize(symbols);i++){
+      string sym=symbols[i];
+      if(StringLen(sym)>0){SendQuote(sym);SendLiveCandles(sym);}
+   }
    candleTimer+=MathMax(1,SendEverySeconds);
    if(candleTimer>=MathMax(10,SendCandlesEverySeconds)){
       candleTimer=0;
