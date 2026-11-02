@@ -33,7 +33,7 @@ body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#
 .omni-metric small{font-size:10px;color:var(--muted)}
 .omni-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.8fr);gap:14px}
 .omni-chart-wrap{background:#07111e;border:1px solid #20334a;border-radius:13px;overflow:hidden;margin-top:12px}
-#omniChart{width:100%;height:auto;display:block;min-height:230px}
+#omniChart{width:100%;height:460px;display:block;min-height:460px}
 .omni-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .omni-controls select,.omni-controls button{width:auto;min-width:110px;padding:9px 11px;border-radius:10px;background:#0a1727;color:var(--text);border:1px solid var(--line)}
 .omni-controls button{font-weight:750;cursor:pointer}
@@ -78,7 +78,7 @@ body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#
 </style>
 <style id="dars-pro-chart-polish">
 .omni-chart-wrap{margin-top:14px;overflow:hidden;border:1px solid #29425d;border-radius:14px;background:linear-gradient(180deg,#081522 0%,#07111c 100%);box-shadow:inset 0 1px 0 #ffffff08,0 10px 28px #0003}
-#omniChart{display:block;width:100%;height:auto;min-height:240px;touch-action:pan-y}
+#omniChart{display:block;width:100%;height:460px;min-height:460px;touch-action:pan-y}
 #omniChart text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
 .omni-chart-tools{background:linear-gradient(145deg,#0d1b2b,#091522);border-color:#263b53;border-radius:12px}
 .omni-toggle-list{gap:8px 12px}
@@ -87,7 +87,7 @@ body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#
 .omni-toggle-list input{accent-color:#54dcb0}
 .omni-indicator{background:linear-gradient(145deg,#0c1a29,#08131f);border-color:#263b53;border-radius:10px}
 .omni-indicator b{display:block;padding-bottom:6px;border-bottom:1px solid #1e3045;color:#b8cbe0}
-@media(max-width:520px){#omniChart{min-height:210px}.omni-toggle-list{gap:6px}.omni-toggle-list label{font-size:10px;padding:4px 5px}}
+@media(max-width:520px){#omniChart{height:400px;min-height:400px}.omni-toggle-list{gap:6px}.omni-toggle-list label{font-size:10px;padding:4px 5px}}
 </style>
 <style id="dars-no-overlap-responsive">
 /* Keep dashboard content readable at every viewport width. */
@@ -245,7 +245,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
      <label><input type="checkbox" data-overlay="ema20" checked> EMA 20</label><label><input type="checkbox" data-overlay="ema50" checked> EMA 50</label><label><input type="checkbox" data-overlay="ema100" checked> EMA 100</label><label><input type="checkbox" data-overlay="ema200" checked> EMA 200 · LONG-TERM TREND</label><label><input type="checkbox" data-overlay="bb"> Bollinger</label><label><input type="checkbox" data-overlay="vwap"> VWAP</label><label><input type="checkbox" data-overlay="sr" checked> Support / Resistance</label><label><input type="checkbox" data-overlay="poi" checked> POI · Supply / Demand</label><label><input type="checkbox" data-overlay="equal" checked> Equal Highs / Lows</label><label><input type="checkbox" data-overlay="trendline" checked> Trendlines</label><label><input type="checkbox" data-overlay="structure" checked> BOS / MSS / Sweep</label><label><input type="checkbox" data-overlay="marketStructure" checked> High / Low · HH / HL / LH / LL</label><label><input type="checkbox" data-overlay="trade" checked> Entry / SL / TP</label><label><input type="checkbox" data-panel="omniRSI" checked> RSI panel</label><label><input type="checkbox" data-panel="omniSTOCH" checked> Stochastic panel</label><label><input type="checkbox" data-panel="omniCCI" checked> CCI panel</label><label><input type="checkbox" data-panel="omniMACD" checked> MACD panel</label>
     </div>
    </div>
-   <div class="omni-chart-wrap"><svg id="omniChart" viewBox="0 0 800 360" role="img" aria-label="Live MT5 candlestick chart with selectable technical overlays"></svg></div>
+   <div class="omni-chart-wrap"><svg id="omniChart" viewBox="0 0 800 460" role="img" aria-label="Live MT5 candlestick chart with selectable technical overlays"></svg></div>
    <div class="omni-indicator-grid"><div class="omni-indicator"><b>RSI 14</b><svg id="omniRSI" viewBox="0 0 800 105"></svg></div><div class="omni-indicator"><b>STOCHASTIC 14,3</b><svg id="omniSTOCH" viewBox="0 0 800 105"></svg></div><div class="omni-indicator"><b>CCI 20</b><svg id="omniCCI" viewBox="0 0 800 105"></svg></div><div class="omni-indicator"><b>MACD 12,26,9</b><svg id="omniMACD" viewBox="0 0 800 105"></svg></div></div>
    <p class="omni-foot" id="omniChartMeta">Chart will appear only when actual MT5 candle history is available. No synthetic candles.</p>
   </div>
@@ -319,7 +319,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const typical=valid.map(c=>(Number(c.high)+Number(c.low)+Number(c.close))/3),vol=valid.map(c=>Math.max(1,Number(c.tick_volume)||1));let cumPV=0,cumV=0;const vwap=typical.map((v,i)=>{cumPV+=v*vol[i];cumV+=vol[i];return cumPV/cumV;});
   let min=Math.min(...lows),max=Math.max(...highs);if(quoteFresh){min=Math.min(min,liveBid);max=Math.max(max,liveBid,Number.isFinite(liveAsk)?liveAsk:liveBid);}[ema20,ema50,ema100,ema200,vwap].forEach(a=>{min=Math.min(min,...a.filter(Number.isFinite));max=Math.max(max,...a.filter(Number.isFinite));});if(enabled("bb")){min=Math.min(min,...bbL.filter(Number.isFinite));max=Math.max(max,...bbU.filter(Number.isFinite));}
   if(!(max>min)){min-=1;max+=1;}const pad=(max-min)*.09;min-=pad;max+=pad;
-  const left=22,right=710,top=22,bottom=292,plotH=bottom-top,step=(right-left)/valid.length,w=Math.max(2,Math.min(9,step*.62)),y=v=>bottom-(v-min)/(max-min)*plotH,x=i=>left+(i+.5)*step;
+  const left=22,right=710,top=22,bottom=385,plotH=bottom-top,step=(right-left)/valid.length,w=Math.max(2,Math.min(9,step*.62)),y=v=>bottom-(v-min)/(max-min)*plotH,x=i=>left+(i+.5)*step;
   // Shared collision-aware annotation layout: labels are nudged into free lanes.
   const placedLabels=[];
   const chartLabel=(px,py,text,attrs={})=>{
@@ -340,8 +340,8 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   for(let i=0;i<=5;i++){const yy=top+plotH*i/5,p=max-(max-min)*i/5;el(svg,"line",{x1:left,y1:yy,x2:right,y2:yy,stroke:"#e5eaf0","stroke-width":1});el(svg,"text",{x:720,y:yy+4,fill:"#64748b","font-size":11},p.toFixed(2));}
   el(svg,"line",{x1:714,y1:top-4,x2:714,y2:bottom+2,stroke:"#cbd5e1"});
   const candleTime=i=>{const raw=valid[i].bar_time||valid[i].time||valid[i].timestamp;if(!raw)return "";const d=new Date(raw);return Number.isNaN(d.getTime())?"":d.getUTCHours().toString().padStart(2,"0")+":"+d.getUTCMinutes().toString().padStart(2,"0");};
-  [0,Math.floor((valid.length-1)/3),Math.floor(2*(valid.length-1)/3),valid.length-1].forEach(i=>{const t=candleTime(i);if(t)el(svg,"text",{x:x(i),y:316,fill:"#64748b","font-size":10,"text-anchor":"middle"},t);});
-  el(svg,"text",{x:left,y:345,fill:"#64748b","font-size":9},"XAUUSD-STD · "+tf+" · MT5");
+  [0,Math.floor((valid.length-1)/3),Math.floor(2*(valid.length-1)/3),valid.length-1].forEach(i=>{const t=candleTime(i);if(t)el(svg,"text",{x:x(i),y:410,fill:"#64748b","font-size":10,"text-anchor":"middle"},t);});
+  el(svg,"text",{x:left,y:442,fill:"#64748b","font-size":9},"XAUUSD-STD · "+tf+" · MT5");
   const path=(arr,color,width=1.6,dash="")=>{let d="";arr.forEach((v,i)=>{if(!Number.isFinite(v))return;d+=(d?" L":"M")+x(i)+" "+y(v);});if(d)el(svg,"path",{d,fill:"none",stroke:color,"stroke-width":width,"stroke-dasharray":dash});};
   if(enabled("bb")){path(bbU,"#9b83e8",1.2);path(mid,"#9b83e8",.8,"3 3");path(bbL,"#9b83e8",1.2);}
   if(enabled("vwap"))path(vwap,"#f3c66d",1.7,"5 3");
@@ -448,9 +448,9 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
         else if(Number(c.low)<lineNow&&Number(c.close)>=lineNow){status="REJECTION ↑";statusColor="#f3c66d";}
         else if(Math.abs(Number(c.close)-lineNow)<=tol||(Number(c.low)<=lineNow&&Number(c.high)>=lineNow)){status="TRENDLINE TEST";statusColor="#f3c66d";}
       }
-      chartLabel(x(end)-5,Math.max(top+12,Math.min(bottom-5,y2-16)),label,{fill:color,"font-size":9,"font-weight":800,"text-anchor":"end"});
-      if(status!=="WAITING")chartLabel(x(end)-5,Math.max(top+18,Math.min(bottom-6,y2+12)),status,{fill:statusColor,"font-size":9,"font-weight":800,"text-anchor":"end"});
-      trendStates.push(label+": "+status+" · anchors "+(b.i-a.i)+" bars apart");
+      
+      
+      
     };
     line(pivotHighs,"#ff9c87","DOWNTREND LINE","down");
     line(pivotLows,"#53d9b0","UPTREND LINE","up");
@@ -460,7 +460,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const last=valid[valid.length-1],stamp=last.bar_time||last.time||last.timestamp||"",lastPrice=closes[closes.length-1],lastY=y(lastPrice);
   el(svg,"line",{x1:left,x2:right,y1:lastY,y2:lastY,stroke:"#65b5ff","stroke-width":1,"stroke-dasharray":"4 4",opacity:.85});
   el(svg,"rect",{x:718,y:lastY-10,width:78,height:20,rx:4,fill:"#17466b"});el(svg,"text",{x:757,y:lastY+4,fill:"#f0f7ff","font-size":11,"font-weight":800,"text-anchor":"middle"},fmt(lastPrice));
-  set("omniChartMeta","Verified MT5 OHLC · "+tf+" · "+valid.length+" candles · last bar "+(stamp?new Date(stamp).toLocaleString():"timestamp unavailable")+(trendStates.length?" · "+trendStates.join(" | "):""));
+  set("omniChartMeta","Verified MT5 OHLC · "+tf+" · "+valid.length+" candles · last bar "+(stamp?new Date(stamp).toLocaleString():"timestamp unavailable"));
   const rsi=closes.map((v,i)=>{if(i<14)return null;let gain=0,loss=0;for(let j=i-13;j<=i;j++){const d=closes[j]-closes[j-1];if(d>0)gain+=d;else loss-=d;}return loss===0?100:100-100/(1+gain/loss);});
   const stoch=closes.map((v,i)=>{if(i<13)return null;const hh=Math.max(...highs.slice(i-13,i+1)),ll=Math.min(...lows.slice(i-13,i+1));return hh===ll?50:100*(v-ll)/(hh-ll);});
   const cci=closes.map((v,i)=>{if(i<19)return null;const win=typical.slice(i-19,i+1),m=win.reduce((a,b)=>a+b,0)/20,md=win.reduce((a,b)=>a+Math.abs(b-m),0)/20;return md?((typical[i]-m)/(.015*md)):0;});
