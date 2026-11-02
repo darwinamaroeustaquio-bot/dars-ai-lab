@@ -11,8 +11,7 @@ module.exports=async(req,res)=>{
   const key=String(process.env.SUPABASE_SERVICE_ROLE_KEY||"").trim();
   if(!root||!key)return send(res,503,{ok:false,status:"UNAVAILABLE",source:"MT5 broker calendar",error:"MT5 calendar storage is not configured."});
   const now=Date.now(),from=new Date(now-24*60*60*1000).toISOString(),to=new Date(now+14*24*60*60*1000).toISOString();
-  const q=new URLSearchParams({select:"event_id,event_time,event_name,currency,importance,impact_type,actual_value,forecast_value,previous_value,received_at",currency:"eq.USD",event_time:"gte."+from});
-  q.append("event_time","lte."+to);
+  const q=new URLSearchParams({select:"event_id,event_time,event_name,currency,importance,impact_type,actual_value,forecast_value,previous_value,received_at",currency:"eq.USD",and:"(event_time.gte."+from+",event_time.lte."+to+")"});
   q.set("order","event_time.asc");q.set("limit","300");
   try{
     const r=await fetch(root+"/rest/v1/mt5_news_events?"+q.toString(),{headers:{apikey:key,Authorization:"Bearer "+key,Accept:"application/json"}});
