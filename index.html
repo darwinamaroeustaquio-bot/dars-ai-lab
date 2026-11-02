@@ -321,6 +321,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 (()=>{
  const $=id=>document.getElementById(id);
  const state={quote:null,analysis:null,frames:{},busy:false};
+ const closedBarCache={}; // immutable closed-bar EMA snapshots, keyed by timeframe
  const fmt=v=>Number.isFinite(Number(v))?Number(v).toFixed(2):"—";
  const set=(id,v)=>{const n=$(id);if(n)n.textContent=v;};
  function message(text){const n=$("omniChatLog"),d=document.createElement("div");d.className="omni-msg";d.textContent=text;n.appendChild(d);n.scrollTop=n.scrollHeight;}
@@ -335,18 +336,24 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const liveBid=Number(state.quote?.bid),liveAsk=Number(state.quote?.ask),quoteFresh=Number(state.quoteAgeSeconds)<=20&&Number.isFinite(liveBid)&&liveBid>0;
   const sma=(a,p,i)=>i+1<p?null:a.slice(i-p+1,i+1).reduce((x,y)=>x+y,0)/p;
   const ema=(a,p)=>{const k=2/(p+1),out=[];let v=a[0];for(let i=0;i<a.length;i++){v=i===0?a[i]:a[i]*k+v*(1-k);out.push(v);}return out;};
-  // Historical EMA values use CLOSED candles only. The forming candle and
-  // live quote are excluded from every historical vertex in the ribbon.
-  // A single projected endpoint is appended and is the only part that moves.
-  const closedCloses=allCloses.slice(0,-1),tailClosed=a=>a.slice(-(valid.length-1));
-  const emaSeries=p=>{
-   const closedEma=ema(closedCloses,p),arr=tailClosed(closedEma),prior=closedEma.at(-1);
-   if(!Number.isFinite(prior))return arr;
+  // Freeze the closed MT5 candle snapshot. Quote-only redraws reuse the same
+  // historical EMA vertices and closed-candle scale until a new bar closes.
+  const closedRows=allValid.slice(0,-1),lastClosed=closedRows.at(-1);
+  const closedKey=lastClosed?(lastClosed.bar_time||lastClosed.time||lastClosed.timestamp||String(closedRows.length)):"empty";
+  let frozen=closedBarCache[tf];
+  if(!frozen||frozen.key!==String(closedKey)||frozen.count!==closedRows.length){
+   const cc=closedRows.map(c=>Number(c.close)),ch=closedRows.map(c=>Number(c.high)),cl=closedRows.map(c=>Number(c.low));
+   frozen={key:String(closedKey),count:closedRows.length,closes:cc,highs:ch,lows:cl,ema20:ema(cc,20),ema50:ema(cc,50),ema100:ema(cc,100),ema200:ema(cc,200)};
+   closedBarCache[tf]=frozen;
+  }
+  const tailClosed=a=>a.slice(-(valid.length-1));
+  const emaSeries=(p,key)=>{
+   const history=tailClosed(frozen[key]),prior=frozen[key].at(-1);
+   if(!Number.isFinite(prior))return history;
    const k=2/(p+1),tipPrice=quoteFresh?liveBid:allCloses.at(-1);
-   arr.push(tipPrice*k+prior*(1-k));
-   return arr;
+   return history.concat(tipPrice*k+prior*(1-k));
   };
-  const ema20=emaSeries(20),ema50=emaSeries(50),ema100=emaSeries(100),ema200=emaSeries(200);
+  const ema20=emaSeries(20,"ema20"),ema50=emaSeries(50,"ema50"),ema100=emaSeries(100,"ema100"),ema200=emaSeries(200,"ema200");
   const bbInput=closes.slice(0,-1).concat(quoteFresh?[liveBid]:[closes.at(-1)]);
   const mid=closes.map((_,i)=>sma(closes,20,i));
   const sd=closes.map((_,i)=>{if(i<19)return null;const m=mid[i];return Math.sqrt(closes.slice(i-19,i+1).reduce((z,v)=>z+(v-m)**2,0)/20);});
@@ -356,7 +363,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   // Freeze the chart's vertical scale to CLOSED candles only. The forming
   // candle and live quote are deliberately excluded, so live ticks can move
   // the final EMA/ribbon tip without shifting the historical band.
-  const closedHighs=highs.slice(0,-1),closedLows=lows.slice(0,-1);
+  const closedHighs=tailClosed(frozen.highs),closedLows=tailClosed(frozen.lows);
   let min=Math.min(...closedLows),max=Math.max(...closedHighs);
   [ema20,ema50,ema100,ema200,vwap].forEach(a=>{const vals=a.slice(0,-1).filter(Number.isFinite);if(vals.length){min=Math.min(min,...vals);max=Math.max(max,...vals);}});
   if(enabled("bb")){const lo=bbL.slice(0,-1).filter(Number.isFinite),hi=bbU.slice(0,-1).filter(Number.isFinite);if(lo.length&&hi.length){min=Math.min(min,...lo);max=Math.max(max,...hi);}}
