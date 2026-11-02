@@ -190,7 +190,7 @@ const weakNoBypass = selectAdaptiveStrategy({
   candidates: [{ strategy: "MOMENTUM" }],
   strategyStats: { MOMENTUM: { ...provenMomentum, totalTrades: 20 } }
 });
-assert.equal(weakNoBypass.eligible, false, "Dynamic weighting must never bypass the 100-trade evidence gate.");
+assert.equal(weakNoBypass.eligible, false, "Dynamic weighting must never bypass the 10-trade and chronological holdout evidence gates.");
 assert.equal(weakNoBypass.status, "BLOCKED_BY_EVIDENCE");
 console.log("DARS adaptive allocation and evidence-gate tests passed.");
 
