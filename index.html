@@ -472,7 +472,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const last=valid[valid.length-1],stamp=last.bar_time||last.time||last.timestamp||"",lastPrice=closes[closes.length-1],lastY=y(lastPrice);
   el(svg,"line",{x1:left,x2:right,y1:lastY,y2:lastY,stroke:"#65b5ff","stroke-width":1,"stroke-dasharray":"4 4",opacity:.85});
   if(!quoteFresh){el(svg,"rect",{x:702,y:lastY-10,width:94,height:20,rx:4,fill:"#17466b"});el(svg,"text",{x:749,y:lastY+4,fill:"#f0f7ff","font-size":11,"font-weight":800,"text-anchor":"middle"},fmt(lastPrice));}
-  set("omniChartMeta","Verified MT5 OHLC · "+tf+" · "+valid.length+" candles · last bar "+(stamp?new Date(stamp).toLocaleString():"timestamp unavailable"));
+  set("omniChartMeta","Verified MT5 OHLC · "+tf+" · "+valid.length+" candles · last bar "+(stamp?new Date(stamp).toISOString().replace("T"," ").slice(0,16)+" MT5 broker clock":"timestamp unavailable"));
   const rsi=closes.map((v,i)=>{if(i<14)return null;let gain=0,loss=0;for(let j=i-13;j<=i;j++){const d=closes[j]-closes[j-1];if(d>0)gain+=d;else loss-=d;}return loss===0?100:100-100/(1+gain/loss);});
   const stoch=closes.map((v,i)=>{if(i<13)return null;const hh=Math.max(...highs.slice(i-13,i+1)),ll=Math.min(...lows.slice(i-13,i+1));return hh===ll?50:100*(v-ll)/(hh-ll);});
   const cci=closes.map((v,i)=>{if(i<19)return null;const win=typical.slice(i-19,i+1),m=win.reduce((a,b)=>a+b,0)/20,md=win.reduce((a,b)=>a+Math.abs(b-m),0)/20;return md?((typical[i]-m)/(.015*md)):0;});
@@ -560,7 +560,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
    state.frames[tf]=d.ok&&Array.isArray(d.candles)?d.candles:[];
    state.quote=q?.quote||state.quote;state.quoteAgeSeconds=q?.age_seconds??999999;
    drawChart();
-   const latest=state.frames[tf].at(-1),stamp=latest?.bar_time?new Date(latest.bar_time).toISOString().replace("T"," ").slice(0,19)+" UTC (MT5 bar clock)":"No MT5 bar";
+   const latest=state.frames[tf].at(-1),stamp=latest?.bar_time?new Date(latest.bar_time).toISOString().replace("T"," ").slice(0,19)+" MT5 broker clock":"No MT5 bar";
    set("omniChartMeta","VT Markets MT5 · XAUUSD-STD · "+tf+" · "+state.frames[tf].length+" broker candles · "+stamp+" · "+(q?.connected?"LIVE BID "+fmt(q.quote.bid)+" · "+q.age_seconds+"s":"QUOTE STALE"));
   }catch(_){drawChart();set("omniChartMeta","MT5 chart feed temporarily unavailable; showing last received broker candles only.");}
  }
@@ -679,42 +679,22 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
  [["Trend alignment",up||down],["RSI confirmation",direction==="BUY"?rsi>50:direction==="SELL"?rsi<50:false],["Possible liquidity sweep",sweepLow||sweepHigh],["Live price / spread checked",false],["Structure shift + retest manually confirmed",false]].forEach(([label,ok])=>{const row=document.createElement("div");row.style.cssText="font-size:12px;color:"+(ok?"#75e9c1":"#ffd28a");row.textContent=(ok?"✓ ":"□ ")+label;checklist.appendChild(row);});card.appendChild(checklist);
  const copy=document.createElement("button");copy.type="button";copy.textContent="Copy setup levels";copy.style.cssText="margin-top:12px;padding:10px 14px;border:0;border-radius:8px;background:#146b58;color:white;font-weight:700;width:100%;cursor:pointer";copy.disabled=direction==="WAIT";copy.style.opacity=copy.disabled?".45":"1";copy.addEventListener("click",()=>{const txt=symbol+" "+frame.timeframe+" "+direction+" DRAFT\nEntry: "+entry.toFixed(2)+"\nSL: "+sl.toFixed(2)+"\nTP1: "+tp1.toFixed(2)+"\nTP2: "+tp2.toFixed(2)+"\nNOT CONFIRMED - verify live quote and risk.";if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(()=>{copy.textContent="Copied";}).catch(()=>{copy.textContent="Copy unavailable; select levels above";});else copy.textContent="Clipboard unavailable on this connection";});card.appendChild(copy);
  parent.appendChild(card);
- // Keep the setup illustration moving from real MT5 quotes while this message remains visible.
- // One loop per reply container; never synthesize a price when the quote endpoint is unavailable.
+ // Refresh the illustration from actual broker CopyRates candles, never browser-time synthetic bars.
  if(!parent.dataset.darsSetupLiveLoop){
   parent.dataset.darsSetupLiveLoop="1";
   const liveTimer=setInterval(async()=>{
    if(!parent.isConnected){clearInterval(liveTimer);delete parent.dataset.darsSetupLiveLoop;return;}
    try{
-    const qres=await fetch("/api/mt5-quote?symbol="+encodeURIComponent(symbol),{cache:"no-store"});
-    if(!qres.ok)return;
-    const q=await qres.json();
-    const bid=Number(q.bid??q.quote?.bid),ask=Number(q.ask??q.quote?.ask);
-    if(!Number.isFinite(bid)||!Number.isFinite(ask)||bid<=0||ask<=0)return;
-    const price=(bid+ask)/2;
-    const stamp=q.received_at||q.updated_at||q.timestamp;
-    const t=stamp?Math.floor(new Date(stamp).getTime()/1000):Math.floor(Date.now()/1000);
-    if(!Number.isFinite(t)||t<=0)return;
-    const secs=({M1:60,M5:300,M15:900,M30:1800,H1:3600,H4:14400})[frame.timeframe]||300;
-    const bucket=Math.floor(t/secs)*secs;
-    const list=frame.candles;
-    if(!Array.isArray(list)||!list.length)return;
-    const last=list[list.length-1];
-    const parseTime=v=>{const n=Number(v);if(Number.isFinite(n)&&n>0)return n>1e12?Math.floor(n/1000):Math.floor(n);const d=Date.parse(v);return Number.isFinite(d)?Math.floor(d/1000):0;};
-    const lastBucket=Math.floor(parseTime(last.time||last.timestamp||last.datetime)/secs)*secs;
-    if(lastBucket===bucket||lastBucket===0){
-      const close=Number(last.close??last.c),high=Number(last.high??last.h),low=Number(last.low??last.l);
-      last.close=last.c=price;last.high=last.h=Math.max(Number.isFinite(high)?high:price,price);last.low=last.l=Math.min(Number.isFinite(low)?low:price,price);
-      last.open=last.o=Number(last.open??last.o??price);
-    }else if(bucket>lastBucket){
-      list.push({time:new Date(bucket*1000).toISOString(),open:price,high:price,low:price,close:price,o:price,h:price,l:price,c:price});
-      if(list.length>80)list.shift();
-    }else return;
+    const url="/api/mt5-candles?symbol="+encodeURIComponent(symbol)+"&timeframe="+encodeURIComponent(frame.timeframe)+"&limit=80";
+    const response=await fetch(url,{cache:"no-store"});
+    const result=await response.json();
+    if(!response.ok||!result.ok||!Array.isArray(result.candles)||result.candles.length<20)return;
+    frame.candles=result.candles.map(c=>({...c,time:c.bar_time||c.time}));
     const old=parent.querySelector("section");
     if(old)old.remove();
     addSetupIllustration(parent,frame,symbol,allFrames);
-   }catch(_){/* no fabricated ticks */}
-  },1000);
+   }catch(_){/* retain last verified MT5 candles */}
+  },3000);
  }
 }
  async function ask(text){if(!text||send.disabled)return;input.value="";bubble(text,"you");history.push({role:"user",content:text});send.disabled=true;status.textContent="Sinusuri ang data…";
@@ -942,7 +922,7 @@ function drawChart(){
  out+='<text x="22" y="258" fill="#91a4ba" font-size="10">LIVE MT5 · '+tf+' · '+candles.length+' candles</text>';
  out+='<text x="738" y="17" text-anchor="end" fill="#91a4ba" font-size="10">EMA20</text>';
  svg.innerHTML=out;
- const last=candles[candles.length-1],lastTime=last.bar_time?new Date(last.bar_time).toLocaleString():"timestamp unavailable";
+ const last=candles[candles.length-1],lastTime=last.bar_time?new Date(last.bar_time).toISOString().replace("T"," ").slice(0,19)+" MT5 broker clock":"timestamp unavailable";
  $("chartName").textContent=a.name+" · "+tf;
  $("chartPrice").textContent=Number(last.close).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:5});
  $("chartFeedStatus").textContent="LIVE MT5 candle history · last candle "+lastTime;
@@ -1082,7 +1062,7 @@ $("copyPlan").addEventListener("click",async()=>{const txt="Dars AI Lab risk pla
 $("saveTrade").addEventListener("click",()=>{const pnlRaw=$("jPnl").value;const t={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),date:new Date().toISOString(),symbol:$("jSymbol").value,side:$("jSide").value,outcome:$("jOutcome").value,pnl:pnlRaw.trim()===""?null:Number(pnlRaw),note:$("jNote").value.trim()};journal.unshift(t);persist();$("jPnl").value="";$("jNote").value=""});
 $("clearJournal").addEventListener("click",()=>{if(confirm("Delete all locally saved journal entries? Export CSV first if you need a backup.")){journal=[];persist()}});
 $("exportJournal").addEventListener("click",()=>{const rows=[["date","symbol","side","outcome","pnl","notes"],...journal.map(t=>[t.date,t.symbol,t.side,t.outcome,t.pnl===null?"":t.pnl,t.note])];const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="dars-ai-lab-journal.csv";a.click();URL.revokeObjectURL(url)});
-renderWatch();refreshWatchlist();setInterval(refreshWatchlist,5000);drawChart();refreshLiveChart();chartFetchTimer=setInterval(refreshLiveChart,5000);setInterval(updateFormingCandleFromQuote,1000);updateRisk();updateScore();renderJournal();
+renderWatch();refreshWatchlist();setInterval(refreshWatchlist,5000);drawChart();refreshLiveChart();chartFetchTimer=setInterval(refreshLiveChart,5000);// Forming OHLC is refreshed from MT5 CopyRates history, not browser quote-time buckets.updateRisk();updateScore();renderJournal();
 
 const setupEl=id=>document.getElementById(id);
 let setupBusy=false,lastSetupSnapshot=null;
