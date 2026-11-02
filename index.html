@@ -335,8 +335,17 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const liveBid=Number(state.quote?.bid),liveAsk=Number(state.quote?.ask),quoteFresh=Number(state.quoteAgeSeconds)<=20&&Number.isFinite(liveBid)&&liveBid>0;
   const sma=(a,p,i)=>i+1<p?null:a.slice(i-p+1,i+1).reduce((x,y)=>x+y,0)/p;
   const ema=(a,p)=>{const k=2/(p+1),out=[];let v=a[0];for(let i=0;i<a.length;i++){v=i===0?a[i]:a[i]*k+v*(1-k);out.push(v);}return out;};
-  const tail=a=>a.slice(-valid.length);
-  const emaSeries=p=>{const full=ema(allCloses,p),arr=tail(full);if(quoteFresh&&arr.length>1){const prior=ema(allCloses.slice(0,-1),p).at(-1),k=2/(p+1);arr[arr.length-1]=liveBid*k+prior*(1-k);}return arr;};
+  // Historical EMA values use CLOSED candles only. The forming candle and
+  // live quote are excluded from every historical vertex in the ribbon.
+  // A single projected endpoint is appended and is the only part that moves.
+  const closedCloses=allCloses.slice(0,-1),tailClosed=a=>a.slice(-(valid.length-1));
+  const emaSeries=p=>{
+   const closedEma=ema(closedCloses,p),arr=tailClosed(closedEma),prior=closedEma.at(-1);
+   if(!Number.isFinite(prior))return arr;
+   const k=2/(p+1),tipPrice=quoteFresh?liveBid:allCloses.at(-1);
+   arr.push(tipPrice*k+prior*(1-k));
+   return arr;
+  };
   const ema20=emaSeries(20),ema50=emaSeries(50),ema100=emaSeries(100),ema200=emaSeries(200);
   const bbInput=closes.slice(0,-1).concat(quoteFresh?[liveBid]:[closes.at(-1)]);
   const mid=closes.map((_,i)=>sma(closes,20,i));
