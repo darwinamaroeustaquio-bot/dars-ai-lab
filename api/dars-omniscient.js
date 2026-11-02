@@ -1,48 +1,39 @@
-// DARS Omniscient read-only analysis endpoint. No broker order methods.
-const { analyzeDarsMarket, MAX_SPREAD_PRICE, MAX_SPREAD_TO_M5_ATR } = require("../lib/dars-omniscient");
-const { summarizeByStrategy, scoreCandidates } = require("../lib/dars-paper-research");
-const { buildCandidates } = require("../lib/dars-strategy-engines");
+// DARS Robot analysis now uses the same fixed seven-candidate pool as paper trading.
+// Read-only research/paper mode. No broker order methods.
+const { analyzeDarsMarket } = require("../lib/dars-omniscient");
+const { analyzeSevenCandidatePool } = require("../lib/dars-seven-candidate-paper");
 
-async function loadVerifiedStrategyStats() {
-  const root = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
-  const key = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
-  if (!root || !key) return { trades: [], stats: {} };
-  try {
-    const query = new URLSearchParams({ select: "strategy,status,closed_at,net_r,features", symbol: "eq.XAUUSD-STD", status: "eq.CLOSED", order: "closed_at.desc", limit: "2000" });
-    const response = await fetch(root + "/rest/v1/dars_paper_trades?" + query, { headers: { apikey: key, Authorization: "Bearer " + key } });
-    if (!response.ok) return { trades: [], stats: {} };
-    const trades = (await response.json()).reverse();
-    return { trades, stats: summarizeByStrategy(trades) };
-  } catch (_) { return { trades: [], stats: {} }; }
-}
-
-module.exports = async (req, res) => {
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "no-store, max-age=0");
-  if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    return res.status(405).json({ ok: false, error: "POST only" });
-  }
-  const body = req.body || {};
-  if (!body || typeof body !== "object" || !body.quote || !body.frames || typeof body.frames !== "object") {
-    return res.status(400).json({ ok: false, error: "Expected symbol, quote and frames." });
-  }
-  for (const [tf, candles] of Object.entries(body.frames)) {
-    if (!["M5", "M15", "H1"].includes(tf) || !Array.isArray(candles) || candles.length > 200) {
-      return res.status(400).json({ ok: false, error: "Only M5, M15 and H1 arrays of up to 200 candles are accepted." });
+module.exports = async (req,res) => {
+  res.setHeader("Content-Type","application/json; charset=utf-8");
+  res.setHeader("Cache-Control","no-store, max-age=0");
+  if(req.method!=="POST"){res.setHeader("Allow","POST");return res.status(405).json({ok:false,error:"POST only"});}
+  const body=req.body||{};
+  if(!body.quote||!body.frames||typeof body.frames!=="object")return res.status(400).json({ok:false,error:"Expected symbol, quote and frames."});
+  try{
+    // Keep the existing quote, candle freshness, spread and market-volatility safety checks.
+    const base=analyzeDarsMarket({symbol:body.symbol,quote:body.quote,frames:body.frames,now:Date.now()});
+    if(base.engineBlockReason || !base.frames?.M5?.ok || !base.frames?.M15?.ok || !base.frames?.H1?.ok){
+      base.engine="DARS_SEVEN_CANDIDATE_ROBOT_V1";
+      base.strategySelection={candidate:"NO_TRADE",status:"BLOCKED_BY_MARKET_DATA",eligible:false,rationale:base.engineBlockReason||"Verified market data is not ready.",evaluatedCandidates:7,strategyRanking:[]};
+      base.decision="WAIT";base.setup=null;
+      return res.status(200).json({ok:true,analysis:base});
     }
-  }
-  try {
-    const research = await loadVerifiedStrategyStats();
-    const input = { symbol: body.symbol, quote: body.quote, frames: body.frames, now: Date.now() };
-    const first = analyzeDarsMarket({ ...input, strategyStats: research.stats });
-    const m5 = first.frames.M5, m15 = first.frames.M15, spread = first.quoteQuality.spread;
-    const marketOk = m5?.ok && m15?.ok && first.frames.H1?.ok && Number.isFinite(spread) && spread <= MAX_SPREAD_PRICE && spread <= m5.atr14 * MAX_SPREAD_TO_M5_ATR && m5.regime !== "HIGH_VOLATILITY" && m15.regime !== "HIGH_VOLATILITY";
-    const candidates = marketOk ? buildCandidates({ frames: first.frames, quote: body.quote }) : [];
-    scoreCandidates(research.trades, candidates, research.stats);
-    const analysis = analyzeDarsMarket({ ...input, strategyStats: research.stats });
-    return res.status(200).json({ ok: true, analysis });
-  } catch (_) {
-    return res.status(500).json({ ok: false, error: "DARS analysis failed safely. No setup was generated." });
+    const result=analyzeSevenCandidatePool({frames:base.frames,quote:body.quote,paperTrades:Array.isArray(body.paperTrades)?body.paperTrades.slice(-5000):[]});
+    const analysis={...base,engine:"DARS_SEVEN_CANDIDATE_ROBOT_V1",decision:result.setup?.side||"WAIT",setup:result.setup?{
+      side:result.setup.side,entry:result.setup.entry,stopLoss:result.setup.stopLoss,
+      takeProfit1:result.setup.takeProfit1,takeProfit2:result.setup.takeProfit2,
+      riskDistance:result.setup.riskDistance,rewardRiskTP1:result.setup.rewardRiskTP1,
+      rewardRiskTP2:result.setup.rewardRiskTP2,strategy:result.setup.strategy,
+      strategyId:result.setup.strategyId,family:result.setup.family,profile:result.setup.profile,
+      targetR:result.setup.targetR,stopMultiple:result.setup.stopMultiple,maxBars:result.setup.maxBars,
+      signalBarTime:result.setup.signalBarTime,oscillator:result.setup.oscillator,
+      previousOscillator:result.setup.previousOscillator,lowerThreshold:result.setup.lowerThreshold,
+      upperThreshold:result.setup.upperThreshold,features:{atr:result.setup.atr14,oscillator:result.setup.oscillator},
+      source:"Live VT Markets quote + verified closed MT5 candles; fixed seven-candidate pool",
+      note:result.setup.note
+    }:null,strategySelection:result.selection,engineBoard:result.board,diagnostics:result.diagnostics};
+    return res.status(200).json({ok:true,analysis});
+  }catch(error){
+    return res.status(500).json({ok:false,error:"DARS seven-candidate analysis failed safely. No setup was generated."});
   }
 };
