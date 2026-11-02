@@ -272,7 +272,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   </div>
   <div class="omni-reason" id="engineChampion">Central selector: waiting for verified market data.</div>
   <div class="tablewrap"><table><thead><tr><th>Engine</th><th>Signal</th><th>Evidence</th><th>Decision</th></tr></thead><tbody id="engineBoardRows"><tr><td colspan="4" class="empty">Waiting for MT5 candles and quote.</td></tr></tbody></table></div>
-  <p class="omni-foot">A detected setup is not automatically a winner. The selector requires at least 100 closed trades, 30 holdout trades, positive expectancy, PF above 1.10, drawdown within limits, no excessive loss streak, and a validated outcome model. If no engine qualifies, DARS stays in shadow research / WAIT.</p>
+  <p class="omni-foot">A detected setup is not automatically a winner. The selector requires at least 10 closed paper trades and 10 holdout trades, positive expectancy, PF above 1.10, drawdown within limits, no excessive loss streak, and a validated outcome model. If no engine qualifies, DARS stays in shadow research / WAIT.</p>
  </div>
  <div class="omni-grid">
   <div class="omni-card">
@@ -740,12 +740,12 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
  <p class="note" id="engineLabMessage" role="status">Ready when verified M5, M15 and H1 candles are available.</p><div class="metrics" id="engineContextMetrics" style="margin:10px 0"><div class="metric"><div class="eyebrow">News calendar</div><strong id="engineNewsStatus">—</strong><small id="engineNewsCount">No events loaded</small></div><div class="metric"><div class="eyebrow">London session</div><strong id="engineLondonTrades">—</strong><small id="engineLondonExp">Awaiting replay</small></div><div class="metric"><div class="eyebrow">New York session</div><strong id="engineNYTrades">—</strong><small id="engineNYExp">Awaiting replay</small></div><div class="metric"><div class="eyebrow">News ±30 min</div><strong id="engineNewsTrades">—</strong><small id="engineNewsExp">Awaiting replay</small></div></div><p class="note" id="engineContextNote">Session and news analysis will appear after a successful replay. News proximity is observational only; no entries are blocked.</p>
  <h3 style="margin:14px 0 6px">Per-engine session & news breakdown</h3><p class="note">Holdout results summed across each engine’s 15 configurations. Counts overlap across candidates; use this to locate weak engines, not as unique-trade totals.</p><div class="tablewrap"><table style="min-width:900px"><thead><tr><th>Engine</th><th>London trades</th><th>London net R</th><th>New York trades</th><th>New York net R</th><th>News ±30m trades</th><th>News net R</th></tr></thead><tbody id="engineContextByEngine"><tr><td colspan="7" class="empty">Run the historical replay to see engine-level context.</td></tr></tbody></table></div><div class="row" style="justify-content:flex-start;gap:8px;margin:8px 0"><button class="btn" id="copy15EngineResult" type="button" disabled>Copy result</button><span class="note" id="copy15EngineStatus" aria-live="polite">Run the lab first.</span></div>
  <div class="tablewrap"><table><thead><tr><th>Candidate ID</th><th>Engine</th><th>Entry profile</th><th>Exit rules</th><th>Dev trades</th><th>Holdout trades</th><th>Win rate</th><th>Net R</th><th>Exp R</th><th>PF</th><th>Max DD</th><th>Decision</th></tr></thead><tbody id="engineLabResults"><tr><td colspan="11" class="empty">Run the historical replay to see all candidates.</td></tr></tbody></table></div>
- <p class="note">A strategy is only marked FORWARD PAPER REVIEW when it has at least 20 development and 20 holdout trades, positive expectancy in both, holdout PF above 1.10, drawdown at or below 12R, and remains positive under +$0.05/+0.10 per oz slippage stress. This is a research gate, not a profitability guarantee or live-trading authorization. Historical spread is unavailable in OHLC candles; the spread field is an assumption.</p>
+ <p class="note">A strategy is only marked FORWARD PAPER REVIEW when it has at least 10 development and 10 holdout trades, positive expectancy in both, holdout PF above 1.10, drawdown at or below 12R, and remains positive under +$0.05/+0.10 per oz slippage stress. This is a research gate, not a profitability guarantee or live-trading authorization. Historical spread is unavailable in OHLC candles; the spread field is an assumption.</p>
 </section>
 
 <section class="panel" id="reverseEdgePanel" style="margin-bottom:15px;border-color:#9a5961">
 <div class="row"><div><div class="eyebrow">CONTRARIAN RESEARCH · GOLD ONLY</div><h2 style="margin:5px 0 8px">DARS Reverse-Edge Lab</h2></div><span class="tag" id="reverseEdgeStatus">Not run yet</span></div>
-<p class="note">This experiment ranks the weakest original candidates using development data only (first 70%, minimum 20 trades), then tests the exact opposite BUY/SELL signals on the final 30% holdout. Entry timing, ATR stop/target, spread, slippage and commission assumptions remain identical. This is a research comparison—not evidence that MT5 or a broker is designed to make traders lose.</p>
+<p class="note">This experiment ranks the weakest original candidates using development data only (first 70%, minimum 10 trades), then tests the exact opposite BUY/SELL signals on the final 30% holdout. Entry timing, ATR stop/target, spread, slippage and commission assumptions remain identical. This is a research comparison—not evidence that MT5 or a broker is designed to make traders lose.</p>
 <div class="row" style="justify-content:flex-start;gap:8px;margin:10px 0">
 <button class="btn primary" id="runReverseEdgeLab" type="button">Find weakest & test inverse</button>
 <span class="note">Uses selected timeframe and Candidate Lab cost inputs.</span>
@@ -1106,7 +1106,7 @@ if(reverseEdgeButton){
     if(item.inversePassed)tr.style.color="var(--green)";
     body.appendChild(tr);
    }
-   if(!rows.length)body.innerHTML='<tr><td colspan="13" class="empty">No original candidate reached the 20-development-trade minimum. Collect more verified candles.</td></tr>';
+   if(!rows.length)body.innerHTML='<tr><td colspan="13" class="empty">No original candidate reached the 10-development-trade minimum. Collect more verified candles.</td></tr>';
   }catch(error){
    el("reverseEdgeStatus").textContent="Unavailable";
    el("reverseEdgeMessage").textContent=error.message+" Check Supabase candle history and the Vercel function logs.";
@@ -1444,12 +1444,12 @@ if(reverseEdgeButton){
  function failureReason(c){
   const reasons=[],dev=c.train||{},hold=c.afterCosts||c.holdout||{},checks=c.checks||{};
   if(!checks.development){
-   if(Number(dev.trades||0)<30)reasons.push("Development trades <30");
+   if(Number(dev.trades||0)<10)reasons.push("Development trades <10");
    else if(Number(dev.expectancyR||0)<=0)reasons.push("Development expectancy <=0");
    if(Number(dev.profitFactor||0)<=1.05)reasons.push("Development PF <=1.05");
   }
   if(!checks.holdout){
-   if(Number(hold.trades||0)<30)reasons.push("Holdout trades <30");
+   if(Number(hold.trades||0)<10)reasons.push("Holdout trades <10");
    else if(Number(hold.expectancyR||0)<=0)reasons.push("After-cost expectancy <=0");
    if(Number(hold.profitFactor||0)<=1.10)reasons.push("After-cost PF <=1.10");
   }
@@ -1515,7 +1515,7 @@ if(reverseEdgeButton){
      $("proExpectancy").textContent=Number(n.expectancyR).toFixed(3)+"R";
      $("proPF").textContent=Number(n.profitFactor).toFixed(2);
      $("proDD").textContent=Number(n.maxDrawdownR).toFixed(2)+"R";
-     $("proSelectedReason").textContent="Top candidate that passed the current screening filters (minimum 30 holdout trades, positive after-cost expectancy and PF > 1.10). Not a validated live strategy. Confirm on separate periods and broker-specific costs before considering even paper deployment.";
+     $("proSelectedReason").textContent="Top candidate that passed the current screening filters (minimum 10 holdout trades, positive after-cost expectancy and PF > 1.10). Not a validated live strategy. Confirm on separate periods and broker-specific costs before considering even paper deployment.";
    }else{
      $("proExpectancy").textContent="—";$("proPF").textContent="—";$("proDD").textContent="—";
      $("proSelectedReason").textContent="No candidate met all current screening filters. Do not select the highest raw expectancy by default; keep WAIT, check data quality and cost assumptions, and validate on other periods.";
@@ -1610,7 +1610,7 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
    if(!d.ready){$("engineLabStatus").textContent="Waiting for data";$("engineLabMessage").textContent=d.message;return;}
    const qualified=d.results.filter(x=>x.qualifiedForPaperReview);
    $("engineCount").textContent=String(d.engineCount);$("engineQualified").textContent=String(qualified.length)+" / "+String(d.candidateCount);
-   const explainFailures=x=>{const a=[];if(x.development.trades<30)a.push("dev trades "+x.development.trades+"/30");if(x.holdout.trades<30)a.push("holdout trades "+x.holdout.trades+"/30");if(!(x.development.expectancyR>0))a.push("development expectancy not positive");if(!(x.holdout.expectancyR>0))a.push("holdout expectancy not positive");if(!(x.holdout.profitFactor>1.1))a.push("holdout PF ≤ 1.10");if(x.holdout.maxDrawdownR>12)a.push("drawdown > 12R");if(!(x.stressPlus005?.expectancyR>0))a.push("+$0.05 stress failed");if(!(x.stressPlus010?.expectancyR>0))a.push("+$0.10 stress failed");return a;};
+   const explainFailures=x=>{const a=[];if(x.development.trades<10)a.push("dev trades "+x.development.trades+"/10");if(x.holdout.trades<10)a.push("holdout trades "+x.holdout.trades+"/10");if(!(x.development.expectancyR>0))a.push("development expectancy not positive");if(!(x.holdout.expectancyR>0))a.push("holdout expectancy not positive");if(!(x.holdout.profitFactor>1.1))a.push("holdout PF ≤ 1.10");if(x.holdout.maxDrawdownR>12)a.push("drawdown > 12R");if(!(x.stressPlus005?.expectancyR>0))a.push("+$0.05 stress failed");if(!(x.stressPlus010?.expectancyR>0))a.push("+$0.10 stress failed");return a;};
    const passBox=$("enginePassSummary");passBox.replaceChildren();
    const passTitle=document.createElement("strong");passTitle.textContent=qualified.length?("PASS — "+qualified.length+" candidate(s) qualified for FORWARD PAPER REVIEW"):("NO PASS — 0 of "+d.candidateCount+" candidates qualified");passBox.appendChild(passTitle);
    const passNote=document.createElement("div");passNote.style.marginTop="6px";passNote.textContent=qualified.length?"These candidates passed every historical gate. They are eligible for forward paper review only — not live trading.":"Walang candidate na pumasa sa lahat ng gates. Ipinapakita sa ibaba ang pinakamalalapit na candidates at kung ano ang kulang.";passBox.appendChild(passNote);
