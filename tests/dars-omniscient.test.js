@@ -193,3 +193,39 @@ const weakNoBypass = selectAdaptiveStrategy({
 assert.equal(weakNoBypass.eligible, false, "Dynamic weighting must never bypass the 100-trade evidence gate.");
 assert.equal(weakNoBypass.status, "BLOCKED_BY_EVIDENCE");
 console.log("DARS adaptive allocation and evidence-gate tests passed.");
+
+
+// Chronological fold stability and exact duplicate execution fingerprint tests.
+const { chronologicalWalkForward, auditDuplicateCandidates } = require("../lib/dars-research-validation");
+const wfTrades = Array.from({ length: 6 }, (_, i) => ({
+  time: new Date(60_000 + i * 120_000).toISOString(),
+  r: i % 2 === 0 ? 1 : 0.5
+}));
+const wfSummary = rows => ({
+  trades: rows.length,
+  expectancyR: rows.length ? rows.reduce((sum, row) => sum + row.r, 0) / rows.length : 0,
+  netR: rows.reduce((sum, row) => sum + row.r, 0),
+  profitFactor: 2,
+  maxDrawdownR: 0
+});
+const wf = chronologicalWalkForward(wfTrades, 0, 900_000, wfSummary, 3);
+assert.equal(wf.folds.length, 3);
+assert.equal(wf.profitableFolds, 3);
+assert.equal(wf.stable, true);
+
+const identicalExecution = [
+  { time: new Date(1000).toISOString(), side: "BUY", entry: 4000, exit: 4002, risk: 2, r: 0.9, reason: "TP1" },
+  { time: new Date(2000).toISOString(), side: "SELL", entry: 4002, exit: 4004, risk: 2, r: -1.1, reason: "SL" },
+  { time: new Date(3000).toISOString(), side: "BUY", entry: 4004, exit: 4006, risk: 2, r: 0.9, reason: "TP1" }
+];
+const duplicateRows = [
+  { id: "A", holdout: { expectancyR: 0.3, profitFactor: 1.8, maxDrawdownR: 1 } , _auditTrades: identicalExecution },
+  { id: "B", holdout: { expectancyR: 0.2, profitFactor: 1.5, maxDrawdownR: 2 } , _auditTrades: identicalExecution.map(x => ({ ...x })) },
+  { id: "C", holdout: { expectancyR: 0.1, profitFactor: 1.2, maxDrawdownR: 1 } , _auditTrades: identicalExecution.map(x => ({ ...x, entry: x.entry + 10 })) }
+];
+const duplicateReport = auditDuplicateCandidates(duplicateRows);
+assert.equal(duplicateReport.duplicateGroups, 1);
+assert.equal(duplicateRows.find(x => x.id === "A").duplicateBehavior.isDuplicate, false);
+assert.equal(duplicateRows.find(x => x.id === "B").duplicateBehavior.isDuplicate, true);
+assert.equal(duplicateRows.find(x => x.id === "C").duplicateBehavior.isDuplicate, false);
+console.log("DARS walk-forward and duplicate-strategy audit tests passed.");
