@@ -146,9 +146,7 @@ string FrameJson(const string sym,const ENUM_TIMEFRAMES tf,const string frameNam
    int copyError=GetLastError();
    int minimumBars=MathMin(10,wanted);
    if(copied<minimumBars){Print("Dars waiting for enough ",frameName," bars on ",sym,". CopyRates=",copied," required=",minimumBars," error=",copyError,". Keep MT5 connected and allow history to synchronize.");return "";}
-   // MT5 bar timestamps use broker-server clock. Convert to UTC before storing.
-   // The same offset is applied to every bar in this short, current upload batch.
-   long serverUtcOffset=(long)(TimeCurrent()-TimeGMT());
+   // Preserve the native MT5 broker-server candle timestamp without UTC shifting.
    string out="\""+frameName+"\":[";
    for(int j=0;j<copied;j++){
       if(j>0)out+=",";
