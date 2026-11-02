@@ -140,6 +140,15 @@ assert.equal(summarizeByStrategy([]).LIQUIDITY_RECLAIM.totalTrades, 0);
 assert.equal(STRATEGIES.length, 19, "DARS must expose nineteen independently tracked strategy engines.");
 assert.equal(new Set(STRATEGIES).size, 19, "Strategy identifiers must be unique.");
 assert.equal(Object.keys(summarizeByStrategy([])).length, 19, "Every strategy must have its own research metrics across all 19 engines.");
+const adaptivePaperHtml = fs.readFileSync(path.join(__dirname, "..", "adaptive-paper.html"), "utf8");
+for (const strategy of ["MACD_CROSSOVER", "DONCHIAN_BREAKOUT", "ICHIMOKU_CLOUD", "SUPERTREND"]) {
+  assert.ok(adaptivePaperHtml.includes(strategy), "Adaptive paper lab must display " + strategy + ".");
+}
+const journalSchema = fs.readFileSync(path.join(__dirname, "..", "supabase", "dars_paper_journal.sql"), "utf8");
+for (const strategy of STRATEGIES) {
+  assert.ok(journalSchema.includes("'" + strategy + "'"), "Supabase paper journal must allow " + strategy + ".");
+}
+
 const candidateSelection = selectAdaptiveStrategy({
   regime: "TRENDING", trend: "BULLISH", candidates: [{ strategy: "MOMENTUM" }], strategyStats: {}
 });
