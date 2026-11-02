@@ -314,10 +314,19 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const liveBid=Number(state.quote?.bid),liveAsk=Number(state.quote?.ask),quoteFresh=Number(state.quoteAgeSeconds)<=20&&Number.isFinite(liveBid)&&liveBid>0;
   const sma=(a,p,i)=>i+1<p?null:a.slice(i-p+1,i+1).reduce((x,y)=>x+y,0)/p;
   const ema=(a,p)=>{const k=2/(p+1),out=[];let v=a[0];for(let i=0;i<a.length;i++){v=i===0?a[i]:a[i]*k+v*(1-k);out.push(v);}return out;};
-  const tail=a=>a.slice(-valid.length),ema20=tail(ema(allCloses,20)),ema50=tail(ema(allCloses,50)),ema100=tail(ema(allCloses,100)),ema200=tail(ema(allCloses,200)),mid=closes.map((_,i)=>sma(closes,20,i)),sd=closes.map((_,i)=>{if(i<19)return null;const m=mid[i];return Math.sqrt(closes.slice(i-19,i+1).reduce((z,v)=>z+(v-m)**2,0)/20);});
+  const tail=a=>a.slice(-valid.length);
+  const emaSeries=p=>{const full=ema(allCloses,p),arr=tail(full);if(quoteFresh&&arr.length>1){const prior=ema(allCloses.slice(0,-1),p).at(-1),k=2/(p+1);arr[arr.length-1]=liveBid*k+prior*(1-k);}return arr;};
+  const ema20=emaSeries(20),ema50=emaSeries(50),ema100=emaSeries(100),ema200=emaSeries(200);
+  const bbInput=closes.slice(0,-1).concat(quoteFresh?[liveBid]:[closes.at(-1)]);
+  const mid=closes.map((_,i)=>sma(closes,20,i));
+  const sd=closes.map((_,i)=>{if(i<19)return null;const m=mid[i];return Math.sqrt(closes.slice(i-19,i+1).reduce((z,v)=>z+(v-m)**2,0)/20);});
+  if(quoteFresh&&bbInput.length>=20){const window=bbInput.slice(-20),m=window.reduce((a,b)=>a+b,0)/20,dev=Math.sqrt(window.reduce((z,v)=>z+(v-m)**2,0)/20);mid[mid.length-1]=m;sd[sd.length-1]=dev;}
   const bbU=mid.map((v,i)=>v==null?null:v+2*sd[i]),bbL=mid.map((v,i)=>v==null?null:v-2*sd[i]);
   const typical=valid.map(c=>(Number(c.high)+Number(c.low)+Number(c.close))/3),vol=valid.map(c=>Math.max(1,Number(c.tick_volume)||1));let cumPV=0,cumV=0;const vwap=typical.map((v,i)=>{cumPV+=v*vol[i];cumV+=vol[i];return cumPV/cumV;});
-  let min=Math.min(...lows),max=Math.max(...highs);if(quoteFresh){min=Math.min(min,liveBid);max=Math.max(max,liveBid,Number.isFinite(liveAsk)?liveAsk:liveBid);}[ema20,ema50,ema100,ema200,vwap].forEach(a=>{min=Math.min(min,...a.filter(Number.isFinite));max=Math.max(max,...a.filter(Number.isFinite));});if(enabled("bb")){min=Math.min(min,...bbL.filter(Number.isFinite));max=Math.max(max,...bbU.filter(Number.isFinite));}
+  // Keep historical chart coordinates stable during ticks: scale from completed bars only.
+  let min=Math.min(...lows.slice(0,-1)),max=Math.max(...highs.slice(0,-1));
+  [ema20,ema50,ema100,ema200,vwap].forEach(a=>{const hist=a.slice(0,-1).filter(Number.isFinite);if(hist.length){min=Math.min(min,...hist);max=Math.max(max,...hist);}});
+  if(enabled("bb")){const lo=bbL.slice(0,-1).filter(Number.isFinite),hi=bbU.slice(0,-1).filter(Number.isFinite);if(lo.length&&hi.length){min=Math.min(min,...lo);max=Math.max(max,...hi);}}
   if(!(max>min)){min-=1;max+=1;}const pad=(max-min)*.09;min-=pad;max+=pad;
   const left=22,right=710,top=22,bottom=385,plotH=bottom-top,step=(right-left)/valid.length,w=Math.max(2,Math.min(9,step*.62)),y=v=>bottom-(v-min)/(max-min)*plotH,x=i=>left+(i+.5)*step;
   // Shared collision-aware annotation layout: labels are nudged into free lanes.
@@ -892,13 +901,19 @@ function drawChart(){
   $("chartPrice").textContent="No live candles";$("chartOverlayNote").textContent="Illustrative fallback · not market data";return;
  }
  const candles=data.slice(-48),closes=candles.map(c=>Number(c.close));
- const ranges=candles.flatMap(c=>[Number(c.high),Number(c.low),Number(c.open),Number(c.close)]);
+ // Lock the vertical scale and all historical overlay points to completed candles.
+ // Only the rightmost (forming) candle and its EMA endpoint may respond to live ticks.
+ const closedCandles=candles.slice(0,-1);
+ const ranges=closedCandles.flatMap(c=>[Number(c.high),Number(c.low),Number(c.open),Number(c.close)]);
  let min=Math.min(...ranges),max=Math.max(...ranges);if(!(max>min)){max+=1;min-=1}
- const pad=(max-min)*.08;min-=pad;max+=pad;
+ const pad=(max-min)*.12;min-=pad;max+=pad;
  const y=v=>230-(v-min)/(max-min)*190;
  let out="";for(let i=0;i<5;i++){const yy=24+i*48;out+='<line x1="18" y1="'+yy+'" x2="740" y2="'+yy+'" stroke="#203147" stroke-width="1"/>'}
- const step=710/candles.length,bodyW=Math.max(3,Math.min(12,step*.58)),ema20=[],k=2/21;let e=closes[0];
- closes.forEach((v,i)=>{e=i? v*k+e*(1-k):v;ema20.push([30+(i+.5)*step,y(e)])});
+ const step=710/candles.length,bodyW=Math.max(3,Math.min(12,step*.58)),ema20=[],k=2/21;
+ let e=closes[0];
+ for(let i=0;i<closes.length-1;i++){e=i?closes[i]*k+e*(1-k):closes[i];ema20.push([30+(i+.5)*step,y(e)])}
+ const liveEma=closes[closes.length-1]*k+e*(1-k);
+ ema20.push([30+(closes.length-.5)*step,y(liveEma)]);
  candles.forEach((c,i)=>{const o=Number(c.open),h=Number(c.high),l=Number(c.low),cl=Number(c.close),color=cl>=o?"#39d9a0":"#ff7d89",x=30+(i+.5)*step;out+='<line x1="'+x+'" y1="'+y(h)+'" x2="'+x+'" y2="'+y(l)+'" stroke="'+color+'" stroke-width="1.4"/><rect x="'+(x-bodyW/2)+'" y="'+Math.min(y(o),y(cl))+'" width="'+bodyW+'" height="'+Math.max(1.5,Math.abs(y(o)-y(cl)))+'" rx="1" fill="'+color+'"/>'});
  out+='<polyline points="'+ema20.map(p=>p[0]+","+p[1]).join(" ")+'" fill="none" stroke="#7da7ff" stroke-width="1.8"/>';
  out+='<text x="22" y="258" fill="#91a4ba" font-size="10">LIVE MT5 · '+tf+' · '+candles.length+' candles</text>';
