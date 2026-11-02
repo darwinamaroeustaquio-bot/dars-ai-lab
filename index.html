@@ -516,29 +516,46 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   if(!board.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=5;td.className="empty";td.textContent="Waiting for all verified MT5 frames and quote before scoring the seven strategies.";tr.appendChild(td);engineRows.appendChild(tr);}
   drawChart();
  }
+ async function fetchJson(url,options={},timeoutMs=9000){
+  const controller=new AbortController();
+  const timer=window.setTimeout(()=>controller.abort(),timeoutMs);
+  try{
+   const response=await fetch(url,{...options,cache:"no-store",signal:controller.signal});
+   let data;try{data=await response.json();}catch(_){throw new Error("Invalid JSON response from "+url+" (HTTP "+response.status+").");}
+   if(!response.ok)throw new Error((data&&data.error)||("HTTP "+response.status+" from "+url));
+   return data;
+  }catch(error){
+   if(error&&error.name==="AbortError")throw new Error("Request timed out after "+Math.round(timeoutMs/1000)+"s: "+url);
+   throw error;
+  }finally{window.clearTimeout(timer);}
+ }
  async function analyze(){
   if(state.busy)return;state.busy=true;set("omniConnection","Checking MT5…");
   try{
-   const [qr,...crs]=await Promise.all(["/api/mt5-quote?symbol=XAUUSD-STD",...["M5","M15","H1"].map(tf=>"/api/mt5-candles?symbol=XAUUSD-STD&timeframe="+tf+"&limit=120")].map(url=>fetch(url,{cache:"no-store",headers:{Accept:"application/json"}})));
-   const q=await qr.json(),frames={};for(let i=0;i<crs.length;i++){const d=await crs[i].json();frames[["M5","M15","H1"][i]]=d.ok&&Array.isArray(d.candles)?d.candles:[];}
+   const [q,...candleData]=await Promise.all(["/api/mt5-quote?symbol=XAUUSD-STD",...["M5","M15","H1"].map(tf=>"/api/mt5-candles?symbol=XAUUSD-STD&timeframe="+tf+"&limit=120")].map(url=>fetchJson(url,{headers:{Accept:"application/json"}},9000)));
+   if(!q.ok)throw new Error(q.error||"MT5 quote endpoint failed.");
+   const frames={};for(let i=0;i<candleData.length;i++){const d=candleData[i];if(!d.ok)throw new Error(d.error||"MT5 candle endpoint failed.");frames[["M5","M15","H1"][i]]=Array.isArray(d.candles)?d.candles:[];}
    state.frames={...state.frames,...frames};
    const quote=q.quote?{bid:q.quote.bid,ask:q.quote.ask,received_at:q.quote.received_at}: {};
-   const ar=await fetch("/api/dars-omniscient",{method:"POST",cache:"no-store",headers:{"Content-Type":"application/json"},body:JSON.stringify({symbol:"XAUUSD-STD",quote,frames})});
-   const ad=await ar.json();if(!ar.ok||!ad.ok)throw new Error(ad.error||"Analysis endpoint unavailable");
+   const ad=await fetchJson("/api/dars-omniscient",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({symbol:"XAUUSD-STD",quote,frames})},12000);
+   if(!ad.ok)throw new Error(ad.error||"Analysis endpoint unavailable");
    renderAnalysis(ad.analysis,q);
   }catch(e){
-   set("omniDot","omni-dot bad");$("omniDot").className="omni-dot bad";set("omniConnection","DATA / API ERROR");
-   const empty={decision:"WAIT",setup:null,diagnostics:[e.message],frames:{}};renderAnalysis(empty,null);
+   const detail=e&&e.message?e.message:"Unknown feed error";
+   const empty={decision:"WAIT",setup:null,diagnostics:[detail],frames:{}};
+   renderAnalysis(empty,null);
+   $("omniDot").className="omni-dot bad";
+   set("omniConnection","MT5 FEED ERROR");
+   set("omniQuoteMeta",detail);
   }finally{state.busy=false;}
  }
  async function refreshChartOnly(){
   const tf=$("omniTimeframe").value;
   try{
-   const [cr,qr]=await Promise.all([
-    fetch("/api/mt5-candles?symbol=XAUUSD-STD&timeframe="+tf+"&limit=200",{cache:"no-store"}),
-    fetch("/api/mt5-quote?symbol=XAUUSD-STD",{cache:"no-store"})
+   const [d,q]=await Promise.all([
+    fetchJson("/api/mt5-candles?symbol=XAUUSD-STD&timeframe="+tf+"&limit=200",{},7000),
+    fetchJson("/api/mt5-quote?symbol=XAUUSD-STD",{},7000)
    ]);
-   const [d,q]=await Promise.all([cr.json(),qr.json()]);
    state.frames[tf]=d.ok&&Array.isArray(d.candles)?d.candles:[];
    state.quote=q?.quote||state.quote;state.quoteAgeSeconds=q?.age_seconds??999999;
    drawChart();
@@ -562,7 +579,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   else answer="DARS: H1 regime "+(a.frames?.H1?.regime||"unavailable")+", M15 trend "+(a.frames?.M15?.trend||"unavailable")+", M5 trend "+(a.frames?.M5?.trend||"unavailable")+". Decision: "+a.decision+". I can explain the current setup checks, but this first release is a deterministic, auditable analysis engine—not a self-learning model.";
   message(answer);
  });
- analyze();refreshChartOnly();setInterval(analyze,15000);setInterval(refreshChartOnly,2000);setInterval(()=>{const q=fetch("/api/mt5-quote?symbol=XAUUSD-STD",{cache:"no-store"}).then(r=>r.json()).then(d=>{if(d.ok&&d.quote){const x=d.quote;set("omniBid",fmt(x.bid));set("omniAsk",fmt(x.ask));set("omniPrice",fmt((Number(x.bid)+Number(x.ask))/2));set("omniQuoteMeta",d.connected?"Spread "+fmt(Number(x.ask)-Number(x.bid))+" · Quote age "+d.age_seconds+"s":"Quote stale · "+d.age_seconds+"s");}}).catch(()=>{});},3000);
+ analyze();refreshChartOnly();setInterval(analyze,15000);setInterval(refreshChartOnly,2000);setInterval(async()=>{try{const d=await fetchJson("/api/mt5-quote?symbol=XAUUSD-STD",{},5000);const live=!!d.connected&&!!d.quote;$("omniDot").className="omni-dot"+(live?" live":" bad");set("omniConnection",live?"MT5 LIVE · READ ONLY":"MT5 OFFLINE / STALE");if(d.quote){const x=d.quote;set("omniBid",fmt(x.bid));set("omniAsk",fmt(x.ask));set("omniPrice",fmt((Number(x.bid)+Number(x.ask))/2));set("omniQuoteMeta",live?"Spread "+fmt(Number(x.ask)-Number(x.bid))+" · Quote age "+d.age_seconds+"s":"Quote stale · "+d.age_seconds+"s");}else{set("omniQuoteMeta",d.message||"No MT5 quote received yet.");}}catch(e){$("omniDot").className="omni-dot bad";set("omniConnection","MT5 API ERROR");set("omniQuoteMeta",e.message||"MT5 quote check failed.");}},3000);
 })();
 </script><header class="top"><div><div class="brand">DARS <span>OMNISCIENT</span></div><div class="sub">Adaptive Quantitative Trading Intelligence · Research / Paper Mode</div></div><div class="row" style="justify-content:flex-end;gap:8px"><button class="btn hidden" id="cloudSync" type="button">Sync journal</button><button class="btn danger hidden" id="cloudSignOut" type="button">Sign out</button><span class="pill" id="topConnectionStatus">● MT5 STATUS · CHECKING</span></div></header>
 <div class="notice" id="dashboardMainNotice"><b>LIVE CONNECTION:</b> Checking MT5 bridge status… This dashboard reads real VT Markets MT5 quotes and candles when the bridge is online. Paper trading / analysis only; no real orders are sent.</div>
