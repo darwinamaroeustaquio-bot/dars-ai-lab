@@ -126,7 +126,8 @@ function updateOpenTrade(bars){
   const hi=n(bar.high),lo=n(bar.low),slHit=t.side==="BUY"?lo<=t.stopLoss:hi>=t.stopLoss,tp1Hit=t.side==="BUY"?hi>=t.tp1:lo<=t.tp1,tp2Hit=t.side==="BUY"?hi>=t.tp2:lo<=t.tp2;
   if(slHit){t.exitReason=tp2Hit?"SL and final target touched in same candle; counted as SL":"Stop loss";t.netR=-1;t.status="CLOSED";t.closedAt=bt;t.exit=t.stopLoss;book.open=null;save();break;}
   if(tp2Hit){t.tp1Hit=true;t.exitReason="Candidate final target reached";t.netR=Number(t.targetR||2.5);t.status="CLOSED";t.closedAt=bt;t.exit=t.tp2;book.open=null;save();break;}
-  if(tp1Hit&&!t.tp1Hit){t.tp1Hit=true;t.exitReason="TP1 1R reference reached; position remains open";save();}
+  if(tp1Hit&&!t.tp1Hit){t.tp1Hit=true;t.exitReason="TP1 reached; checking whether the candle can hold above/below TP1";save();}
+  if(t.tp1Hit){const close=n(bar.close),rejected=t.side==="BUY"?close<t.tp1:close>t.tp1;if(rejected){t.status="CLOSED";t.closedAt=bt;t.exit=close;t.netR=.75;t.exitReason="TP1 secured; candle closed back through TP1, so TP2 runner was closed on weakening momentum";book.open=null;save();break;}}
   const openedIndex=t.entryBarTime?new Date(t.entryBarTime).getTime():0,maxBars=Math.max(1,Number(t.maxBars)||12);
   if(openedIndex&&new Date(bt).getTime()-openedIndex>=maxBars*300000){t.status="CLOSED";t.exitReason="Time exit after "+maxBars+" closed M5 candles";const close=n(bar.close);t.netR=Number(((t.side==="BUY"?close-t.entry:t.entry-close)/t.riskDistance).toFixed(4));t.closedAt=bt;t.exit=close;book.open=null;save();break;}
  }
