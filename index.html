@@ -957,20 +957,18 @@ async function updateFormingCandleFromQuote(){
   const r=await fetch("/api/mt5-quote?symbol="+encodeURIComponent(sym),{cache:"no-store",headers:{Accept:"application/json"}});
   const d=await r.json();
   if(!r.ok||!d.ok||!d.connected||!d.quote)throw new Error("Waiting for live MT5 tick");
-  const q=d.quote,price=(Number(q.bid)+Number(q.ask))/2,received=Date.parse(q.received_at||"");
+  // MT5 chart OHLC is Bid-based. Use Bid (not midpoint) so the forming candle
+  // stays on the same price basis as CopyRates history.
+  const q=d.quote,price=Number(q.bid),received=Date.parse(q.received_at||"");
   if(!Number.isFinite(price)||price<=0||!Number.isFinite(received))throw new Error("Invalid live quote");
   if(received<lastChartQuoteAt)return;lastChartQuoteAt=received;
   const tf=$("timeframe").value,secs=({M1:60,M5:300,M15:900,H1:3600})[tf]||3600;
-  const bucket=Math.floor(received/1000/secs)*secs*1000,stamp=new Date(bucket).toISOString();
+  const bucket=Math.floor(received/1000/secs)*secs*1000;
   const data=liveChartCandles.filter(c=>c&&Number.isFinite(Number(c.open))&&Number.isFinite(Number(c.high))&&Number.isFinite(Number(c.low))&&Number.isFinite(Number(c.close)));
   const last=data[data.length-1],lastBucket=last?Date.parse(last.bar_time||last.time||""):NaN;
+  // Broker MT5 candle timestamps are authoritative. Never synthesize a new bar from quote time.
   if(last&&Number.isFinite(lastBucket)&&Math.floor(lastBucket/1000/secs)===Math.floor(bucket/1000/secs)){
    last.close=price;last.high=Math.max(Number(last.high),price);last.low=Math.min(Number(last.low),price);
-  }else if(last&&Number.isFinite(lastBucket)&&bucket>lastBucket){
-   data.push({symbol:sym,timeframe:tf,bar_time:stamp,open:Number(last.close),high:Math.max(Number(last.close),price),low:Math.min(Number(last.close),price),close:price,source:"live_quote_ticks"});
-   liveChartCandles=data.slice(-200);
-  }else if(!last){
-   throw new Error("Waiting for real candle history");
   }
   drawChart();
   const age=Math.max(0,Math.round((Date.now()-received)/1000));
