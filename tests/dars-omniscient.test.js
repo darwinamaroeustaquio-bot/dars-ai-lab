@@ -122,7 +122,10 @@ const sweepProven = selectAdaptiveStrategy({
 });
 assert.equal(sweepProven.status, "PAPER_ELIGIBLE");
 assert.equal(sweepProven.eligible, true);
-assert.equal(performanceGate({ ...strongEvidence, holdoutTrades: 10 }).passed, true);
+assert.equal(performanceGate({ ...strongEvidence, totalTrades: 99 }).passed, false, "Promotion must wait for 100 closed forward-paper trades.");
+assert.equal(performanceGate({ ...strongEvidence, holdoutTrades: 29 }).passed, false, "Promotion requires at least 30 untouched chronological holdout trades.");
+assert.equal(performanceGate({ ...strongEvidence, holdoutTrades: 30 }).passed, true, "100 total trades with 30 holdout trades may pass if all other gates pass.");
+assert.equal(performanceGate({ ...strongEvidence, profitFactor: 1.14 }).passed, false, "Promotion requires PF above the 1.15 floor.");
 console.log("DARS adaptive selector tests passed.");
 
 
@@ -190,7 +193,7 @@ const weakNoBypass = selectAdaptiveStrategy({
   candidates: [{ strategy: "MOMENTUM" }],
   strategyStats: { MOMENTUM: { ...provenMomentum, totalTrades: 9 } }
 });
-assert.equal(weakNoBypass.eligible, false, "Dynamic weighting must never bypass the 10-trade and chronological holdout evidence gates.");
+assert.equal(weakNoBypass.eligible, false, "Dynamic weighting must never bypass the 100-trade and 30-trade chronological holdout evidence gates.");
 assert.equal(weakNoBypass.status, "BLOCKED_BY_EVIDENCE");
 console.log("DARS adaptive allocation and evidence-gate tests passed.");
 
