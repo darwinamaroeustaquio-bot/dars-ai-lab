@@ -550,16 +550,16 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 <div class="row" style="justify-content:flex-start"><label for="mt5SymbolSelect" class="muted">Broker symbol</label><select id="mt5SymbolSelect" aria-label="MT5 broker symbol"><option value="XAUUSD-STD" selected>XAUUSD-STD · Gold</option></select><button class="btn" id="mt5Refresh" type="button">Refresh quote</button></div>
 </section>
 <section class="panel" id="newsRiskPanel" style="margin-bottom:15px;border-color:#806b3e">
-<div class="row"><div><div class="eyebrow">Economic calendar · trade safety</div><h2 style="margin:5px 0 8px">Independent News Context</h2></div><span class="tag" id="newsFilterStatus">External calendar · status unverified</span></div>
+<div class="row"><div><div class="eyebrow">Economic calendar · trade safety</div><h2 style="margin:5px 0 8px">MT5 Broker News Context</h2></div><span class="tag" id="newsFilterStatus">MT5 calendar · waiting for bridge</span></div>
 <div class="metrics" style="margin:12px 0 0">
 <div class="metric"><div class="eyebrow">News context</div><strong style="font-size:16px">±30 minutes</strong><small>Historical entry-time analysis</small></div>
-<div class="metric"><div class="eyebrow">Data source</div><strong style="font-size:16px">External API</strong><small>Independent of MT5</small></div>
+<div class="metric"><div class="eyebrow">Data source</div><strong style="font-size:16px">MT5 Calendar</strong><small>Same terminal as prices and candles</small></div>
 <div class="metric"><div class="eyebrow">Analysis mode</div><strong style="font-size:16px">OBSERVATIONAL</strong><small>Does not block paper entries</small></div>
 <div class="metric"><div class="eyebrow">Live execution</div><strong style="font-size:16px;color:var(--gold)">LOCKED</strong><small>Trading switches remain OFF</small></div>
 </div>
-<p class="note" id="newsFilterExplanation">News data must come only from the independent Finance Calendar API. MT5 supplies market quotes and candles only. Historical news proximity is observational research, not a live entry-blocking filter. If the external feed is unavailable or timestamps cannot be verified, DARS must show WAIT / UNAVAILABLE and must not invent events.</p>
+<p class="note" id="newsFilterExplanation">All DARS market data and economic calendar events must come from the connected MT5 terminal and broker. No Finance Calendar API, Google News, or other external news source is used. News proximity is observational research, not a live entry-blocking filter. If MT5 calendar data is unavailable or timestamps cannot be verified, DARS must show UNAVAILABLE and must not invent events.</p>
 <div class="row" style="justify-content:flex-start"><a class="btn" href="https://github.com/darwinamaroeustaquio-bot/dars-ai-lab/blob/main/mt5/Dars_AutoTrader_SafetyLocked.mq5" target="_blank" rel="noopener noreferrer" style="text-decoration:none">Open MT5 EA code</a><button class="btn" id="newsFilterInfo" type="button">Check setup notes</button></div>
-<p class="note" id="newsFilterInfoText" hidden>Configure FINANCE_CALENDAR_API_KEY as a Vercel server-side environment variable only if using a provider key. Never put the key in index.html or MT5. Keyless API access is supported; an HTTP error keeps news status unavailable.</p>
+<p class="note" id="newsFilterInfoText" hidden>Run the DARS MT5 History Bridge on the connected broker terminal. It uploads broker calendar events with their timestamps, currency, and impact. If the broker does not provide MT5 Economic Calendar data, the dashboard must remain UNAVAILABLE. No external news API key is required.</p>
 </section>
 <section class="panel" id="adaptiveSignalPanel" style="margin-bottom:15px;border-color:#356a61">
 <div class="row"><div><div class="eyebrow">Adaptive multi-timeframe monitor</div><h2 style="margin:5px 0 8px">Automatic setup watch</h2></div><span class="tag" id="adaptiveFeedStatus">Waiting for candle feed</span></div>
@@ -1594,6 +1594,35 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
  const b=document.getElementById("newsFilterInfo");
  const t=document.getElementById("newsFilterInfoText");
  if(b&&t)b.addEventListener("click",()=>{const show=t.hidden;t.hidden=!show;b.textContent=show?"Hide setup notes":"Check setup notes";});
+})();
+</script>
+<script id="darsMt5NewsRuntime">
+(function(){
+ const status=document.getElementById("newsFilterStatus");
+ const target=document.getElementById("mt5NewsEvents");
+ const explanation=document.getElementById("newsFilterExplanation");
+ async function refresh(){
+  if(!target)return;
+  try{
+   const r=await fetch("/api/gold-news",{cache:"no-store",headers:{Accept:"application/json"}});
+   const d=await r.json();
+   if(!r.ok||!d.ok)throw new Error(d.error||"MT5 calendar unavailable");
+   if(status)status.textContent="MT5 calendar · CONNECTED";
+   target.replaceChildren();
+   const title=document.createElement("strong");title.textContent="MT5 economic calendar · "+d.items.length+" events";target.appendChild(title);
+   d.items.slice(0,8).forEach(item=>{
+    const line=document.createElement("div");line.style.padding="7px 0";line.style.borderTop="1px solid var(--line)";
+    const when=new Date(item.seenAt).toLocaleString();
+    line.textContent=when+" · "+item.currency+" · "+String(item.impact||"unknown").toUpperCase()+" · "+item.title;
+    target.appendChild(line);
+   });
+   if(explanation)explanation.textContent="All market quotes, candles, and economic calendar events are supplied by the connected MT5 broker terminal. News is observational context only; unavailable data is never guessed.";
+  }catch(e){
+   if(status)status.textContent="MT5 calendar · UNAVAILABLE";
+   target.textContent="UNAVAILABLE · "+e.message+". Keep the DARS MT5 History Bridge running and verify broker calendar support.";
+  }
+ }
+ refresh();window.setInterval(refresh,60000);
 })();
 </script>
 <script id="dars15EngineLabRuntime">
