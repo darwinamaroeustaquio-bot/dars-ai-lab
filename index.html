@@ -198,6 +198,27 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 #dashboardContent>#fifteenEngineLab{display:block!important;visibility:visible!important;}
 #fifteenEngineLab{scroll-margin-top:18px;}
 </style>
+
+<style id="dars-clean-chart-v1">
+/* Clean trading-terminal chart: fewer default overlays, clearer candles and labels. */
+.omni-chart-wrap{margin-top:12px!important;border:1px solid #d5deea!important;border-radius:12px!important;background:#fff!important;box-shadow:0 8px 24px #1b35500b!important}
+#omniChart{width:100%!important;height:auto!important;min-height:0!important;aspect-ratio:800/460;display:block;background:#fff!important}
+.omni-chart-tools{margin-top:10px!important;padding:9px 10px!important;background:#f7f9fc!important;border:1px solid #dce4ee!important}
+.omni-toggle-list{gap:6px!important}
+.omni-toggle-list label{padding:5px 8px!important;border:1px solid #dce4ee!important;border-radius:7px!important;background:#fff!important;color:#52647a!important;font-size:10px!important}
+.omni-toggle-list label:has(input:checked){background:#eaf4ff!important;border-color:#9abbdc!important;color:#174a73!important}
+.omni-toggle-list input{accent-color:#2876c7!important}
+.omni-indicator-grid{gap:9px!important;margin-top:10px!important}
+.omni-indicator{background:#fff!important;border:1px solid #dce4ee!important;border-radius:10px!important;padding:10px!important}
+.omni-indicator b{color:#52647a!important}
+.omni-indicator svg{width:100%!important;height:auto!important}
+#omniChart text{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif!important}
+@media(max-width:520px){
+ #omniChart{aspect-ratio:800/460}
+ .omni-toggle-list label{font-size:9px!important;padding:5px 6px!important}
+ .omni-chart-tools{padding:7px!important}
+}
+</style>
 </head>
 <body><main class="wrap">
 <section class="panel auth-panel" id="supabasePanel">
@@ -242,7 +263,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
    </div>
    <div class="omni-chart-tools">
     <div class="omni-toggle-list">
-     <label><input type="checkbox" data-overlay="ema20" checked> EMA 20</label><label><input type="checkbox" data-overlay="ema50" checked> EMA 50</label><label><input type="checkbox" data-overlay="ema100" checked> EMA 100</label><label><input type="checkbox" data-overlay="ema200" checked> EMA 200 · LONG-TERM TREND</label><label><input type="checkbox" data-overlay="emaBands" checked> EMA RIBBON BANDS</label><label><input type="checkbox" data-overlay="bb"> Bollinger</label><label><input type="checkbox" data-overlay="vwap"> VWAP</label><label><input type="checkbox" data-overlay="sr" checked> Support / Resistance</label><label><input type="checkbox" data-overlay="poi" checked> POI · Supply / Demand</label><label><input type="checkbox" data-overlay="equal" checked> Equal Highs / Lows</label><label><input type="checkbox" data-overlay="trendline" checked> Trendlines</label><label><input type="checkbox" data-overlay="structure" checked> BOS / MSS / Sweep</label><label><input type="checkbox" data-overlay="marketStructure" checked> High / Low · HH / HL / LH / LL</label><label><input type="checkbox" data-overlay="trade" checked> Entry / SL / TP</label><label><input type="checkbox" data-panel="omniRSI" checked> RSI panel</label><label><input type="checkbox" data-panel="omniSTOCH" checked> Stochastic panel</label><label><input type="checkbox" data-panel="omniCCI" checked> CCI panel</label><label><input type="checkbox" data-panel="omniMACD" checked> MACD panel</label>
+     <label><input type="checkbox" data-overlay="ema20" checked> EMA 20</label><label><input type="checkbox" data-overlay="ema50"> EMA 50</label><label><input type="checkbox" data-overlay="ema100"> EMA 100</label><label><input type="checkbox" data-overlay="ema200"> EMA 200 · LONG-TERM TREND</label><label><input type="checkbox" data-overlay="emaBands"> EMA RIBBON BANDS</label><label><input type="checkbox" data-overlay="bb"> Bollinger</label><label><input type="checkbox" data-overlay="vwap"> VWAP</label><label><input type="checkbox" data-overlay="sr"> Support / Resistance</label><label><input type="checkbox" data-overlay="poi"> POI · Supply / Demand</label><label><input type="checkbox" data-overlay="equal"> Equal Highs / Lows</label><label><input type="checkbox" data-overlay="trendline"> Trendlines</label><label><input type="checkbox" data-overlay="structure"> BOS / MSS / Sweep</label><label><input type="checkbox" data-overlay="marketStructure"> High / Low · HH / HL / LH / LL</label><label><input type="checkbox" data-overlay="trade"> Entry / SL / TP</label><label><input type="checkbox" data-panel="omniRSI" checked> RSI panel</label><label><input type="checkbox" data-panel="omniSTOCH"> Stochastic panel</label><label><input type="checkbox" data-panel="omniCCI"> CCI panel</label><label><input type="checkbox" data-panel="omniMACD"> MACD panel</label>
     </div>
    </div>
    <div class="omni-chart-wrap"><svg id="omniChart" viewBox="0 0 800 460" role="img" aria-label="Live MT5 candlestick chart with selectable technical overlays"></svg></div>
@@ -307,7 +328,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const svg=$("omniChart"),tf=$("omniTimeframe").value,rows=state.frames[tf]||[];
   svg.replaceChildren();
   const enabled=k=>!!document.querySelector('[data-overlay="'+k+'"]')?.checked;
-  const allValid=rows.filter(c=>[c.open,c.high,c.low,c.close].every(v=>Number.isFinite(Number(v)))&&Number(c.high)>=Number(c.low)).slice().sort((a,b)=>{const ta=Date.parse(a.bar_time||a.time||a.timestamp)||0,tb=Date.parse(b.bar_time||b.time||b.timestamp)||0;return ta-tb;}),valid=allValid.slice(-100);
+  const allValid=rows.filter(c=>[c.open,c.high,c.low,c.close].every(v=>Number.isFinite(Number(v)))&&Number(c.high)>=Number(c.low)).slice().sort((a,b)=>{const ta=Date.parse(a.bar_time||a.time||a.timestamp)||0,tb=Date.parse(b.bar_time||b.time||b.timestamp)||0;return ta-tb;}),valid=allValid.slice(-80);
   const ns="http://www.w3.org/2000/svg",el=(root,tag,attrs,txt)=>{const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(txt!==undefined)n.textContent=txt;root.appendChild(n);return n;};
   if(valid.length<2){el(svg,"text",{x:400,y:155,"text-anchor":"middle",fill:"#91a8c2","font-size":15},"Waiting for verified "+tf+" MT5 candle history");set("omniChartMeta","No chart data available. No synthetic candles are drawn.");["RSI","STOCH","CCI","MACD"].forEach(k=>{const n=$("omni"+k);if(n)n.replaceChildren();});return;}
   const allCloses=allValid.map(c=>Number(c.close)),closes=valid.map(c=>Number(c.close)),highs=valid.map(c=>Number(c.high)),lows=valid.map(c=>Number(c.low)),opens=valid.map(c=>Number(c.open));
