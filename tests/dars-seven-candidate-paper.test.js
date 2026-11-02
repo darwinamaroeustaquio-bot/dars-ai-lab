@@ -1,5 +1,6 @@
 const assert = require("node:assert/strict");
-const { CANDIDATES, analyzeSevenCandidatePool } = require("../lib/dars-seven-candidate-paper");
+const { CANDIDATES, MIN_ENTRY_SCORE, analyzeSevenCandidatePool } = require("../lib/dars-seven-candidate-paper");
+assert.equal(MIN_ENTRY_SCORE, 60, "paper entries must require a 60 percent strategy score");
 
 assert.equal(CANDIDATES.length, 7, "the paper pool must contain exactly seven candidates");
 assert.deepEqual(CANDIDATES.map(x=>x.id), [
@@ -29,6 +30,23 @@ assert.equal(result.setup.stopMultiple,1);
 assert.equal(result.setup.targetR,1.5);
 assert.ok(Math.abs(result.setup.entry-result.setup.stopLoss-1)<1e-8);
 assert.ok(Math.abs(result.setup.takeProfit2-result.setup.entry-1.5)<1e-8);
+
+
+const losingForward = Array.from({length:20}, (_,i)=>({
+  strategyId:"WILLIAMS_REVERSION-STRICT-V2", status:"CLOSED", netR:-1,
+  openedAt:new Date(Date.now()-((20-i)*300000)).toISOString()
+}));
+const belowGate = analyzeSevenCandidatePool({frames,quote:{bid:100,ask:100.1},paperTrades:losingForward});
+assert.equal(belowGate.board[0].detected,true,"the signal can exist while failing the score gate");
+assert.equal(belowGate.board[0].eligible,false,"a score below 60 must not be entry eligible");
+assert.equal(belowGate.setup,null,"no paper entry may open below the minimum score");
+assert.match(belowGate.selection.rationale,/60% minimum/);
+const manualBelowGate = analyzeSevenCandidatePool({
+  frames,quote:{bid:100,ask:100.1},paperTrades:losingForward,
+  preferredCandidateId:"WILLIAMS_REVERSION-STRICT-V2"
+});
+assert.equal(manualBelowGate.setup,null,"manual selection must not bypass the score gate");
+assert.equal(manualBelowGate.selection.status,"MANUAL_NO_SIGNAL");
 
 const trendResult=analyzeSevenCandidatePool({frames:{...frames,M5:{...frame,regime:"TRENDING"}},quote:{bid:100,ask:100.1},paperTrades:[]});
 assert.equal(trendResult.selection.candidate,"NO_TRADE","reversion strategies must stand aside in a trend");
