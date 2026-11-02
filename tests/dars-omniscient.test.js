@@ -135,8 +135,8 @@ assert.equal(trainOutcomeModel([]).ready, false);
 assert.equal(buildCandidates({ frames: {}, quote: {} }).length, 0);
 assert.equal(summarizeByStrategy([]).LIQUIDITY_RECLAIM.totalTrades, 0);
 assert.equal(STRATEGIES.length, 19, "DARS must expose nineteen independently tracked strategy engines.");
-assert.equal(new Set(STRATEGIES).size, 15, "Strategy identifiers must be unique.");
-assert.equal(Object.keys(summarizeByStrategy([])).length, 15, "Every strategy must have its own research metrics.");
+assert.equal(new Set(STRATEGIES).size, 19, "Strategy identifiers must be unique.");
+assert.equal(Object.keys(summarizeByStrategy([])).length, 19, "Every strategy must have its own research metrics across all 19 engines.");
 const candidateSelection = selectAdaptiveStrategy({
   regime: "TRENDING", trend: "BULLISH", candidates: [{ strategy: "MOMENTUM" }], strategyStats: {}
 });
