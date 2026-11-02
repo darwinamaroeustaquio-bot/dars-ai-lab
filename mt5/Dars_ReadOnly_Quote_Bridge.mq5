@@ -51,10 +51,10 @@ bool PostJson(const string endpoint,const string payload,const string label)
 
 string EscapeNewsJson(string s)
 {
-   StringReplace(s, "\\\\", "\\\\\\\\");
-   StringReplace(s, "\\\"", "\\\\"");
-   StringReplace(s, "\\r", "");
-   StringReplace(s, "\\n", " ");
+   StringReplace(s, "\\", "\\\\");
+   StringReplace(s, "\"", "\\\"");
+   StringReplace(s, "\r", "");
+   StringReplace(s, "\n", " ");
    return s;
 }
 string NewsImportance(const ENUM_CALENDAR_EVENT_IMPORTANCE importance)
