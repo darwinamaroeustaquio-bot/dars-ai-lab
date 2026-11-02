@@ -37,10 +37,11 @@ module.exports = async (req, res) => {
   if (!root || !key) return send(res, 503, { ok: false, error: "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel." });
 
   const body = req.body || {};
-  if (body.version !== 1 || !Array.isArray(body.candles) || !Array.isArray(body.deals))
-    return send(res, 400, { ok: false, error: "Expected version:1, candles:[], deals:[]" });
-  if (body.candles.length > 12500 || body.deals.length > 300)
-    return send(res, 413, { ok: false, error: "Batch too large; maximum 4600 candles and 300 deals per request." });
+  if (body.version !== 1 || !Array.isArray(body.candles) || !Array.isArray(body.deals) || (body.news !== undefined && !Array.isArray(body.news)))
+    return send(res, 400, { ok: false, error: "Expected version:1, candles:[], deals:[], and optional news:[]" });
+  const newsInput = Array.isArray(body.news) ? body.news : [];
+  if (body.candles.length > 12500 || body.deals.length > 300 || newsInput.length > 1000)
+    return send(res, 413, { ok: false, error: "Batch too large; maximum 12500 candles, 300 deals, and 1000 calendar events." });
 
   const account = String(body.account || "unknown");
   const fallbackSymbol = String(body.symbol || "unknown").slice(0, 32);
@@ -71,6 +72,27 @@ module.exports = async (req, res) => {
     });
   }
 
+  const news = [];
+  for (const n of newsInput) {
+    const event_id = Number(n.event_id);
+    const event_time = asIso(n.event_time);
+    const currency = String(n.currency || "USD").slice(0, 8);
+    const event_name = String(n.event_name || "").trim().slice(0, 180);
+    const importance = String(n.importance || "unknown").toLowerCase().slice(0, 16);
+    if (!Number.isSafeInteger(event_id) || event_id <= 0 || !event_time || !event_name ||
+        !["low", "moderate", "high", "unknown"].includes(importance)) {
+      return send(res, 400, { ok: false, error: "Invalid MT5 calendar event payload." });
+    }
+    news.push({
+      event_id, event_time, currency, event_name, importance,
+      impact_type: Number.isFinite(Number(n.impact_type)) ? Number(n.impact_type) : null,
+      actual_value: Number.isFinite(Number(n.actual_value)) ? Number(n.actual_value) : null,
+      forecast_value: Number.isFinite(Number(n.forecast_value)) ? Number(n.forecast_value) : null,
+      previous_value: Number.isFinite(Number(n.previous_value)) ? Number(n.previous_value) : null,
+      account, source: "mt5_broker_calendar", received_at: new Date().toISOString()
+    });
+  }
+
   const headers = { apikey: key, Authorization: "Bearer " + key, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" };
   try {
     if (candles.length) {
@@ -85,7 +107,13 @@ module.exports = async (req, res) => {
       });
       if (!r.ok) return send(res, 502, { ok: false, error: "Saving closed trades failed. Run supabase/mt5_history.sql in Supabase.", upstream_status: r.status, detail: (await r.text()).slice(0, 300) });
     }
-    return send(res, 200, { ok: true, account, candles_saved: candles.length, closed_deals_saved: deals.length, received_at: new Date().toISOString() });
+    if (news.length) {
+      const r = await fetch(root + "/rest/v1/mt5_news_events?on_conflict=event_id,event_time,currency", {
+        method: "POST", headers, body: JSON.stringify(news)
+      });
+      if (!r.ok) return send(res, 502, { ok: false, error: "Saving MT5 calendar events failed. Run supabase/mt5_news_events.sql in Supabase.", upstream_status: r.status, detail: (await r.text()).slice(0, 300) });
+    }
+    return send(res, 200, { ok: true, account, candles_saved: candles.length, closed_deals_saved: deals.length, calendar_events_saved: news.length, received_at: new Date().toISOString() });
   } catch (_) {
     return send(res, 502, { ok: false, error: "Could not reach Supabase." });
   }
