@@ -311,12 +311,13 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const ns="http://www.w3.org/2000/svg",el=(root,tag,attrs,txt)=>{const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(txt!==undefined)n.textContent=txt;root.appendChild(n);return n;};
   if(valid.length<2){el(svg,"text",{x:400,y:155,"text-anchor":"middle",fill:"#91a8c2","font-size":15},"Waiting for verified "+tf+" MT5 candle history");set("omniChartMeta","No chart data available. No synthetic candles are drawn.");["RSI","STOCH","CCI","MACD"].forEach(k=>{const n=$("omni"+k);if(n)n.replaceChildren();});return;}
   const allCloses=allValid.map(c=>Number(c.close)),closes=valid.map(c=>Number(c.close)),highs=valid.map(c=>Number(c.high)),lows=valid.map(c=>Number(c.low)),opens=valid.map(c=>Number(c.open));
+  const liveBid=Number(state.quote?.bid),liveAsk=Number(state.quote?.ask),quoteFresh=Number(state.quoteAgeSeconds)<=20&&Number.isFinite(liveBid)&&liveBid>0;
   const sma=(a,p,i)=>i+1<p?null:a.slice(i-p+1,i+1).reduce((x,y)=>x+y,0)/p;
   const ema=(a,p)=>{const k=2/(p+1),out=[];let v=a[0];for(let i=0;i<a.length;i++){v=i===0?a[i]:a[i]*k+v*(1-k);out.push(v);}return out;};
   const tail=a=>a.slice(-valid.length),ema20=tail(ema(allCloses,20)),ema50=tail(ema(allCloses,50)),ema100=tail(ema(allCloses,100)),ema200=tail(ema(allCloses,200)),mid=closes.map((_,i)=>sma(closes,20,i)),sd=closes.map((_,i)=>{if(i<19)return null;const m=mid[i];return Math.sqrt(closes.slice(i-19,i+1).reduce((z,v)=>z+(v-m)**2,0)/20);});
   const bbU=mid.map((v,i)=>v==null?null:v+2*sd[i]),bbL=mid.map((v,i)=>v==null?null:v-2*sd[i]);
   const typical=valid.map(c=>(Number(c.high)+Number(c.low)+Number(c.close))/3),vol=valid.map(c=>Math.max(1,Number(c.tick_volume)||1));let cumPV=0,cumV=0;const vwap=typical.map((v,i)=>{cumPV+=v*vol[i];cumV+=vol[i];return cumPV/cumV;});
-  let min=Math.min(...lows),max=Math.max(...highs);[ema20,ema50,ema100,ema200,vwap].forEach(a=>{min=Math.min(min,...a.filter(Number.isFinite));max=Math.max(max,...a.filter(Number.isFinite));});if(enabled("bb")){min=Math.min(min,...bbL.filter(Number.isFinite));max=Math.max(max,...bbU.filter(Number.isFinite));}
+  let min=Math.min(...lows),max=Math.max(...highs);if(quoteFresh){min=Math.min(min,liveBid);max=Math.max(max,liveBid,Number.isFinite(liveAsk)?liveAsk:liveBid);}[ema20,ema50,ema100,ema200,vwap].forEach(a=>{min=Math.min(min,...a.filter(Number.isFinite));max=Math.max(max,...a.filter(Number.isFinite));});if(enabled("bb")){min=Math.min(min,...bbL.filter(Number.isFinite));max=Math.max(max,...bbU.filter(Number.isFinite));}
   if(!(max>min)){min-=1;max+=1;}const pad=(max-min)*.09;min-=pad;max+=pad;
   const left=22,right=710,top=22,bottom=292,plotH=bottom-top,step=(right-left)/valid.length,w=Math.max(2,Math.min(9,step*.62)),y=v=>bottom-(v-min)/(max-min)*plotH,x=i=>left+(i+.5)*step;
   // Shared collision-aware annotation layout: labels are nudged into free lanes.
@@ -338,13 +339,14 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   };
   for(let i=0;i<=5;i++){const yy=top+plotH*i/5,p=max-(max-min)*i/5;el(svg,"line",{x1:left,y1:yy,x2:right,y2:yy,stroke:"#e5eaf0","stroke-width":1});el(svg,"text",{x:720,y:yy+4,fill:"#64748b","font-size":11},p.toFixed(2));}
   el(svg,"line",{x1:714,y1:top-4,x2:714,y2:bottom+2,stroke:"#cbd5e1"});
-  const candleTime=i=>{const raw=valid[i].bar_time||valid[i].time||valid[i].timestamp;if(!raw)return "";const d=new Date(raw);return Number.isNaN(d.getTime())?"":d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});};
+  const candleTime=i=>{const raw=valid[i].bar_time||valid[i].time||valid[i].timestamp;if(!raw)return "";const d=new Date(raw);return Number.isNaN(d.getTime())?"":d.getUTCHours().toString().padStart(2,"0")+":"+d.getUTCMinutes().toString().padStart(2,"0");};
   [0,Math.floor((valid.length-1)/3),Math.floor(2*(valid.length-1)/3),valid.length-1].forEach(i=>{const t=candleTime(i);if(t)el(svg,"text",{x:x(i),y:316,fill:"#64748b","font-size":10,"text-anchor":"middle"},t);});
   el(svg,"text",{x:left,y:345,fill:"#64748b","font-size":9},"XAUUSD-STD · "+tf+" · MT5");
   const path=(arr,color,width=1.6,dash="")=>{let d="";arr.forEach((v,i)=>{if(!Number.isFinite(v))return;d+=(d?" L":"M")+x(i)+" "+y(v);});if(d)el(svg,"path",{d,fill:"none",stroke:color,"stroke-width":width,"stroke-dasharray":dash});};
   if(enabled("bb")){path(bbU,"#9b83e8",1.2);path(mid,"#9b83e8",.8,"3 3");path(bbL,"#9b83e8",1.2);}
   if(enabled("vwap"))path(vwap,"#f3c66d",1.7,"5 3");
   valid.forEach((c,i)=>{const o=opens[i],h=highs[i],l=lows[i],cl=closes[i],col=cl>=o?"#48e0ad":"#ff7187";el(svg,"line",{x1:x(i),y1:y(h),x2:x(i),y2:y(l),stroke:col,"stroke-width":1.3});el(svg,"rect",{x:x(i)-w/2,y:Math.min(y(o),y(cl)),width:w,height:Math.max(1.5,Math.abs(y(o)-y(cl))),fill:col,rx:1});});
+  if(quoteFresh){const py=y(liveBid);el(svg,"line",{x1:left,x2:right,y1:py,y2:py,stroke:"#f0b84b","stroke-width":1.5,"stroke-dasharray":"6 3"});el(svg,"rect",{x:620,y:Math.max(top,Math.min(bottom-17,py-9)),width:88,height:18,rx:3,fill:"#f0b84b"});el(svg,"text",{x:664,y:Math.max(top+12,Math.min(bottom-5,py+4)),"text-anchor":"middle",fill:"#172033","font-size":10,"font-weight":800}, "BID "+liveBid.toFixed(2));}
   if(enabled("ema20"))path(ema20,"#079669",1.8);if(enabled("ema50"))path(ema50,"#d6455d",1.8);if(enabled("ema100"))path(ema100,"#2876c7",1.9);if(enabled("ema200"))path(ema200,"#111111",2.1);
    const e20=ema20.at(-1),e50=ema50.at(-1),e100=ema100.at(-1),e200=ema200.at(-1),emaBias=allValid.length<200?"INSUFFICIENT EMA200 HISTORY":([e20,e50,e100].every(v=>v>e200)?"BULLISH · EMA 200 BELOW ALL 3":([e20,e50,e100].every(v=>v<e200)?"BEARISH · EMA 200 ABOVE ALL 3":"MIXED · NO FULL ALIGNMENT"));
    chartLabel(right-5,top+12,emaBias,{fill:emaBias.startsWith("BULLISH")?"#079669":emaBias.startsWith("BEARISH")?"#d6455d":"#a66b08","font-size":10,"font-weight":800,"text-anchor":"end"});
@@ -467,7 +469,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   mini("omniRSI",rsi,0,100,[30,70]);mini("omniSTOCH",stoch,0,100,[20,80]);mini("omniCCI",cci,-200,200,[-100,100]);mini("omniMACD",hist,-Math.max(.01,...hist.map(Math.abs)),Math.max(.01,...hist.map(Math.abs)),[0]);
  }
  function renderAnalysis(a,q){
-  state.analysis=a;const live=!!q?.connected&&!!q?.quote;
+  state.analysis=a;state.quote=q?.quote||null;state.quoteAgeSeconds=q?.age_seconds??999999;const live=!!q?.connected&&!!q?.quote;
   $("omniDot").className="omni-dot"+(live?" live":" bad");
   set("omniConnection",live?"MT5 LIVE · READ ONLY":"MT5 OFFLINE / STALE");
   const quote=q?.quote||{};set("omniBid",fmt(quote.bid));set("omniAsk",fmt(quote.ask));
@@ -517,7 +519,18 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
  }
  async function refreshChartOnly(){
   const tf=$("omniTimeframe").value;
-  try{const r=await fetch("/api/mt5-candles?symbol=XAUUSD-STD&timeframe="+tf+"&limit=200",{cache:"no-store"}),d=await r.json();state.frames[tf]=d.ok?d.candles:[];drawChart();}catch(_){state.frames[tf]=[];drawChart();}
+  try{
+   const [cr,qr]=await Promise.all([
+    fetch("/api/mt5-candles?symbol=XAUUSD-STD&timeframe="+tf+"&limit=200",{cache:"no-store"}),
+    fetch("/api/mt5-quote?symbol=XAUUSD-STD",{cache:"no-store"})
+   ]);
+   const [d,q]=await Promise.all([cr.json(),qr.json()]);
+   state.frames[tf]=d.ok&&Array.isArray(d.candles)?d.candles:[];
+   state.quote=q?.quote||state.quote;state.quoteAgeSeconds=q?.age_seconds??999999;
+   drawChart();
+   const latest=state.frames[tf].at(-1),stamp=latest?.bar_time?new Date(latest.bar_time).toISOString().replace("T"," ").slice(0,19)+" UTC (MT5 bar clock)":"No MT5 bar";
+   set("omniChartMeta","VT Markets MT5 · XAUUSD-STD · "+tf+" · "+state.frames[tf].length+" broker candles · "+stamp+" · "+(q?.connected?"LIVE BID "+fmt(q.quote.bid)+" · "+q.age_seconds+"s":"QUOTE STALE"));
+  }catch(_){drawChart();set("omniChartMeta","MT5 chart feed temporarily unavailable; showing last received broker candles only.");}
  }
  $("omniRefresh").addEventListener("click",analyze);
  $("omniTimeframe").addEventListener("change",refreshChartOnly);
@@ -535,7 +548,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   else answer="DARS: H1 regime "+(a.frames?.H1?.regime||"unavailable")+", M15 trend "+(a.frames?.M15?.trend||"unavailable")+", M5 trend "+(a.frames?.M5?.trend||"unavailable")+". Decision: "+a.decision+". I can explain the current setup checks, but this first release is a deterministic, auditable analysis engine—not a self-learning model.";
   message(answer);
  });
- analyze();refreshChartOnly();setInterval(analyze,15000);setInterval(refreshChartOnly,3000);setInterval(()=>{const q=fetch("/api/mt5-quote?symbol=XAUUSD-STD",{cache:"no-store"}).then(r=>r.json()).then(d=>{if(d.ok&&d.quote){const x=d.quote;set("omniBid",fmt(x.bid));set("omniAsk",fmt(x.ask));set("omniPrice",fmt((Number(x.bid)+Number(x.ask))/2));set("omniQuoteMeta",d.connected?"Spread "+fmt(Number(x.ask)-Number(x.bid))+" · Quote age "+d.age_seconds+"s":"Quote stale · "+d.age_seconds+"s");}}).catch(()=>{});},3000);
+ analyze();refreshChartOnly();setInterval(analyze,15000);setInterval(refreshChartOnly,2000);setInterval(()=>{const q=fetch("/api/mt5-quote?symbol=XAUUSD-STD",{cache:"no-store"}).then(r=>r.json()).then(d=>{if(d.ok&&d.quote){const x=d.quote;set("omniBid",fmt(x.bid));set("omniAsk",fmt(x.ask));set("omniPrice",fmt((Number(x.bid)+Number(x.ask))/2));set("omniQuoteMeta",d.connected?"Spread "+fmt(Number(x.ask)-Number(x.bid))+" · Quote age "+d.age_seconds+"s":"Quote stale · "+d.age_seconds+"s");}}).catch(()=>{});},3000);
 })();
 </script><header class="top"><div><div class="brand">DARS <span>OMNISCIENT</span></div><div class="sub">Adaptive Quantitative Trading Intelligence · Research / Paper Mode</div></div><div class="row" style="justify-content:flex-end;gap:8px"><button class="btn hidden" id="cloudSync" type="button">Sync journal</button><button class="btn danger hidden" id="cloudSignOut" type="button">Sign out</button><span class="pill" id="topConnectionStatus">● MT5 STATUS · CHECKING</span></div></header>
 <div class="notice" id="dashboardMainNotice"><b>LIVE CONNECTION:</b> Checking MT5 bridge status… This dashboard reads real VT Markets MT5 quotes and candles when the bridge is online. Paper trading / analysis only; no real orders are sent.</div>
