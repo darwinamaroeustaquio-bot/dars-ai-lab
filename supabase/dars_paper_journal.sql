@@ -19,7 +19,8 @@ alter table public.dars_paper_trades add constraint dars_paper_trades_strategy_c
  'LIQUIDITY_RECLAIM','TREND_FOLLOWING','MEAN_REVERSION','BREAKOUT',
  'BREAKOUT_RETEST','MOMENTUM','PULLBACK','SUPPORT_RESISTANCE',
  'VOLATILITY_EXPANSION','SESSION_BREAKOUT','RSI_DIVERGENCE',
- 'STOCHASTIC_REVERSION','CCI_REVERSION','WILLIAMS_REVERSION','MTF_CONFLUENCE'
+ 'STOCHASTIC_REVERSION','CCI_REVERSION','WILLIAMS_REVERSION','MTF_CONFLUENCE',
+ 'MACD_CROSSOVER','DONCHIAN_BREAKOUT','ICHIMOKU_CLOUD','SUPERTREND'
 ));
 
 create index if not exists dars_paper_trades_strategy_history_idx on public.dars_paper_trades(symbol,strategy,status,closed_at);
