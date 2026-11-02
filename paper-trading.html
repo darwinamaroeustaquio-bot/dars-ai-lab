@@ -72,7 +72,7 @@ table{max-width:100%}
   <div class="metric">Profit factor<strong id="profitFactor">—</strong><small>Gross wins ÷ gross losses</small></div>
   <div class="metric">Open positions<strong id="openCount">0</strong><small>Robot-generated only</small></div>
  </div>
- <p class="note">Journal is stored in this browser only; it is not yet a server-authoritative evidence journal and is not fed back into the Robot's evidence gate. Results are simulated and do not prove live profitability. Entry uses the received bid/ask; exits use the Robot's levels. No extra slippage or commission model is applied here.</p>
+ <p class="note">Journal is stored in this browser only; it is not yet a server-authoritative evidence journal and is not fed back into the Robot's evidence gate. After TP1, the simulator can close early if price closes back through TP1 or two consecutive candles close against the position; it records the actual simulated exit price and realized R instead of assuming a fixed profit. If SL and TP2 are both touched in one candle, SL is counted first conservatively. Results are simulated and do not prove live profitability; no extra slippage or commission model is applied here.</p>
 </section>
 
 <section class="panel"><div class="row"><h2 style="margin:0">Virtual trade history</h2><span id="historyCount" class="pill">0 records</span></div><div class="scroll" style="margin-top:10px"><table><thead><tr><th>Opened</th><th>Approach</th><th>Side</th><th>Entry</th><th>SL</th><th>TP1 / TP2</th><th>Status</th><th>Exit reason</th><th>Net R</th></tr></thead><tbody id="history"><tr><td colspan="9" class="empty">No Robot-generated virtual trades yet. WAIT is a valid result.</td></tr></tbody></table></div></section>
@@ -121,15 +121,33 @@ function renderSetup(a){
 }
 function updateOpenTrade(bars){
  const t=book.open;if(!t)return;
+ const realizedR=price=>Number(((t.side==="BUY"?price-t.entry:t.entry-price)/t.riskDistance).toFixed(4));
  for(const bar of bars){
   const bt=bar.bar_time||bar.time;if(!bt||new Date(bt).getTime()<=new Date(t.entryBarTime).getTime())continue;
-  const hi=n(bar.high),lo=n(bar.low),slHit=t.side==="BUY"?lo<=t.stopLoss:hi>=t.stopLoss,tp1Hit=t.side==="BUY"?hi>=t.tp1:lo<=t.tp1,tp2Hit=t.side==="BUY"?hi>=t.tp2:lo<=t.tp2;
-  if(slHit){t.exitReason=tp2Hit?"SL and final target touched in same candle; counted as SL":"Stop loss";t.netR=-1;t.status="CLOSED";t.closedAt=bt;t.exit=t.stopLoss;book.open=null;save();break;}
-  if(tp2Hit){t.tp1Hit=true;t.exitReason="Candidate final target reached";t.netR=Number(t.targetR||2.5);t.status="CLOSED";t.closedAt=bt;t.exit=t.tp2;book.open=null;save();break;}
-  if(tp1Hit&&!t.tp1Hit){t.tp1Hit=true;t.exitReason="TP1 reached; checking whether the candle can hold above/below TP1";save();}
-  if(t.tp1Hit){const close=n(bar.close),rejected=t.side==="BUY"?close<t.tp1:close>t.tp1;if(rejected){t.status="CLOSED";t.closedAt=bt;t.exit=close;t.netR=.75;t.exitReason="TP1 secured; candle closed back through TP1, so TP2 runner was closed on weakening momentum";book.open=null;save();break;}}
+  const hi=n(bar.high),lo=n(bar.low),open=n(bar.open),close=n(bar.close);
+  const slHit=t.side==="BUY"?lo<=t.stopLoss:hi>=t.stopLoss;
+  const tp1Hit=t.side==="BUY"?hi>=t.tp1:lo<=t.tp1;
+  const tp2Hit=t.side==="BUY"?hi>=t.tp2:lo<=t.tp2;
+  // Conservative intrabar ordering: if SL and any target are touched in one candle, count SL.
+  if(slHit){t.exitReason=tp2Hit?"SL and TP2 touched in same candle; conservative SL-first accounting":"Stop loss";t.netR=-Math.abs(Number(t.stopMultiple)||1);t.status="CLOSED";t.closedAt=bt;t.exit=t.stopLoss;book.open=null;save();break;}
+  if(tp2Hit){t.tp1Hit=true;t.exitReason="TP2 reached";t.netR=Number(t.targetR||2.5);t.status="CLOSED";t.closedAt=bt;t.exit=t.tp2;book.open=null;save();break;}
+  if(tp1Hit&&!t.tp1Hit){t.tp1Hit=true;t.tp1ReachedAt=bt;t.adverseCloses=0;t.exitReason="TP1 reached; monitoring momentum before TP2";save();}
+  if(t.tp1Hit){
+   const adverse=t.side==="BUY"?close<open:close>open;
+   t.adverseCloses=adverse?(Number(t.adverseCloses)||0)+1:0;
+   const crossedBack=t.side==="BUY"?close<t.tp1:close>t.tp1;
+   const twoWeakCloses=Number(t.adverseCloses)>=2;
+   if(crossedBack||twoWeakCloses){
+    t.status="CLOSED";t.closedAt=bt;t.exit=close;t.netR=realizedR(close);
+    t.exitReason=crossedBack
+      ?"Early TP1 protection: price closed back through TP1 before TP2"
+      :"Early TP1 protection: two consecutive candles closed against the position; TP2 momentum weakened";
+    book.open=null;save();break;
+   }
+   save();
+  }
   const openedIndex=t.entryBarTime?new Date(t.entryBarTime).getTime():0,maxBars=Math.max(1,Number(t.maxBars)||12);
-  if(openedIndex&&new Date(bt).getTime()-openedIndex>=maxBars*300000){t.status="CLOSED";t.exitReason="Time exit after "+maxBars+" closed M5 candles";const close=n(bar.close);t.netR=Number(((t.side==="BUY"?close-t.entry:t.entry-close)/t.riskDistance).toFixed(4));t.closedAt=bt;t.exit=close;book.open=null;save();break;}
+  if(openedIndex&&new Date(bt).getTime()-openedIndex>=maxBars*300000){t.status="CLOSED";t.exitReason="Time exit after "+maxBars+" closed M5 candles";t.netR=realizedR(close);t.closedAt=bt;t.exit=close;book.open=null;save();break;}
  }
 }
 function createVirtualTrade(a,bar,quote){
