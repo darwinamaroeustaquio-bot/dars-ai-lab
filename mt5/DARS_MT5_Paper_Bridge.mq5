@@ -1,5 +1,5 @@
 // Dars AI Lab - VT Markets MT5 Read-only Quote + Candle Bridge
-// Sends DARS API-compatible quote snapshots, live forming candles and M1/M5/M15/H1 history. DOES NOT trade.
+// Sends DARS API-compatible quote snapshots, live forming candles and M1/M5/M15/M30/H1/H4 history. DOES NOT trade.
 #property strict
 #property version "1.30"
 #property description "Read-only quote and candle sender for Dars AI Lab"
@@ -175,7 +175,9 @@ void SendCandles(const string sym)
    PostFrame(sym, "M1", FrameJson(sym, PERIOD_M1, "M1"));
    PostFrame(sym, "M5", FrameJson(sym, PERIOD_M5, "M5"));
    PostFrame(sym, "M15", FrameJson(sym, PERIOD_M15, "M15"));
+   PostFrame(sym, "M30", FrameJson(sym, PERIOD_M30, "M30"));
    PostFrame(sym, "H1", FrameJson(sym, PERIOD_H1, "H1"));
+   PostFrame(sym, "H4", FrameJson(sym, PERIOD_H4, "H4"));
 }
 
 // Send only the currently forming bar. The API upserts by symbol + timeframe + bar time,
@@ -185,7 +187,9 @@ void SendLiveCandles(const string sym)
    PostFrame(sym, "M1", FrameJson(sym, PERIOD_M1, "M1", true));
    PostFrame(sym, "M5", FrameJson(sym, PERIOD_M5, "M5", true));
    PostFrame(sym, "M15", FrameJson(sym, PERIOD_M15, "M15", true));
+   PostFrame(sym, "M30", FrameJson(sym, PERIOD_M30, "M30", true));
    PostFrame(sym, "H1", FrameJson(sym, PERIOD_H1, "H1", true));
+   PostFrame(sym, "H4", FrameJson(sym, PERIOD_H4, "H4", true));
 }
 
 void OnTimer()
