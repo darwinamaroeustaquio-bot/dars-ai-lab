@@ -153,11 +153,11 @@ string FrameJson(const string sym,const ENUM_TIMEFRAMES tf,const string frameNam
    for(int j=0;j<copied;j++){
       if(j>0)out+=",";
       int candleDigits=(int)SymbolInfoInteger(sym,SYMBOL_DIGITS);
-      datetime utcBarTime=(datetime)((long)rates[j].time-serverUtcOffset);
+      datetime brokerBarTime=rates[j].time;
       out+=StringFormat("{\"time\":%I64d,\"open\":%s,\"high\":%s,\"low\":%s,\"close\":%s,\"tick_volume\":%I64d}",
-         (long)utcBarTime,DoubleToString(rates[j].open,candleDigits),DoubleToString(rates[j].high,candleDigits),DoubleToString(rates[j].low,candleDigits),DoubleToString(rates[j].close,candleDigits),(long)rates[j].tick_volume);
+         (long)brokerBarTime,DoubleToString(rates[j].open,candleDigits),DoubleToString(rates[j].high,candleDigits),DoubleToString(rates[j].low,candleDigits),DoubleToString(rates[j].close,candleDigits),(long)rates[j].tick_volume);
    }
-   Print("Dars prepared candles: ",sym," ",frameName," bars=",copied," server_utc_offset_sec=",serverUtcOffset," server_newest=",TimeToString(rates[copied-1].time,TIME_DATE|TIME_MINUTES)," utc_newest=",TimeToString((datetime)((long)rates[copied-1].time-serverUtcOffset),TIME_DATE|TIME_MINUTES));
+   Print("Dars prepared candles: ",sym," ",frameName," bars=",copied," broker_newest=",TimeToString(rates[copied-1].time,TIME_DATE|TIME_MINUTES));
    return out+"]";
 }
 void PostFrame(const string sym,const string frameName,const string frameJson)
@@ -167,7 +167,7 @@ void PostFrame(const string sym,const string frameName,const string frameJson)
    int colon=StringFind(frameJson,":");
    if(colon<0) return;
    string candles=StringSubstr(frameJson,colon+1);
-   string candlePayload="{\"symbol\":\""+sym+"\",\"timeframe\":\""+frameName+"\",\"candles\":"+candles+"}";
+   string candlePayload="{\"symbol\":\""+sym+"\",\"timeframe\":\""+frameName+"\",\"clock_basis\":\"broker\",\"candles\":"+candles+"}";
    if(PostJson(CandleEndpoint,candlePayload,"candles "+sym+" "+frameName))
       Print("Dars candles OK: ",sym," ",frameName," uploaded to API.");
 }
