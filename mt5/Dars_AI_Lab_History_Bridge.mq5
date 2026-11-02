@@ -16,8 +16,8 @@ input int SendEverySeconds = 300;
 
 string EscapeJson(string s)
 {
-   StringReplace(s, "\\", "\\\\");
-   StringReplace(s, "\"", "\\\"");
+   StringReplace(s, "\", "\\\");
+   StringReplace(s, "\"", "\\"");
    StringReplace(s, "\r", "");
    StringReplace(s, "\n", " ");
    return s;
@@ -120,15 +120,15 @@ string BuildCalendarEvents()
       if(!CalendarEventById(values[i].event_id,event)) continue;
       if(event.currency!="" && event.currency!="USD") continue;
       if(sent>0) out+=",";
-      out+="{\\"event_id\\":"+(string)values[i].event_id+
-         ",\\"event_time\\":"+(string)(long)values[i].time+
-         ",\\"currency\\":\\""+EscapeJson(event.currency==""?"USD":event.currency)+"\\""+
-         ",\\"event_name\\":\\""+EscapeJson(event.name)+"\\""+
-         ",\\"importance\\":\\""+ImportanceName(event.importance)+"\\""+
-         ",\\"impact_type\\":"+(string)values[i].impact_type+
-         ",\\"actual_value\\":"+CalendarMetric(values[i].actual_value)+
-         ",\\"forecast_value\\":"+CalendarMetric(values[i].forecast_value)+
-         ",\\"previous_value\\":"+CalendarMetric(values[i].previous_value)+"}";
+      out+="{\"event_id\":"+(string)values[i].event_id+
+         ",\"event_time\":"+(string)(long)values[i].time+
+         ",\"currency\":\""+EscapeJson(event.currency==""?"USD":event.currency)+"\""+
+         ",\"event_name\":\""+EscapeJson(event.name)+"\""+
+         ",\"importance\":\""+ImportanceName(event.importance)+"\""+
+         ",\"impact_type\":"+(string)values[i].impact_type+
+         ",\"actual_value\":"+CalendarMetric(values[i].actual_value)+
+         ",\"forecast_value\":"+CalendarMetric(values[i].forecast_value)+
+         ",\"previous_value\":"+CalendarMetric(values[i].previous_value)+"}";
       sent++;
    }
    out+="]";
