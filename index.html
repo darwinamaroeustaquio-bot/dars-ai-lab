@@ -497,7 +497,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const board=Array.isArray(a.engineBoard)?a.engineBoard:[];
   const selection=a.strategySelection||{};
   $("engineRegime").textContent=f.M5?.regime||"—";
-  $("engineDetected").textContent=board.filter(x=>x.detected).length+" / 7;
+  $("engineDetected").textContent=board.filter(x=>x.detected).length+" / 7";
   $("engineEligible").textContent=board.filter(x=>x.eligible).length;
   $("engineBoardStatus").textContent=board.length?"7 strategies scored · live refresh":"Waiting for verified data";
   $("engineChampion").textContent=selection.candidate
