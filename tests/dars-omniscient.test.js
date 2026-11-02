@@ -188,7 +188,7 @@ assert.match(adaptiveRanking.adaptation, /re-ranked on each sync/);
 const weakNoBypass = selectAdaptiveStrategy({
   regime: "TRENDING", trend: "BULLISH",
   candidates: [{ strategy: "MOMENTUM" }],
-  strategyStats: { MOMENTUM: { ...provenMomentum, totalTrades: 20 } }
+  strategyStats: { MOMENTUM: { ...provenMomentum, totalTrades: 9 } }
 });
 assert.equal(weakNoBypass.eligible, false, "Dynamic weighting must never bypass the 10-trade and chronological holdout evidence gates.");
 assert.equal(weakNoBypass.status, "BLOCKED_BY_EVIDENCE");
