@@ -26,7 +26,7 @@ table{max-width:100%}
 </style>
 </head>
 <body><main class="wrap">
-<header class="row"><div><div class="tag">DARS AI LAB · SAME ENGINE AS THE ROBOT</div><h1 style="margin:6px 0">Adaptive Paper Trading</h1><p class="note">One decision source: DARS Omniscient adaptive analysis. No legacy GOLD candidate strategies, no parallel strategy contest, and no broker orders.</p></div><a class="btn" href="/">← Back to DARS dashboard</a></header>
+<header class="row"><div><div class="tag">DARS AI LAB · SAME ENGINE AS THE ROBOT</div><h1 style="margin:6px 0">Adaptive Paper Trading</h1><p class="note">Fixed seven-candidate adaptive selector using the same verified VT Markets MT5 feed. Paper-only; no broker orders.</p></div><a class="btn" href="/">← Back to DARS dashboard</a></header>
 
 <section class="panel">
  <div class="row"><div><strong>Paper engine: <span id="engineState" class="tag">CONNECTING</span></strong><p id="feedStatus" class="note">Verifying live MT5 quote and closed candles…</p></div><div class="controls"><button id="pause" class="btn">Pause</button><button id="resume" class="btn primary">Resume</button><button id="export" class="btn">Export CSV</button><button id="reset" class="btn">Reset paper history</button></div></div>
@@ -49,7 +49,7 @@ table{max-width:100%}
   <div class="level"><small>Quote spread</small><strong id="spread">—</strong></div>
   <div class="level"><small>Engine</small><strong id="engineVersion">—</strong></div>
  </div>
- <p class="note" id="selectorReason">The paper page does not select strategies independently. It displays the exact adaptive selection and decision returned by the DARS analysis endpoint.</p>
+ <p class="note" id="selectorReason">The Robot ranks only the seven approved Williams %R and Stochastic candidates.</p><div class="scroll" style="margin-top:10px"><table style="min-width:900px"><thead><tr><th>Candidate</th><th>Holdout net R</th><th>Holdout PF</th><th>Forward trades</th><th>Forward expectancy</th><th>Current signal</th><th>Rank score</th></tr></thead><tbody id="candidateBoard"><tr><td colspan="7" class="empty">Waiting for candidate evaluation…</td></tr></tbody></table></div>
 </section>
 
 <section class="panel">
@@ -58,8 +58,8 @@ table{max-width:100%}
   <div class="level"><small>Direction</small><strong id="side">WAIT</strong></div>
   <div class="level"><small>Entry</small><strong id="entry">—</strong></div>
   <div class="level"><small>Stop loss</small><strong id="stop">—</strong></div>
-  <div class="level"><small>Take profit 1</small><strong id="tp1">—</strong></div>
-  <div class="level"><small>Take profit 2</small><strong id="tp2">—</strong></div>
+  <div class="level"><small>TP1 · 1R reference</small><strong id="tp1">—</strong></div>
+  <div class="level"><small>TP2 · candidate target</small><strong id="tp2">—</strong></div>
  </div>
  <p class="note">A virtual position is created only when the DARS Robot API returns BUY or SELL with a complete setup. WAIT, missing data, stale quotes, failed evidence gates, or an unavailable engine create no trade.</p>
 </section>
@@ -113,11 +113,11 @@ function updateOpenTrade(bars){
  for(const bar of bars){
   const bt=bar.bar_time||bar.time;if(!bt||new Date(bt).getTime()<=new Date(t.entryBarTime).getTime())continue;
   const hi=n(bar.high),lo=n(bar.low),slHit=t.side==="BUY"?lo<=t.stopLoss:hi>=t.stopLoss,tp1Hit=t.side==="BUY"?hi>=t.tp1:lo<=t.tp1,tp2Hit=t.side==="BUY"?hi>=t.tp2:lo<=t.tp2;
-  if(slHit){t.exitReason=tp1Hit||tp2Hit?"SL and target touched in same candle; counted as SL":"Stop loss";t.netR=t.tp1Hit?0.25:-1;t.netR=Number(t.netR.toFixed(4));t.status="CLOSED";t.closedAt=bt;t.exit=t.stopLoss;book.open=null;save();break;}
-  if(tp2Hit){t.tp1Hit=true;t.exitReason="TP1 and TP2 reached";t.netR=2;t.status="CLOSED";t.closedAt=bt;t.exit=t.tp2;book.open=null;save();break;}
-  if(tp1Hit&&!t.tp1Hit){t.tp1Hit=true;t.netR=0.75;t.exitReason="TP1 reached; 50% position secured";t.status="OPEN";save();}
-  const openedIndex=t.entryBarTime?new Date(t.entryBarTime).getTime():0;
-  if(openedIndex&&new Date(bt).getTime()-openedIndex>=12*300000){t.status="CLOSED";t.exitReason="Time exit after 12 closed M5 candles";const close=n(bar.close);const remaining=(t.side==="BUY"?close-t.entry: t.entry-close)/t.riskDistance*0.5;t.netR=Number(((t.tp1Hit?0.75:0)+remaining).toFixed(4));t.closedAt=bt;t.exit=close;book.open=null;save();break;}
+  if(slHit){t.exitReason=tp2Hit?"SL and final target touched in same candle; counted as SL":"Stop loss";t.netR=-1;t.status="CLOSED";t.closedAt=bt;t.exit=t.stopLoss;book.open=null;save();break;}
+  if(tp2Hit){t.tp1Hit=true;t.exitReason="Candidate final target reached";t.netR=Number(t.targetR||2.5);t.status="CLOSED";t.closedAt=bt;t.exit=t.tp2;book.open=null;save();break;}
+  if(tp1Hit&&!t.tp1Hit){t.tp1Hit=true;t.exitReason="TP1 1R reference reached; position remains open";save();}
+  const openedIndex=t.entryBarTime?new Date(t.entryBarTime).getTime():0,maxBars=Math.max(1,Number(t.maxBars)||12);
+  if(openedIndex&&new Date(bt).getTime()-openedIndex>=maxBars*300000){t.status="CLOSED";t.exitReason="Time exit after "+maxBars+" closed M5 candles";const close=n(bar.close);t.netR=Number(((t.side==="BUY"?close-t.entry:t.entry-close)/t.riskDistance).toFixed(4));t.closedAt=bt;t.exit=close;book.open=null;save();break;}
  }
 }
 function createVirtualTrade(a,bar,quote){
@@ -126,8 +126,13 @@ function createVirtualTrade(a,bar,quote){
  if(key===lastSignalKey||book.trades.some(t=>t.signalKey===key)||book.open)return;
  if(![s.entry,s.stopLoss,s.takeProfit1,s.takeProfit2].every(v=>Number.isFinite(Number(v))))return;
  const risk=Math.abs(n(s.entry)-n(s.stopLoss));if(!(risk>0))return;
- const t={id:key,signalKey:key,openedAt:new Date().toISOString(),entryBarTime:bar.bar_time||bar.time,strategy:a.strategySelection?.candidate||"DARS Adaptive",side:a.decision,entry:n(s.entry),stopLoss:n(s.stopLoss),tp1:n(s.takeProfit1),tp2:n(s.takeProfit2),riskDistance:risk,tp1Hit:false,status:"OPEN",netR:0};
+ const t={id:key,signalKey:key,openedAt:new Date().toISOString(),entryBarTime:bar.bar_time||bar.time,strategy:a.strategySelection?.candidate||s.strategyId||"DARS Seven Pool",strategyId:s.strategyId||s.strategy||a.strategySelection?.candidate,side:a.decision,entry:n(s.entry),stopLoss:n(s.stopLoss),tp1:n(s.takeProfit1),tp2:n(s.takeProfit2),riskDistance:risk,targetR:n(s.targetR)||2.5,maxBars:n(s.maxBars)||12,stopMultiple:n(s.stopMultiple)||1,tp1Hit:false,status:"OPEN",netR:0};
  book.trades.push(t);book.open=t;lastSignalKey=key;save();
+}
+function renderCandidateBoard(rows){
+ const body=$("candidateBoard");body.innerHTML="";
+ if(!Array.isArray(rows)||!rows.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=7;td.className="empty";td.textContent="No candidate ranking available.";tr.appendChild(td);body.appendChild(tr);return;}
+ rows.forEach((x,i)=>{const tr=document.createElement("tr");const vals=[x.strategy||"—",(Number(x.holdoutNetR)||0).toFixed(2)+"R",x.holdoutProfitFactor==null?"—":Number(x.holdoutProfitFactor).toFixed(2),String(x.forwardTrades||0),x.forwardExpectancyR==null?"—":Number(x.forwardExpectancyR).toFixed(3)+"R",x.paused?"PAUSED":x.detected?"SIGNAL":"—",Number(x.score||0).toFixed(3)];vals.forEach((v,j)=>{const td=document.createElement("td");td.textContent=v;if(j===0&&i===0)td.className="good";tr.appendChild(td);});body.appendChild(tr);});
 }
 function renderAnalysis(a,quote,frames){
  const sel=a.strategySelection||{},m5=a.frames?.M5;
@@ -137,7 +142,7 @@ function renderAnalysis(a,quote,frames){
  say("spread",a.quoteQuality?.spread==null?"—":fmt(a.quoteQuality.spread));say("engineVersion",a.engine||"—");
  say("selectorReason",[sel.rationale,sel.evidence?.reason,sel.implementation].filter(Boolean).join(" "));
  const diagnostics=Array.isArray(a.diagnostics)?a.diagnostics:[];say("decisionMessage",a.decision==="WAIT"?(diagnostics.join(" ")||"DARS is waiting for a validated setup."):"DARS returned "+a.decision+" from verified MT5 data. A virtual position is being tracked; no broker order is sent.");
- renderSetup(a);
+ renderSetup(a);renderCandidateBoard(sel.strategyRanking||[]);
  const m5bars=frames.M5||[];const closed=m5bars.filter(b=>new Date(b.bar_time).getTime()+300000<=Date.now());
  say("candleCount","M5 "+closed.length+" · M15 "+(frames.M15||[]).length+" · H1 "+(frames.H1||[]).length);
  say("barTime",closed.length?"Last closed M5: "+time(closed[closed.length-1].bar_time):"No closed M5 candle");
@@ -152,9 +157,9 @@ async function cycle(){
   if(!q.connected||!q.quote)throw new Error("MT5 quote is not fresh. Paper entries are paused.");
   const body={symbol:SYMBOL,quote:q.quote,frames:{M5:m5,M15:m15,H1:h1}};
   // Send the exact same quote/candle inputs to the Robot core.
-  const response=await fetch("/api/dars-omniscient",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(body),cache:"no-store"});
+  const response=await fetch("/api/dars-paper-analysis",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({...body,paperTrades:book.trades.slice(-5000)}),cache:"no-store"});
   const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||"DARS analysis unavailable.");
-  renderAnalysis(result.analysis,q,{M5:m5,M15:m15,H1:h1});say("feedStatus","Connected to fresh VT Markets MT5 quote and candle history. Paper simulator mirrors DARS core decisions.");setState("RUNNING");
+  renderAnalysis(result.analysis,q,{M5:m5,M15:m15,H1:h1});say("feedStatus","Connected to fresh VT Markets MT5 quote and candle history. Paper simulator evaluates only the approved seven candidates.");setState("RUNNING");
  }catch(e){say("feedStatus",e.message+" No new virtual trade will be opened.");say("decision","WAIT");say("decisionMessage",e.message);say("setupState","FEED BLOCKED");say("side","WAIT");["entry","stop","tp1","tp2"].forEach(id=>say(id,"—"));setState("WAIT / FEED BLOCKED");}
  finally{busy=false;}
 }
