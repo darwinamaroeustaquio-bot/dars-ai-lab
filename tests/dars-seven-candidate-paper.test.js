@@ -32,22 +32,25 @@ assert.ok(Math.abs(result.setup.entry-result.setup.stopLoss-1)<1e-8);
 assert.ok(Math.abs(result.setup.takeProfit2-result.setup.entry-1.5)<1e-8);
 
 
-const losingForward = Array.from({length:20}, (_,i)=>({
-  strategyId:"WILLIAMS_REVERSION-STRICT-V2", status:"CLOSED", netR:-1,
-  openedAt:new Date(Date.now()-((20-i)*300000)).toISOString()
+const weakButNotPausedForward = Array.from({length:10}, (_,i)=>({
+  strategyId:"WILLIAMS_REVERSION-STRICT-V2", status:"CLOSED",
+  netR:i%2===0?1.01:-1,
+  openedAt:new Date(Date.now()-((10-i)*300000)).toISOString()
 }));
-const belowGate = analyzeSevenCandidatePool({frames,quote:{bid:100,ask:100.1},paperTrades:losingForward});
-assert.equal(belowGate.board[0].detected,true,"the signal can exist while failing the score gate");
-assert.equal(belowGate.board[0].eligible,false,"a score below 60 must not be entry eligible");
+const belowGate = analyzeSevenCandidatePool({frames,quote:{bid:100,ask:100.1},paperTrades:weakButNotPausedForward});
+const weakRow = belowGate.board.find(x=>x.strategy==="WILLIAMS_REVERSION-STRICT-V2");
+assert.equal(weakRow.detected,true,"the signal can exist while failing the score gate");
+assert.ok(weakRow.score<MIN_ENTRY_SCORE,"forward evidence should lower the score below the entry gate");
+assert.equal(weakRow.paused,false,"the test candidate remains inside the independent forward risk guard");
+assert.equal(weakRow.eligible,false,"a score below 60 must not be entry eligible");
 assert.equal(belowGate.setup,null,"no paper entry may open below the minimum score");
 assert.match(belowGate.selection.rationale,/60% minimum/);
 const manualBelowGate = analyzeSevenCandidatePool({
-  frames,quote:{bid:100,ask:100.1},paperTrades:losingForward,
+  frames,quote:{bid:100,ask:100.1},paperTrades:weakButNotPausedForward,
   preferredCandidateId:"WILLIAMS_REVERSION-STRICT-V2"
 });
 assert.equal(manualBelowGate.setup,null,"manual selection must not bypass the score gate");
 assert.equal(manualBelowGate.selection.status,"MANUAL_NO_SIGNAL");
-
 const trendResult=analyzeSevenCandidatePool({frames:{...frames,M5:{...frame,regime:"TRENDING"}},quote:{bid:100,ask:100.1},paperTrades:[]});
 assert.equal(trendResult.selection.candidate,"NO_TRADE","reversion strategies must stand aside in a trend");
 assert.equal(trendResult.setup,null);
