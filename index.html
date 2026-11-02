@@ -264,7 +264,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   </div>
  </div>
  <div class="omni-card">
-  <div class="row" style="align-items:flex-start"><div><div class="omni-eyebrow">15-engine adaptive intelligence</div><h2 style="margin:7px 0">Strategy engine competition</h2><p class="omni-muted">All engines scan closed MT5 candles. Each nominates its setup; the central selector ranks regime-matched candidates. Only strategies that pass the evidence gate can become active paper candidates.</p></div><span class="omni-status" id="engineBoardStatus">Awaiting verified data</span></div>
+  <div class="row" style="align-items:flex-start"><div><div class="omni-eyebrow">19-engine adaptive intelligence</div><h2 style="margin:7px 0">Strategy engine competition</h2><p class="omni-muted">All engines scan closed MT5 candles. Each nominates its setup; the central selector ranks regime-matched candidates. Only strategies that pass the evidence gate can become active paper candidates.</p></div><span class="omni-status" id="engineBoardStatus">Awaiting verified data</span></div>
   <div class="omni-metrics" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px">
    <div class="omni-metric"><small>MARKET REGIME</small><strong id="engineRegime">—</strong></div>
    <div class="omni-metric"><small>SETUPS DETECTED</small><strong id="engineDetected">0 / 15</strong></div>
@@ -293,7 +293,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   </div>
  </div>
  <p class="omni-foot">Research / paper mode only. DARS does not place broker orders. BUY / SELL labels are analytical outputs, not guaranteed outcomes. Verify spread, execution, stop distance and your own risk before manually copying any setup.</p>
-<div class="omni-card" style="padding:12px 14px;border-color:#397d70"><div class="row"><div><div class="omni-eyebrow">RESEARCH WORKSPACE</div><strong style="display:block;margin-top:4px">15-Engine Historical Backtesting</strong><span class="omni-muted">I-test at i-rank ang 15 strategy engines gamit ang verified MT5 history.</span></div><a class="omni-nav-link" href="#fifteenEngineLab">Open 15-Engine Lab ↓</a></div></div>
+<div class="omni-card" style="padding:12px 14px;border-color:#397d70"><div class="row"><div><div class="omni-eyebrow">RESEARCH WORKSPACE</div><strong style="display:block;margin-top:4px">19-Engine Historical Backtesting</strong><span class="omni-muted">I-test at i-rank ang 19 strategy engines gamit ang verified MT5 history.</span></div><a class="omni-nav-link" href="#fifteenEngineLab">Open 19-Engine Lab ↓</a></div></div>
 </section>
 
 <script id="darsOmniscientRuntime">
@@ -486,7 +486,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   $("engineRegime").textContent=f.M5?.regime||"—";
   $("engineDetected").textContent=board.filter(x=>x.detected).length+" / 15";
   $("engineEligible").textContent=board.filter(x=>x.eligible).length;
-  $("engineBoardStatus").textContent=board.length?"15 engines evaluated":"Waiting for data";
+  $("engineBoardStatus").textContent=board.length?"19 engines evaluated":"Waiting for data";
   $("engineChampion").textContent=selection.candidate
     ? "Central selector: "+selection.candidate+" · "+selection.status+" · "+(selection.rationale||selection.adaptation||"")
     : "Central selector: no verified engine ranking yet.";
@@ -722,13 +722,13 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 <p class="note">Tap/click any candidate row to inspect it in the selector above. This is a transparent screening engine, not self-modifying AI. After-cost metrics subtract the entered total round-trip cost in R from each completed trade; include spread, commission, swap and slippage in that estimate. It is not a verified VT Markets cash-cost calculation. Passing means review candidate only—not proven profitable, not auto-selected for live trading, and never automatically converted to an EA.</p>
 </section>
 <section class="panel" id="fifteenEngineLab" style="margin-bottom:15px;border-color:#397d70">
- <div class="row"><div><div class="eyebrow">EXACT LIVE ENGINE LOGIC · RESEARCH ONLY</div><h2 style="margin:5px 0 8px">15-Engine Backtesting Lab</h2></div><span class="tag" id="engineLabStatus">Not run yet</span></div>
- <p class="note">Replays the same 15 deterministic strategy engines used by DARS Omniscient against verified MT5 M5 history. Signals use closed candles, entries use the next candle open, M15/H1 context is limited to fully closed bars, and same-bar SL/TP is counted as SL. Chronological 70/30 split. No orders are sent.</p>
+ <div class="row"><div><div class="eyebrow">EXACT LIVE ENGINE LOGIC · RESEARCH ONLY</div><h2 style="margin:5px 0 8px">19-Engine Backtesting Lab</h2></div><span class="tag" id="engineLabStatus">Not run yet</span></div>
+ <p class="note">Replays the same 19 deterministic strategy engines used by DARS Omniscient against verified MT5 M5 history. Signals use closed candles, entries use the next candle open, M15/H1 context is limited to fully closed bars, and same-bar SL/TP is counted as SL. Chronological 70/30 split. No orders are sent.</p>
  <div class="row" style="justify-content:flex-start">
   <label class="note">Spread benchmark $/oz <input id="engineSpread" type="number" min="0" max="10" step=".01" value=".28" style="width:85px;display:inline-block"></label>
   <label class="note">Round-trip slippage $/oz <input id="engineSlip" type="number" min="0" max="10" step=".01" value=".05" style="width:85px;display:inline-block"></label>
   <label class="note">Commission $/oz <input id="engineCommission" type="number" min="0" max="10" step=".01" value="0" style="width:75px;display:inline-block"></label>
-  <button class="btn primary" id="run15EngineLab" type="button">Run 15 engines · 225 candidates</button>
+  <button class="btn primary" id="run15EngineLab" type="button">Run 19 engines · 285 candidates</button>
  </div>
  <div class="metrics" style="margin-top:12px">
   <div class="metric"><div class="eyebrow">M5 candles</div><strong id="engineM5Count">—</strong><small>Verified MT5 history</small></div>
@@ -736,7 +736,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   <div class="metric"><div class="eyebrow">Paper review</div><strong id="engineQualified">—</strong><small>Strict evidence gates</small></div>
   <div class="metric"><div class="eyebrow">Top raw holdout exp.</div><strong id="engineTopExp">—</strong><small>After modeled costs</small></div>
  </div>
- <div class="note" id="enginePassSummary" role="status" aria-live="polite" style="margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)">Run the 15-engine lab to see a clear PASS / NO PASS decision and the exact candidates that qualify.</div>
+ <div class="note" id="enginePassSummary" role="status" aria-live="polite" style="margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)">Run the 19-engine lab to see a clear PASS / NO PASS decision and the exact candidates that qualify.</div>
  <p class="note" id="engineLabMessage" role="status">Ready when verified M5, M15 and H1 candles are available.</p><div class="metrics" id="engineContextMetrics" style="margin:10px 0"><div class="metric"><div class="eyebrow">News calendar</div><strong id="engineNewsStatus">—</strong><small id="engineNewsCount">No events loaded</small></div><div class="metric"><div class="eyebrow">London session</div><strong id="engineLondonTrades">—</strong><small id="engineLondonExp">Awaiting replay</small></div><div class="metric"><div class="eyebrow">New York session</div><strong id="engineNYTrades">—</strong><small id="engineNYExp">Awaiting replay</small></div><div class="metric"><div class="eyebrow">News ±30 min</div><strong id="engineNewsTrades">—</strong><small id="engineNewsExp">Awaiting replay</small></div></div><p class="note" id="engineContextNote">Session and news analysis will appear after a successful replay. News proximity is observational only; no entries are blocked.</p>
  <h3 style="margin:14px 0 6px">Per-engine session & news breakdown</h3><p class="note">Holdout results summed across each engine’s 15 configurations. Counts overlap across candidates; use this to locate weak engines, not as unique-trade totals.</p><div class="tablewrap"><table style="min-width:900px"><thead><tr><th>Engine</th><th>London trades</th><th>London net R</th><th>New York trades</th><th>New York net R</th><th>News ±30m trades</th><th>News net R</th></tr></thead><tbody id="engineContextByEngine"><tr><td colspan="7" class="empty">Run the historical replay to see engine-level context.</td></tr></tbody></table></div><div class="row" style="justify-content:flex-start;gap:8px;margin:8px 0"><button class="btn" id="copy15EngineResult" type="button" disabled>Copy result</button><span class="note" id="copy15EngineStatus" aria-live="polite">Run the lab first.</span></div>
  <div class="tablewrap"><table><thead><tr><th>Candidate ID</th><th>Engine</th><th>Entry profile</th><th>Exit rules</th><th>Dev trades</th><th>Holdout trades</th><th>Win rate</th><th>Net R</th><th>Exp R</th><th>PF</th><th>Max DD</th><th>Decision</th></tr></thead><tbody id="engineLabResults"><tr><td colspan="11" class="empty">Run the historical replay to see all candidates.</td></tr></tbody></table></div>
@@ -1601,11 +1601,11 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
  let last15EngineReport="";
  $("copy15EngineResult")?.addEventListener("click",async()=>{if(!last15EngineReport)return;try{await navigator.clipboard.writeText(last15EngineReport);$("copy15EngineStatus").textContent="Copied!";}catch(e){window.prompt("Copy the full candidate report:",last15EngineReport);$("copy15EngineStatus").textContent="Copy from the prompt.";}});
  btn.addEventListener("click",async()=>{
-  btn.disabled=true;btn.textContent="⏳ RUNNING...";$("copy15EngineResult").disabled=true;$("copy15EngineStatus").textContent="Waiting for results...";$("engineLabStatus").textContent="RUNNING...";$("engineLabMessage").textContent="⏳ RUNNING... Kinukuha ang verified M5/M15/H1 candles at sinusuri ang 15 strategy engines. Huwag pindutin ulit habang tumatakbo.";
+  btn.disabled=true;btn.textContent="⏳ RUNNING...";$("copy15EngineResult").disabled=true;$("copy15EngineStatus").textContent="Waiting for results...";$("engineLabStatus").textContent="RUNNING...";$("engineLabMessage").textContent="⏳ RUNNING... Kinukuha ang verified M5/M15/H1 candles at sinusuri ang 19 strategy engines. Huwag pindutin ulit habang tumatakbo.";
   try{
    const qs=new URLSearchParams({symbol:(document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD",spreadPrice:$("engineSpread").value,slippagePrice:$("engineSlip").value,commissionPrice:$("engineCommission").value});
    const response=await fetch("/api/candidate-lab?engineReplay=1&"+qs.toString(),{cache:"no-store",headers:{Accept:"application/json"}});
-   const d=await response.json();if(!response.ok||!d.ok)throw new Error(d.error||"15-engine backtest failed.");
+   const d=await response.json();if(!response.ok||!d.ok)throw new Error(d.error||"19-engine backtest failed.");
    $("engineM5Count").textContent=Number(d.counts?.M5||0).toLocaleString();
    if(!d.ready){$("engineLabStatus").textContent="Waiting for data";$("engineLabMessage").textContent=d.message;return;}
    const qualified=d.results.filter(x=>x.qualifiedForPaperReview);
@@ -1642,12 +1642,12 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
     const tr=document.createElement("tr"),vals=[x.id,x.strategy,x.entryProfile,"SL×"+x.variant.stopMultiplier+" · TP "+x.variant.targetR+"R · "+x.variant.maxHold+" bars",x.development.trades,x.holdout.trades,pct(x.holdout.winRate),fmt(x.holdout.netR)+"R",fmt(x.holdout.expectancyR)+"R",fmt(x.holdout.profitFactor),fmt(x.holdout.maxDrawdownR)+"R",x.qualifiedForPaperReview?"FORWARD PAPER REVIEW":"NOT QUALIFIED"];
     vals.forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td);});body.appendChild(tr);
    });
-   last15EngineReport="DARS AI LAB — 15 ENGINE / "+d.candidateCount+" CANDIDATE REPORT\\nSymbol: "+d.symbol+"\\nCandles: "+JSON.stringify(d.counts)+"\\nSplit: "+JSON.stringify(d.split)+"\\nNews calendar: "+JSON.stringify(d.newsCalendar)+"\\n"+d.results.map(x=>[x.id,x.strategy,x.entryProfile,"SLx"+x.variant.stopMultiplier,"TP"+x.variant.targetR+"R","hold "+x.holdout.trades,"win "+pct(x.holdout.winRate),"net "+fmt(x.holdout.netR)+"R","exp "+fmt(x.holdout.expectancyR)+"R","PF "+fmt(x.holdout.profitFactor),"DD "+fmt(x.holdout.maxDrawdownR)+"R",x.status].join(" | ")).join("\\n");
+   last15EngineReport="DARS AI LAB — 19 ENGINE / "+d.candidateCount+" CANDIDATE REPORT\\nSymbol: "+d.symbol+"\\nCandles: "+JSON.stringify(d.counts)+"\\nSplit: "+JSON.stringify(d.split)+"\\nWalk-forward: "+JSON.stringify(d.walkForward)+"\\nDuplicate audit: "+JSON.stringify(d.duplicateAudit)+"\\nNews calendar: "+JSON.stringify(d.newsCalendar)+"\\n"+d.results.map(x=>[x.id,x.strategy,x.entryProfile,"SLx"+x.variant.stopMultiplier,"TP"+x.variant.targetR+"R","dev "+x.development.trades,"WF "+(x.walkForward?.profitableFolds||0)+"/"+(x.walkForward?.totalFolds||0),"hold "+x.holdout.trades,"win "+pct(x.holdout.winRate),"net "+fmt(x.holdout.netR)+"R","exp "+fmt(x.holdout.expectancyR)+"R","PF "+fmt(x.holdout.profitFactor),"DD "+fmt(x.holdout.maxDrawdownR)+"R",x.duplicateBehavior?.groupId||"unique",x.status].join(" | ")).join("\\n");
    $("copy15EngineResult").disabled=false;
    $("engineLabStatus").textContent="Complete · "+d.engineCount+" engines · "+d.candidateCount+" candidates";
    $("engineLabMessage").textContent="Chronological 70/30 · "+d.counts.M5+" M5 / "+d.counts.M15+" M15 / "+d.counts.H1+" H1 candles. Costs: spread $"+fmt(d.costModel.spreadPrice)+", slippage $"+fmt(d.costModel.slippagePrice)+", commission $"+fmt(d.costModel.commissionPrice)+" per oz. "+d.execution+" "+d.qualification;
   }catch(e){$("engineLabStatus").textContent="Unavailable";$("engineLabMessage").textContent=e.message;}
-  finally{btn.disabled=false;btn.textContent="Run 15 engines · 225 candidates";}
+  finally{btn.disabled=false;btn.textContent="Run 19 engines · 285 candidates";}
  });
 })();
 </script>
