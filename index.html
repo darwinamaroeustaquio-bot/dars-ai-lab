@@ -307,7 +307,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const svg=$("omniChart"),tf=$("omniTimeframe").value,rows=state.frames[tf]||[];
   svg.replaceChildren();
   const enabled=k=>!!document.querySelector('[data-overlay="'+k+'"]')?.checked;
-  const allValid=rows.filter(c=>[c.open,c.high,c.low,c.close].every(v=>Number.isFinite(Number(v)))&&Number(c.high)>=Number(c.low)),valid=allValid.slice(-100);
+  const allValid=rows.filter(c=>[c.open,c.high,c.low,c.close].every(v=>Number.isFinite(Number(v)))&&Number(c.high)>=Number(c.low)).slice().sort((a,b)=>{const ta=Date.parse(a.bar_time||a.time||a.timestamp)||0,tb=Date.parse(b.bar_time||b.time||b.timestamp)||0;return ta-tb;}),valid=allValid.slice(-100);
   const ns="http://www.w3.org/2000/svg",el=(root,tag,attrs,txt)=>{const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(txt!==undefined)n.textContent=txt;root.appendChild(n);return n;};
   if(valid.length<2){el(svg,"text",{x:400,y:155,"text-anchor":"middle",fill:"#91a8c2","font-size":15},"Waiting for verified "+tf+" MT5 candle history");set("omniChartMeta","No chart data available. No synthetic candles are drawn.");["RSI","STOCH","CCI","MACD"].forEach(k=>{const n=$("omni"+k);if(n)n.replaceChildren();});return;}
   const allCloses=allValid.map(c=>Number(c.close)),closes=valid.map(c=>Number(c.close)),highs=valid.map(c=>Number(c.high)),lows=valid.map(c=>Number(c.low)),opens=valid.map(c=>Number(c.open));
@@ -323,10 +323,11 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   if(quoteFresh&&bbInput.length>=20){const window=bbInput.slice(-20),m=window.reduce((a,b)=>a+b,0)/20,dev=Math.sqrt(window.reduce((z,v)=>z+(v-m)**2,0)/20);mid[mid.length-1]=m;sd[sd.length-1]=dev;}
   const bbU=mid.map((v,i)=>v==null?null:v+2*sd[i]),bbL=mid.map((v,i)=>v==null?null:v-2*sd[i]);
   const typical=valid.map(c=>(Number(c.high)+Number(c.low)+Number(c.close))/3),vol=valid.map(c=>Math.max(1,Number(c.tick_volume)||1));let cumPV=0,cumV=0;const vwap=typical.map((v,i)=>{cumPV+=v*vol[i];cumV+=vol[i];return cumPV/cumV;});
-  // Keep historical chart coordinates stable during ticks: scale from completed bars only.
-  let min=Math.min(...lows.slice(0,-1)),max=Math.max(...highs.slice(0,-1));
-  [ema20,ema50,ema100,ema200,vwap].forEach(a=>{const hist=a.slice(0,-1).filter(Number.isFinite);if(hist.length){min=Math.min(min,...hist);max=Math.max(max,...hist);}});
-  if(enabled("bb")){const lo=bbL.slice(0,-1).filter(Number.isFinite),hi=bbU.slice(0,-1).filter(Number.isFinite);if(lo.length&&hi.length){min=Math.min(min,...lo);max=Math.max(max,...hi);}}
+  // Include the newest candle in the price scale. Excluding it can clip the
+  // entire rightmost candle whenever it makes a fresh high or low.
+  let min=Math.min(...lows),max=Math.max(...highs);
+  [ema20,ema50,ema100,ema200,vwap].forEach(a=>{const vals=a.filter(Number.isFinite);if(vals.length){min=Math.min(min,...vals);max=Math.max(max,...vals);}});
+  if(enabled("bb")){const lo=bbL.filter(Number.isFinite),hi=bbU.filter(Number.isFinite);if(lo.length&&hi.length){min=Math.min(min,...lo);max=Math.max(max,...hi);}}
   if(!(max>min)){min-=1;max+=1;}const pad=(max-min)*.09;min-=pad;max+=pad;
   const left=22,right=690,top=22,bottom=385,plotH=bottom-top,step=(right-left)/valid.length,w=Math.max(2,Math.min(9,step*.62)),y=v=>bottom-(v-min)/(max-min)*plotH,x=i=>left+(i+.5)*step;
   // Shared collision-aware annotation layout: labels are nudged into free lanes.
@@ -356,7 +357,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   if(enabled("emaBands")){ribbon(ema20,ema50,"#079669");ribbon(ema50,ema100,"#2876c7");ribbon(ema100,ema200,"#d69a24");}
   if(enabled("bb")){path(bbU,"#9b83e8",1.2);path(mid,"#9b83e8",.8,"3 3");path(bbL,"#9b83e8",1.2);}
   if(enabled("vwap"))path(vwap,"#f3c66d",1.7,"5 3");
-  valid.forEach((c,i)=>{const o=opens[i],h=highs[i],l=lows[i],cl=closes[i],col=cl>=o?"#48e0ad":"#ff7187";el(svg,"line",{x1:x(i),y1:y(h),x2:x(i),y2:y(l),stroke:col,"stroke-width":1.3});el(svg,"rect",{x:x(i)-w/2,y:Math.min(y(o),y(cl)),width:w,height:Math.max(1.5,Math.abs(y(o)-y(cl))),fill:col,rx:1});});
+  valid.forEach((c,i)=>{const o=opens[i],h=highs[i],l=lows[i],cl=closes[i],last=i===valid.length-1,col=cl>=o?"#48e0ad":"#ff7187";el(svg,"line",{x1:x(i),y1:y(h),x2:x(i),y2:y(l),stroke:col,"stroke-width":last?2.4:1.3});el(svg,"rect",{x:x(i)-w/2,y:Math.min(y(o),y(cl)),width:w,height:Math.max(1.5,Math.abs(y(o)-y(cl))),fill:col,stroke:last?"#172437":"none","stroke-width":last?1.5:0,rx:1});if(last){el(svg,"circle",{cx:x(i),cy:y(cl),r:3.2,fill:col,stroke:"#ffffff","stroke-width":1.2});chartLabel(x(i),Math.max(top+14,y(h)-15),"LATEST",{fill:"#ffffff","font-size":9,"font-weight":900,"text-anchor":"middle"});}});
   if(quoteFresh){const bidY=y(liveBid),askY=y(liveAsk),clampTag=v=>Math.max(top+2,Math.min(bottom-20,v-9));let bidTagY=clampTag(bidY),askTagY=clampTag(askY);if(Math.abs(bidTagY-askTagY)<22){askTagY=Math.max(top+2,bidTagY-22);if(askTagY<top+2){askTagY=top+2;bidTagY=Math.min(bottom-20,askTagY+22);}}el(svg,"line",{x1:left,x2:right,y1:bidY,y2:bidY,stroke:"#d69a24","stroke-width":1.5,"stroke-dasharray":"6 3"});if(Number.isFinite(liveAsk)&&liveAsk>0)el(svg,"line",{x1:left,x2:right,y1:askY,y2:askY,stroke:"#2876c7","stroke-width":1.5,"stroke-dasharray":"3 3"});el(svg,"rect",{x:702,y:bidTagY,width:94,height:18,rx:4,fill:"#f0b84b",stroke:"#9a6b12","stroke-width":.7});el(svg,"text",{x:749,y:bidTagY+12.5,"text-anchor":"middle",fill:"#172033","font-size":10,"font-weight":900},"BID "+liveBid.toFixed(2));if(Number.isFinite(liveAsk)&&liveAsk>0){el(svg,"rect",{x:702,y:askTagY,width:94,height:18,rx:4,fill:"#65b5ff",stroke:"#2467a2","stroke-width":.7});el(svg,"text",{x:749,y:askTagY+12.5,"text-anchor":"middle",fill:"#071827","font-size":10,"font-weight":900},"ASK "+liveAsk.toFixed(2));}}
   if(enabled("ema20"))path(ema20,"#079669",1.8);if(enabled("ema50"))path(ema50,"#d6455d",1.8);if(enabled("ema100"))path(ema100,"#2876c7",1.9);if(enabled("ema200"))path(ema200,"#111111",2.1);
    const e20=ema20.at(-1),e50=ema50.at(-1),e100=ema100.at(-1),e200=ema200.at(-1),emaBias=allValid.length<200?"INSUFFICIENT EMA200 HISTORY":([e20,e50,e100].every(v=>v>e200)?"BULLISH · EMA 200 BELOW ALL 3":([e20,e50,e100].every(v=>v<e200)?"BEARISH · EMA 200 ABOVE ALL 3":"MIXED · NO FULL ALIGNMENT"));
