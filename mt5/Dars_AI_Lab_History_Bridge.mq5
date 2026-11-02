@@ -85,6 +85,58 @@ void AppendClosedDeals(string &out, bool &first)
       sent++;
    }
 }
+
+string ImportanceName(const ENUM_CALENDAR_EVENT_IMPORTANCE importance)
+{
+   if(importance==CALENDAR_IMPORTANCE_HIGH) return "high";
+   if(importance==CALENDAR_IMPORTANCE_MODERATE) return "moderate";
+   if(importance==CALENDAR_IMPORTANCE_LOW) return "low";
+   return "unknown";
+}
+string CalendarMetric(const long value)
+{
+   if(value==LONG_MIN) return "null";
+   return DoubleToString((double)value/1000000.0,6);
+}
+string BuildCalendarEvents()
+{
+   MqlCalendarValue values[];
+   datetime from=TimeCurrent()-(datetime)(MathMax(1,HistoryDays)*86400);
+   datetime to=TimeCurrent()+30*86400;
+   ResetLastError();
+   int total=CalendarValueHistory(values,from,to,"","USD");
+   if(total<0)
+   {
+      Print("MT5 economic calendar unavailable. CalendarValueHistory error=",GetLastError(),
+            ". Confirm broker/terminal calendar support and connection.");
+      return "";
+   }
+   int count=MathMin(total,900);
+   string out="[";
+   int sent=0;
+   for(int i=0;i<count;i++)
+   {
+      MqlCalendarEvent event;
+      if(!CalendarEventById(values[i].event_id,event)) continue;
+      if(event.currency!="" && event.currency!="USD") continue;
+      if(sent>0) out+=",";
+      out+="{\\"event_id\\":"+(string)values[i].event_id+
+         ",\\"event_time\\":"+(string)(long)values[i].time+
+         ",\\"currency\\":\\""+EscapeJson(event.currency==""?"USD":event.currency)+"\\""+
+         ",\\"event_name\\":\\""+EscapeJson(event.name)+"\\""+
+         ",\\"importance\\":\\""+ImportanceName(event.importance)+"\\""+
+         ",\\"impact_type\\":"+(string)values[i].impact_type+
+         ",\\"actual_value\\":"+CalendarMetric(values[i].actual_value)+
+         ",\\"forecast_value\\":"+CalendarMetric(values[i].forecast_value)+
+         ",\\"previous_value\\":"+CalendarMetric(values[i].previous_value)+"}";
+      sent++;
+   }
+   out+="]";
+   Print("Dars MT5 calendar prepared: ",sent," USD events; range ",
+         TimeToString(from,TIME_DATE)," to ",TimeToString(to,TIME_DATE));
+   return out;
+}
+
 bool PostPayload(const string payload)
 {
    char data[],result[];
@@ -118,8 +170,10 @@ void ExportHistory()
    string deals="";
    first=true;
    AppendClosedDeals(deals,first);
+   string calendar=BuildCalendarEvents();
+   if(calendar=="") calendar="[]";
    string payload="{\"version\":1,\"account\":\""+(string)AccountInfoInteger(ACCOUNT_LOGIN)+
-      "\",\"symbol\":\""+EscapeJson(Symbol())+"\",\"candles\":["+candles+"],\"deals\":["+deals+"]}";
+      "\",\"symbol\":\""+EscapeJson(Symbol())+"\",\"candles\":["+candles+"],\"deals\":["+deals+"],\"news\":"+calendar+"}";
    PostPayload(payload);
 }
 int OnInit()
