@@ -5,7 +5,9 @@
 #property description "Read-only quote and candle sender for Dars AI Lab"
 
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
-input string CandleEndpoint = "https://dars-indol.vercel.app/api/mt5-candles";\ninput string HistoryEndpoint = "https://dars-indol.vercel.app/api/mt5-history";\ninput int SendNewsEverySeconds = 300;
+input string CandleEndpoint = "https://dars-indol.vercel.app/api/mt5-candles";
+input string HistoryEndpoint = "https://dars-indol.vercel.app/api/mt5-history";
+input int SendNewsEverySeconds = 300;
 input string BridgeToken = "SET_THE_SAME_RANDOM_TOKEN_IN_VERCEL";
 input string SymbolsCsv = "XAUUSD-STD";
 input int SendEverySeconds = 3;
@@ -15,7 +17,8 @@ input int BarsPerTimeframe = 500;
 string symbols[];
 int candleTimer = 0;
 int quoteSendCount = 0;
-int quoteTickMissCount = 0;\nint newsElapsed = 0;
+int quoteTickMissCount = 0;
+int newsElapsed = 0;
 
 int OnInit()
 {
@@ -39,7 +42,9 @@ bool PostJson(const string endpoint,const string payload,const string label)
    char data[],result[]; string resultHeaders;
    StringToCharArray(payload,data,0,WHOLE_ARRAY,CP_UTF8);
    if(ArraySize(data)>0)ArrayResize(data,ArraySize(data)-1);
-   string headers="Content-Type: application/json\r\nX-Bridge-Token: "+BridgeToken+"\r\n";
+   string headers="Content-Type: application/json\r
+X-Bridge-Token: "+BridgeToken+"\r
+";
    ResetLastError();
    int code=WebRequest("POST",endpoint,headers,10000,data,result,resultHeaders);
    string responseText=CharArrayToString(result,0,-1,CP_UTF8);
@@ -82,7 +87,7 @@ void SendNewsCalendar(const string sym)
       return;
    }
    int sent=0;
-   string news="[";
+   string newsJson="[";
    for(int i=0;i<MathMin(total,900);i++)
    {
       MqlCalendarEvent event;
@@ -90,25 +95,26 @@ void SendNewsCalendar(const string sym)
       if(!CalendarEventById(values[i].event_id,event)) continue;
       if(!CalendarCountryById(event.country_id,country)) continue;
       if(country.currency!="USD") continue;
-      if(sent>0) news+=",";
-      news+="{\\"event_id\\":"+(string)values[i].event_id+
-         ",\\"event_time\\":"+(string)(long)values[i].time+
-         ",\\"currency\\":\\"USD\\""+
-         ",\\"event_name\\":\\""+EscapeNewsJson(event.name)+"\\""+
-         ",\\"importance\\":\\""+NewsImportance(event.importance)+"\\""+
-         ",\\"impact_type\\":"+(string)values[i].impact_type+
-         ",\\"actual_value\\":"+NewsMetric(values[i].actual_value)+
-         ",\\"forecast_value\\":"+NewsMetric(values[i].forecast_value)+
-         ",\\"previous_value\\":"+NewsMetric(values[i].prev_value)+"}";
+      if(sent>0) newsJson+=",";
+      newsJson+="{\"event_id\":"+(string)values[i].event_id+
+         ",\"event_time\":"+(string)(long)values[i].time+
+         ",\"currency\":\"USD\""+
+         ",\"event_name\":\""+EscapeNewsJson(event.name)+"\""+
+         ",\"importance\":\""+NewsImportance(event.importance)+"\""+
+         ",\"impact_type\":"+(string)values[i].impact_type+
+         ",\"actual_value\":"+NewsMetric(values[i].actual_value)+
+         ",\"forecast_value\":"+NewsMetric(values[i].forecast_value)+
+         ",\"previous_value\":"+NewsMetric(values[i].prev_value)+"}";
       sent++;
    }
-   news+="]";
-   string payload="{\\"version\\":1,\\"account\\":\\""+(string)AccountInfoInteger(ACCOUNT_LOGIN)+
-      "\\",\\"symbol\\":\\""+sym+"\\",\\"candles\\":[],\\"deals\\":[],\\"news\\":"+news+"}";
-   if(PostJson(HistoryEndpoint,payload,"news calendar "+sym))
+   newsJson+="]";
+   string newsPayload="{\"version\":1,\"account\":\""+(string)AccountInfoInteger(ACCOUNT_LOGIN)+
+      "\",\"symbol\":\""+sym+"\",\"candles\":[],\"deals\":[],\"news\":"+newsJson+"}";
+   if(PostJson(HistoryEndpoint,newsPayload,"news calendar "+sym))
       Print("DARS NEWS UPLOADED: ",sent," USD economic-calendar events.");
 }
-\nvoid SendQuote(const string sym)
+ 
+void SendQuote(const string sym)
 {
    MqlTick tick;
    if(!SymbolInfoTick(sym,tick)||tick.bid<=0||tick.ask<=0){
@@ -120,16 +126,16 @@ void SendNewsCalendar(const string sym)
                ". Confirm this exact broker symbol is visible in Market Watch and the market has a quote.");
       return;
    }
-   int digits=(int)SymbolInfoInteger(sym,SYMBOL_DIGITS);
+   int quoteDigits=(int)SymbolInfoInteger(sym,SYMBOL_DIGITS);
    double point=SymbolInfoDouble(sym,SYMBOL_POINT);
    double spread=point>0?(tick.ask-tick.bid)/point:0;
-   string payload=StringFormat("{\"symbol\":\"%s\",\"bid\":%s,\"ask\":%s,\"last\":%s,\"digits\":%d,\"spread\":%s}",
-      sym,DoubleToString(tick.bid,digits),DoubleToString(tick.ask,digits),DoubleToString(tick.last,digits),digits,DoubleToString(spread,1));
-   if(PostJson(ApiEndpoint,payload,"quote "+sym)){
+   string quotePayload=StringFormat("{\"symbol\":\"%s\",\"bid\":%s,\"ask\":%s,\"last\":%s,\"digits\":%d,\"spread\":%s}",
+      sym,DoubleToString(tick.bid,quoteDigits),DoubleToString(tick.ask,quoteDigits),DoubleToString(tick.last,quoteDigits),quoteDigits,DoubleToString(spread,1));
+   if(PostJson(ApiEndpoint,quotePayload,"quote "+sym)){
       quoteSendCount++;
       if(quoteSendCount==1 || quoteSendCount%10==0)
-         Print("Dars quote OK: ",sym," Bid=",DoubleToString(tick.bid,digits),
-               " Ask=",DoubleToString(tick.ask,digits)," spread=",DoubleToString(spread,1),
+         Print("Dars quote OK: ",sym," Bid=",DoubleToString(tick.bid,quoteDigits),
+               " Ask=",DoubleToString(tick.ask,quoteDigits)," spread=",DoubleToString(spread,1),
                " successful_posts=",quoteSendCount);
    }
 }
@@ -140,17 +146,18 @@ string FrameJson(const string sym,const ENUM_TIMEFRAMES tf,const string frameNam
    ResetLastError();
    int copied=CopyRates(sym,tf,0,wanted,rates);
    int copyError=GetLastError();
-   int minimumBars=MathMin(10,wanted);\n   if(copied<minimumBars){Print("Dars waiting for enough ",frameName," bars on ",sym,". CopyRates=",copied," required=",minimumBars," error=",copyError,". Keep MT5 connected and allow history to synchronize.");return "";}
+   int minimumBars=MathMin(10,wanted);
+   if(copied<minimumBars){Print("Dars waiting for enough ",frameName," bars on ",sym,". CopyRates=",copied," required=",minimumBars," error=",copyError,". Keep MT5 connected and allow history to synchronize.");return "";}
    // MT5 bar timestamps use broker-server clock. Convert to UTC before storing.
    // The same offset is applied to every bar in this short, current upload batch.
    long serverUtcOffset=(long)(TimeCurrent()-TimeGMT());
    string out="\""+frameName+"\":[";
    for(int j=0;j<copied;j++){
       if(j>0)out+=",";
-      int digits=(int)SymbolInfoInteger(sym,SYMBOL_DIGITS);
+      int candleDigits=(int)SymbolInfoInteger(sym,SYMBOL_DIGITS);
       datetime utcBarTime=(datetime)((long)rates[j].time-serverUtcOffset);
       out+=StringFormat("{\"time\":%I64d,\"open\":%s,\"high\":%s,\"low\":%s,\"close\":%s,\"tick_volume\":%I64d}",
-         (long)utcBarTime,DoubleToString(rates[j].open,digits),DoubleToString(rates[j].high,digits),DoubleToString(rates[j].low,digits),DoubleToString(rates[j].close,digits),(long)rates[j].tick_volume);
+         (long)utcBarTime,DoubleToString(rates[j].open,candleDigits),DoubleToString(rates[j].high,candleDigits),DoubleToString(rates[j].low,candleDigits),DoubleToString(rates[j].close,candleDigits),(long)rates[j].tick_volume);
    }
    Print("Dars prepared candles: ",sym," ",frameName," bars=",copied," server_utc_offset_sec=",serverUtcOffset," server_newest=",TimeToString(rates[copied-1].time,TIME_DATE|TIME_MINUTES)," utc_newest=",TimeToString((datetime)((long)rates[copied-1].time-serverUtcOffset),TIME_DATE|TIME_MINUTES));
    return out+"]";
@@ -162,8 +169,8 @@ void PostFrame(const string sym,const string frameName,const string frameJson)
    int colon=StringFind(frameJson,":");
    if(colon<0) return;
    string candles=StringSubstr(frameJson,colon+1);
-   string payload="{\"symbol\":\""+sym+"\",\"timeframe\":\""+frameName+"\",\"candles\":"+candles+"}";
-   if(PostJson(CandleEndpoint,payload,"candles "+sym+" "+frameName))
+   string candlePayload="{\"symbol\":\""+sym+"\",\"timeframe\":\""+frameName+"\",\"candles\":"+candles+"}";
+   if(PostJson(CandleEndpoint,candlePayload,"candles "+sym+" "+frameName))
       Print("Dars candles OK: ",sym," ",frameName," uploaded to API.");
 }
 void SendCandles(const string sym)
@@ -197,7 +204,12 @@ void OnTimer()
       string sym=symbols[i];
       if(StringLen(sym)>0){SendQuote(sym);SendLiveCandles(sym);}
    }
-   newsElapsed+=MathMax(1,SendEverySeconds);\n   if(newsElapsed>=MathMax(60,SendNewsEverySeconds)){\n      newsElapsed=0;\n      for(int i=0;i<ArraySize(symbols);i++){string sym=symbols[i];if(StringLen(sym)>0)SendNewsCalendar(sym);}\n   }\n   candleTimer+=MathMax(1,SendEverySeconds);
+   newsElapsed+=MathMax(1,SendEverySeconds);
+   if(newsElapsed>=MathMax(60,SendNewsEverySeconds)){
+      newsElapsed=0;
+      for(int i=0;i<ArraySize(symbols);i++){string sym=symbols[i];if(StringLen(sym)>0)SendNewsCalendar(sym);}
+   }
+   candleTimer+=MathMax(1,SendEverySeconds);
    if(candleTimer>=MathMax(10,SendCandlesEverySeconds)){
       candleTimer=0;
       for(int i=0;i<ArraySize(symbols);i++){string sym=symbols[i];if(StringLen(sym)>0)SendCandles(sym);}
