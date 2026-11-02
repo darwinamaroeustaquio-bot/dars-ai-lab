@@ -3,16 +3,20 @@
 //| Read-only historical candles + closed-deal exporter for Dars AI  |
 //+------------------------------------------------------------------+
 #property strict
-#property version "1.10"
+#property version "1.20"
 #property description "Exports closed M1/M5/M15/H1 candles and closed deal history; never trades."
 
 input string ApiEndpoint = "https://dars-indol.vercel.app/api/mt5-history";
+input string QuoteEndpoint = "https://dars-indol.vercel.app/api/mt5-quote";
 input string BridgeToken = "SET_THE_SAME_RANDOM_TOKEN_IN_VERCEL";
 input string SymbolsCSV = "XAUUSD-STD";
 input int CandlesPerTimeframe = 3000;
 input int HistoryDays = 90;
 input int MaxDealsPerBatch = 100;
 input int SendEverySeconds = 300;
+input int QuoteEverySeconds = 3;
+int historyElapsed = 0;
+int quoteElapsed = 0;
 
 string EscapeJson(string s)
 {
@@ -153,9 +157,54 @@ bool PostPayload(const string payload)
    Print("History bridge OK: ",reply);
    return true;
 }
+
+bool PostQuote(const string symbol)
+{
+   MqlTick tick;
+   ResetLastError();
+   if(!SymbolInfoTick(symbol,tick) || tick.bid<=0 || tick.ask<=0 || tick.ask<tick.bid)
+   {
+      Print("Quote waiting for valid MT5 tick: ",symbol," error=",GetLastError());
+      return false;
+   }
+   int digits=(int)SymbolInfoInteger(symbol,SYMBOL_DIGITS);
+   double spread=tick.ask-tick.bid;
+   string payload=StringFormat("{\"symbol\":\"%s\",\"bid\":%s,\"ask\":%s,\"last\":%s,\"digits\":%d,\"spread\":%s}",
+      EscapeJson(symbol),DoubleToString(tick.bid,digits),DoubleToString(tick.ask,digits),
+      DoubleToString(tick.last,digits),digits,DoubleToString(spread,digits));
+   char data[],result[];
+   string resultHeaders;
+   int copied=StringToCharArray(payload,data,0,WHOLE_ARRAY,CP_UTF8);
+   if(copied<=1) return false;
+   ArrayResize(data,copied-1);
+   string headers="Content-Type: application/json\r\nX-Bridge-Token: "+BridgeToken+"\r\n";
+   ResetLastError();
+   int status=WebRequest("POST",QuoteEndpoint,headers,10000,data,result,resultHeaders);
+   string reply=CharArrayToString(result,0,WHOLE_ARRAY,CP_UTF8);
+   if(status>=200 && status<300)
+   {
+      Print("Live quote OK: ",symbol," Bid=",DoubleToString(tick.bid,digits),
+            " Ask=",DoubleToString(tick.ask,digits));
+      return true;
+   }
+   Print("Live quote upload failed. HTTP=",status," MT5 error=",GetLastError()," response=",reply);
+   return false;
+}
+void SendLiveQuotes()
+{
+   string symbols[];
+   int n=StringSplit(SymbolsCSV,',',symbols);
+   for(int i=0;i<n;i++)
+   {
+      StringTrimLeft(symbols[i]); StringTrimRight(symbols[i]);
+      if(symbols[i]=="") continue;
+      if(SymbolSelect(symbols[i],true)) PostQuote(symbols[i]);
+   }
+}
+
 void ExportHistory()
 {
-   if(StringFind(ApiEndpoint,"YOUR-VERCEL-DOMAIN")>=0 || StringLen(BridgeToken)<24 || StringFind(BridgeToken,"SET_THE_SAME")>=0)
+   if(StringFind(ApiEndpoint,"YOUR-VERCEL-DOMAIN")>=0 || StringFind(QuoteEndpoint,"YOUR-VERCEL-DOMAIN")>=0 || StringLen(BridgeToken)<24 || StringFind(BridgeToken,"SET_THE_SAME")>=0)
    { Print("Set ApiEndpoint and BridgeToken in Inputs first."); return; }
    string candles="";
    bool first=true;
@@ -180,10 +229,25 @@ void ExportHistory()
 }
 int OnInit()
 {
-   EventSetTimer(MathMax(60,SendEverySeconds));
-   Print("Dars AI Lab History Bridge started (read-only; no order functions).");
+   EventSetTimer(1);
+   Print("Dars AI Lab Combined History + Live Quote Bridge started (read-only; no order functions).");
+   SendLiveQuotes();
    ExportHistory();
    return INIT_SUCCEEDED;
 }
 void OnDeinit(const int reason){EventKillTimer();}
-void OnTimer(){ExportHistory();}
+void OnTimer()
+{
+   quoteElapsed++;
+   historyElapsed++;
+   if(quoteElapsed>=MathMax(1,QuoteEverySeconds))
+   {
+      quoteElapsed=0;
+      SendLiveQuotes();
+   }
+   if(historyElapsed>=MathMax(60,SendEverySeconds))
+   {
+      historyElapsed=0;
+      ExportHistory();
+   }
+}
