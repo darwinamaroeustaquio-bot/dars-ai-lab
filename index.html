@@ -962,7 +962,11 @@ async function updateFormingCandleFromQuote(){
   const q=d.quote,price=Number(q.bid),received=Date.parse(q.received_at||"");
   if(!Number.isFinite(price)||price<=0||!Number.isFinite(received))throw new Error("Invalid live quote");
   if(received<lastChartQuoteAt)return;lastChartQuoteAt=received;
-  const tf=$("timeframe").value,secs=({M1:60,M5:300,M15:900,H1:3600})[tf]||3600;
+  const tf=$("timeframe").value;
+  // H4 broker bars may use a non-UTC 4-hour anchor. Do not alter H4 OHLC
+  // from a browser receive-time bucket; the MT5 history remains authoritative.
+  const secs=({M1:60,M5:300,M15:900,M30:1800,H1:3600})[tf];
+  if(!secs){drawChart();return;}
   const bucket=Math.floor(received/1000/secs)*secs*1000;
   const data=liveChartCandles.filter(c=>c&&Number.isFinite(Number(c.open))&&Number.isFinite(Number(c.high))&&Number.isFinite(Number(c.low))&&Number.isFinite(Number(c.close)));
   const last=data[data.length-1],lastBucket=last?Date.parse(last.bar_time||last.time||""):NaN;
