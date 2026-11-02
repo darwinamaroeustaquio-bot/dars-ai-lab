@@ -26,6 +26,12 @@ string JsonEscape(const string value)
    }
    return out;
 }
+string ServerDateTime(const datetime value)
+{
+   MqlDateTime dt;
+   TimeToStruct(value,dt);
+   return StringFormat("%04d-%02d-%02dT%02d:%02d:%02d",dt.year,dt.mon,dt.day,dt.hour,dt.min,dt.sec);
+}
 string JsonNumberOrNull(const long raw)
 {
    if(raw==LONG_MIN) return "null";
@@ -79,7 +85,7 @@ bool UploadCalendar()
       events+="\"country_code\":\""+JsonEscape(country.code)+"\",";
       events+="\"importance\":\""+impact+"\",";
       events+="\"event_time_utc_epoch\":"+(string)eventUtc+",";
-      events+="\"event_time_server\":\""+TimeToString(values[i].time,TIME_DATE|TIME_SECONDS)+"\",";
+      events+="\"event_time_server\":\""+ServerDateTime(values[i].time)+"\",";
       events+="\"server_utc_offset_seconds\":"+(string)offsetSeconds+",";
       events+="\"actual\":"+JsonNumberOrNull(values[i].actual_value)+",";
       events+="\"forecast\":"+JsonNumberOrNull(values[i].forecast_value)+",";
@@ -90,7 +96,7 @@ bool UploadCalendar()
    }
    events+="]";
    string body="{\"symbol\":\""+JsonEscape(SymbolForDars)+"\",";
-   body+="\"server_time\":\""+TimeToString(serverNow,TIME_DATE|TIME_SECONDS)+"\",";
+   body+="\"server_time\":\""+ServerDateTime(serverNow)+"\",";
    body+="\"server_utc_offset_seconds\":"+(string)offsetSeconds+",";
    body+="\"events\":"+events+"}";
    char data[],result[];
