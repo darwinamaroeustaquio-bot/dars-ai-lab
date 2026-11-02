@@ -19,6 +19,17 @@ module.exports = async (req,res) => {
     }
     const requestedMode=body.strategyMode==="MANUAL"?"MANUAL":"ROBOT_AUTO";
     const requestedId=typeof body.selectedStrategyId==="string"?body.selectedStrategyId:null;
+    if(requestedMode==="MANUAL"&&requestedId==="DARS_EHL_BREAKOUT_V1_10"){
+      const {detectEhlBreakout,STRATEGY_ID}=require("../lib/dars-ehl-breakout");
+      const candidate=detectEhlBreakout({frames:base.frames,quote:body.quote});
+      const setup=candidate?{...candidate,source:"Verified MT5 closed M5 candles; paper-only EHL candidate"}:null;
+      const analysis={...base,engine:STRATEGY_ID,decision:setup?.side||"WAIT",setup,
+        strategySelection:{candidate:STRATEGY_ID,status:setup?"SHADOW_PAPER_REVIEW":"NO_SETUP",eligible:false,
+          rationale:setup?"EMA trend, equal liquidity level, candle compression and confirmed breakout aligned.":"Waiting for all EHL breakout conditions on a closed M5 candle.",
+          evaluatedCandidates:1,strategyRanking:[{strategy:STRATEGY_ID,score:0,eligible:false,totalTrades:0,holdoutTrades:0,reason:"New discovery candidate; forward-paper validation is required before promotion."}]},
+        paperSetups:setup?[setup]:[],diagnostics:setup?[]:["No confirmed EHL breakout on the latest closed M5 candle."]};
+      return res.status(200).json({ok:true,analysis});
+    }
     const result=analyzeSevenCandidatePool({frames:base.frames,quote:body.quote,paperTrades:Array.isArray(body.paperTrades)?body.paperTrades.slice(-5000):[],preferredCandidateId:requestedMode==="MANUAL"?requestedId:null});
     const analysis={...base,engine:"DARS_SEVEN_CANDIDATE_PAPER_V1",decision:result.setup?.side||"WAIT",setup:result.setup?{
       side:result.setup.side,entry:result.setup.entry,stopLoss:result.setup.stopLoss,
