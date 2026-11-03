@@ -5,8 +5,8 @@
 //| NO order is sent until the user clicks APPROVE on the chart.     |
 //+------------------------------------------------------------------+
 #property strict
-#property version "1.03"
-#property description "DARS authenticated Demo-only Robot setup receiver for XAUUSD-STD or XAUUSD-VIP. Fixed 0.01 lot."
+#property version "1.10"
+#property description "DARS all-in-one authenticated quote, candle and Demo execution bridge for XAUUSD-STD or XAUUSD-VIP. Fixed 0.01 lot."
 
 #include <Trade/Trade.mqh>
 CTrade trade;
@@ -14,7 +14,7 @@ CTrade trade;
 input string InpApiBaseURL          = "https://dars-indol.vercel.app";
 input string InpBridgeToken         = ""; // Paste the SAME MT5_BRIDGE_TOKEN configured in Vercel
 input string InpSymbol              = ""; // Leave blank to use the current chart symbol
-input int    InpPollSeconds         = 3;
+input int    InpPollSeconds         = 3;\ninput int    InpCandleRefreshSeconds = 60;\ninput int    InpBarsPerTimeframe    = 500;
 input double InpRiskPercent         = 0.25; // Risk ceiling; order size is fixed at 0.01 lot
 input double InpMaxDailyLossPct     = 1.00;
 input int    InpMaxTradesPerDay     = 3;
@@ -31,7 +31,7 @@ string g_commandId="";
 string g_side="";
 string g_strategy="";
 double g_entry=0,g_sl=0,g_tp1=0,g_tp2=0,g_score=0;
-datetime g_lastPoll=0;
+datetime g_lastPoll=0;\nint g_candleElapsed=0;\nint g_quotePosts=0;
 bool g_tp1Alerted=false;
 ulong g_tp1Ticket=0;
 
@@ -128,7 +128,80 @@ bool ApiRequest(const string method,const string path,const string payload,strin
    return true;
 }
 
-void ClearCommand()
+
+void SendQuoteData()
+{
+   MqlTick tick;
+   if(!SymbolInfoTick(g_symbol,tick) || tick.bid<=0 || tick.ask<=0)
+   {
+      g_status="WAITING FOR LIVE MT5 QUOTE";
+      return;
+   }
+   int digits=(int)SymbolInfoInteger(g_symbol,SYMBOL_DIGITS);
+   double point=SymbolInfoDouble(g_symbol,SYMBOL_POINT);
+   double spread=point>0?(tick.ask-tick.bid)/point:0;
+   string payload=StringFormat("{\\"symbol\\":\\"%s\\",\\"bid\\":%s,\\"ask\\":%s,\\"last\\":%s,\\"digits\\":%d,\\"spread\\":%s}",
+      g_symbol,DoubleToString(tick.bid,digits),DoubleToString(tick.ask,digits),DoubleToString(tick.last,digits),digits,DoubleToString(spread,1));
+   string response;int code=0;
+   if(ApiRequest("POST","/api/mt5-quote",payload,response,code))
+   {
+      g_quotePosts++;
+      if(g_quotePosts==1 || g_quotePosts%10==0)
+         Print("DARS quote OK: ",g_symbol," Bid=",DoubleToString(tick.bid,digits)," Ask=",DoubleToString(tick.ask,digits)," HTTP=",code);
+   }
+}
+string BuildFrameJson(const ENUM_TIMEFRAMES tf,const string frameName,const int requestedBars)
+{
+   MqlRates rates[];ArraySetAsSeries(rates,false);
+   int wanted=MathMax(2,MathMin(5000,requestedBars));
+   ResetLastError();
+   int copied=CopyRates(g_symbol,tf,0,wanted,rates);
+   if(copied<MathMin(10,wanted))
+   {
+      Print("DARS waiting for ",frameName," history. CopyRates=",copied," error=",GetLastError());
+      return "";
+   }
+   long offset=(long)(TimeCurrent()-TimeGMT());
+   int digits=(int)SymbolInfoInteger(g_symbol,SYMBOL_DIGITS);
+   string arr="[";
+   for(int i=0;i<copied;i++)
+   {
+      if(i>0)arr+=",";
+      datetime utcTime=(datetime)((long)rates[i].time-offset);
+      arr+=StringFormat("{\\"time\\":%I64d,\\"open\\":%s,\\"high\\":%s,\\"low\\":%s,\\"close\\":%s,\\"tick_volume\\":%I64d}",
+         (long)utcTime,DoubleToString(rates[i].open,digits),DoubleToString(rates[i].high,digits),
+         DoubleToString(rates[i].low,digits),DoubleToString(rates[i].close,digits),(long)rates[i].tick_volume);
+   }
+   return arr+"]";
+}
+void PostCandleFrame(const ENUM_TIMEFRAMES tf,const string frameName,const int bars)
+{
+   string candles=BuildFrameJson(tf,frameName,bars);
+   if(candles=="")return;
+   string payload="{\\"symbol\\":\\""+g_symbol+"\\",\\"timeframe\\":\\""+frameName+"\\",\\"candles\\":"+candles+"}";
+   string response;int code=0;
+   if(ApiRequest("POST","/api/mt5-candles",payload,response,code))
+      Print("DARS candles OK: ",g_symbol," ",frameName," bars=",bars," HTTP=",code);
+}
+void SendCandleHistory()
+{
+   PostCandleFrame(PERIOD_M1,"M1",InpBarsPerTimeframe);
+   PostCandleFrame(PERIOD_M5,"M5",InpBarsPerTimeframe);
+   PostCandleFrame(PERIOD_M15,"M15",InpBarsPerTimeframe);
+   PostCandleFrame(PERIOD_M30,"M30",InpBarsPerTimeframe);
+   PostCandleFrame(PERIOD_H1,"H1",InpBarsPerTimeframe);
+   PostCandleFrame(PERIOD_H4,"H4",InpBarsPerTimeframe);
+}
+void SendLiveCandleUpdates()
+{
+   PostCandleFrame(PERIOD_M1,"M1",3);
+   PostCandleFrame(PERIOD_M5,"M5",3);
+   PostCandleFrame(PERIOD_M15,"M15",3);
+   PostCandleFrame(PERIOD_M30,"M30",3);
+   PostCandleFrame(PERIOD_H1,"H1",3);
+   PostCandleFrame(PERIOD_H4,"H4",3);
+}
+\nvoid ClearCommand()
 {
    g_commandId="";g_side="";g_strategy="";
    g_entry=0;g_sl=0;g_tp1=0;g_tp2=0;g_score=0;
@@ -377,7 +450,7 @@ void DrawPanel()
 {
    MqlTick tick;double bid=0,ask=0;
    if(SymbolInfoTick(g_symbol,tick)){bid=tick.bid;ask=tick.ask;}
-   Comment("DARS MT5 DEMO EXECUTOR v1.03\n",
+   Comment("DARS MT5 ALL-IN-ONE DEMO BRIDGE v1.10\n",
       "Bridge: ",(StringLen(InpBridgeToken)>=24?"TOKEN SET":"TOKEN MISSING"),
       " | Account: ",(DemoAccount()?"DEMO":"NOT DEMO"),"\n",
       "API: ",InpApiBaseURL," | Symbol: ",g_symbol,"\n",
@@ -390,7 +463,7 @@ void DrawPanel()
       "Risk: ",DoubleToString(InpRiskPercent,2),"% | Trades today: ",TradesToday(),"/",InpMaxTradesPerDay,
       " | Daily P/L: ",DoubleToString(TodayNet(),2),"\n",
       "STATUS: ",g_status,"\n",
-      "Manual approval required. DEMO ONLY. TP1 is alert-only in v1.00.");
+      "Quote + candles + Robot command bridge active. Manual approval required. DEMO ONLY. TP1 alert-only.");
 }
 
 int OnInit()
