@@ -33,6 +33,38 @@ module.exports = async (req,res) => {
       return res.status(200).json({ok:true,analysis:base});
     }
     const result=analyzeSevenCandidatePool({frames:base.frames,quote:body.quote,paperTrades:Array.isArray(body.paperTrades)?body.paperTrades.slice(-5000):[],marketBlockReason:base.engineBlockReason||null});
+    // Persist a fresh Robot setup as a short-lived PENDING command for the authenticated MT5 Demo terminal.
+    // The EA still requires a human click before any broker order can be submitted.
+    if(result.setup && ["BUY","SELL"].includes(result.setup.side)){
+      const root=String(process.env.SUPABASE_URL||"").trim().replace(/\\/+$/,"").replace(/\\/rest\\/v1$/i,"");
+      const key=String(process.env.SUPABASE_SERVICE_ROLE_KEY||"").trim();
+      const signalTime=result.setup.signalBarTime?new Date(result.setup.signalBarTime):null;
+      const validSignalTime=signalTime && Number.isFinite(signalTime.getTime());
+      const commandId=[String(body.symbol||"XAUUSD-STD"),String(result.setup.strategyId||result.setup.strategy||"DARS"),validSignalTime?signalTime.toISOString():"no-time"].join("|").slice(0,180);
+      if(root && key && validSignalTime){
+        const command={
+          command_id:commandId,symbol:String(body.symbol||"XAUUSD-STD"),
+          side:result.setup.side,entry:Number(result.setup.entry),stop_loss:Number(result.setup.stopLoss),
+          tp1:Number(result.setup.takeProfit1),tp2:Number(result.setup.takeProfit2),
+          strategy:String(result.setup.strategy||result.setup.strategyId||"DARS").slice(0,120),
+          strategy_score:Number.isFinite(Number(result.selection?.score))?Number(result.selection.score):null,
+          signal_bar_time:signalTime.toISOString(),status:"PENDING",
+          expires_at:new Date(Date.now()+10*60*1000).toISOString()
+        };
+        const valid=[command.entry,command.stop_loss,command.tp1,command.tp2].every(v=>Number.isFinite(v)&&v>0) &&
+          (command.side==="BUY" ? command.stop_loss<command.entry && command.tp1>command.entry && command.tp2>command.tp1 :
+           command.stop_loss>command.entry && command.tp1<command.entry && command.tp2<command.tp1);
+        if(valid){
+          try{
+            await fetch(root+"/rest/v1/mt5_demo_execution_commands?on_conflict=command_id",{
+              method:"POST",
+              headers:{apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json",Prefer:"resolution=ignore-duplicates,return=minimal"},
+              body:JSON.stringify(command)
+            });
+          }catch(_){ /* Dashboard analysis remains available; MT5 will show no pending command. */ }
+        }
+      }
+    }
     const active=body.activeSetup&&["BUY","SELL"].includes(body.activeSetup.side)?body.activeSetup:null;
     let tp1Management={status:"NO_ACTIVE_SETUP",threshold:70,score:null,decision:"WAITING",scoreIsProbability:false};
     if(active){
