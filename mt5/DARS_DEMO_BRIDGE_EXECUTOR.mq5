@@ -5,7 +5,7 @@
 //| NO order is sent until the user clicks APPROVE on the chart.     |
 //+------------------------------------------------------------------+
 #property strict
-#property version "1.02"
+#property version "1.03"
 #property description "DARS authenticated Demo-only Robot setup receiver for XAUUSD-STD or XAUUSD-VIP. Fixed 0.01 lot."
 
 #include <Trade/Trade.mqh>
@@ -377,7 +377,7 @@ void DrawPanel()
 {
    MqlTick tick;double bid=0,ask=0;
    if(SymbolInfoTick(g_symbol,tick)){bid=tick.bid;ask=tick.ask;}
-   Comment("DARS MT5 DEMO EXECUTOR v1.02\n",
+   Comment("DARS MT5 DEMO EXECUTOR v1.03\n",
       "Bridge: ",(StringLen(InpBridgeToken)>=24?"TOKEN SET":"TOKEN MISSING"),
       " | Account: ",(DemoAccount()?"DEMO":"NOT DEMO"),"\n",
       "API: ",InpApiBaseURL," | Symbol: ",g_symbol,"\n",
