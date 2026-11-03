@@ -286,8 +286,8 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
    <div class="omni-levels">
     <div class="omni-level entry"><small>ENTRY</small><strong id="omniEntry">—</strong></div>
     <div class="omni-level sl"><small>STOP LOSS</small><strong id="omniSL">—</strong></div>
-    <div class="omni-level tp"><small>TAKE PROFIT 1 · 1.5R</small><strong id="omniTP1">—</strong></div>
-    <div class="omni-level tp"><small>TAKE PROFIT 2 · 2.5R</small><strong id="omniTP2">—</strong></div>
+    <div class="omni-level tp"><small id="omniTP1Label">TAKE PROFIT 1</small><strong id="omniTP1">—</strong></div>
+    <div class="omni-level tp"><small id="omniTP2Label">TAKE PROFIT 2</small><strong id="omniTP2">—</strong></div>
    </div>
    <div class="omni-reason" id="omniRiskNote">No setup is issued until every data-quality and rule check passes. Lot size remains uncalculated until broker tick value and symbol specifications are verified.</div>
    <div class="omni-list" id="omniDiagnostics"><div class="omni-check">Waiting for first analysis…</div></div>
@@ -541,8 +541,8 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const good=Object.values(f).filter(x=>x.ok).length;set("omniDataQuality",good+"/3 frames");set("omniDataAge",a.diagnostics?.length? "Checks: "+a.diagnostics.length:"All configured checks passed");
   const d=a.decision||"WAIT",dn=$("omniDecision");dn.textContent=d==="WAIT"?"WAIT · NO TRADE":d+" · SETUP";dn.className="omni-decision "+(d==="BUY"?"buy":d==="SELL"?"sell":"wait");
   const s=a.setup;set("omniEntry",s?fmt(s.entry):"—");set("omniSL",s?fmt(s.stopLoss):"—");set("omniTP1",s?fmt(s.takeProfit1):"—");set("omniTP2",s?fmt(s.takeProfit2):"—");
-  set("omniDecisionReason",s?"M5 liquidity reclaim aligned with M15/H1 direction. Draft paper setup; validate broker execution details.":(a.diagnostics||[]).join(" "));
-  set("omniRiskNote",s?"Entry uses current ask for BUY / bid for SELL. SL is structure + ATR based. TP1 = 1.5R; TP2 = 2.5R. Lot sizing is intentionally withheld until verified broker tick value, tick size, volume step and stop-level metadata are available.":"No entry or targets issued. DARS waits for fresh quote, sufficient closed candles and aligned multi-timeframe evidence.");
+  set("omniDecisionReason",s?"ROBOT PICK: "+(s.strategy||"Selected strategy")+" · "+(Number.isFinite(Number(s.strategyScore))?Number(s.strategyScore).toFixed(1)+"% strategy-fit score":"score unavailable")+". Highest-scoring valid signal among eight candidates. Draft paper setup; validate broker execution details.":(a.diagnostics||[]).join(" "));
+  set("omniTP1Label",s?"TAKE PROFIT 1 · "+Number(s.rewardRiskTP1||1).toFixed(2)+"R":"TAKE PROFIT 1");set("omniTP2Label",s?"TAKE PROFIT 2 · "+Number(s.rewardRiskTP2||s.targetR||2.5).toFixed(2)+"R":"TAKE PROFIT 2");set("omniRiskNote",s?"Entry uses current ask for BUY / bid for SELL. Stop and targets follow the selected strategy parameters. Lot sizing is withheld until broker tick value, tick size, volume step and stop-level metadata are verified.":"No entry or targets issued. DARS waits for fresh quote, sufficient closed candles and aligned multi-timeframe evidence.");
   const list=$("omniDiagnostics");list.replaceChildren();
   (a.diagnostics||[]).forEach(t=>{const row=document.createElement("div");row.className="omni-check";row.textContent=t;list.appendChild(row);});
   const board=Array.isArray(a.engineBoard)?a.engineBoard:[];
@@ -552,7 +552,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   $("engineEligible").textContent=board.filter(x=>x.eligible).length;
   $("engineBoardStatus").textContent=board.length?"8 strategies scored · dashboard refresh":"Waiting for verified data";
   $("engineChampion").textContent=selection.candidate
-    ? "Central selector: "+selection.candidate+" · "+selection.status+" · "+(selection.rationale||selection.adaptation||"")
+    ? "ROBOT PICK: "+selection.candidate+" · "+(Number.isFinite(Number(selection.score))?Number(selection.score).toFixed(1)+"%":"—")+" · "+selection.status+" · "+(selection.rationale||selection.adaptation||"")
     : "Central selector: no verified engine ranking yet.";
   const engineRows=$("engineBoardRows");engineRows.replaceChildren();
   board.forEach(x=>{
