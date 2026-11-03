@@ -29,7 +29,7 @@ table{max-width:100%}
 <header class="row"><div><div class="tag">DARS AI LAB · SAME ENGINE AS THE ROBOT</div><h1 style="margin:6px 0">Adaptive Paper Trading</h1><p class="note">Eight-candidate adaptive paper selector; EHL Breakout v1.10 is candidate eight in Robot Auto. Verified VT Markets MT5 feed; paper-only, no broker orders.</p></div><a class="btn" href="/">← Back to DARS dashboard</a></header>
 
 <section class="panel">
- <div class="row"><div><strong>Paper engine: <span id="engineState" class="tag">CONNECTING</span></strong><p id="feedStatus" class="note">Verifying live MT5 quote and closed candles…</p></div><div class="controls"><button id="pause" class="btn">Pause</button><button id="resume" class="btn primary">Resume</button><button id="export" class="btn">Export CSV</button><button id="reset" class="btn">Reset paper history</button></div></div>
+ <div class="row"><div><strong>Paper engine: <span id="engineState" class="tag">CONNECTING</span></strong><p id="feedStatus" class="note">Verifying live MT5 quote and closed candles…</p></div><div class="controls"><label for="paperSymbol" class="note">MT5 symbol</label><select id="paperSymbol" aria-label="MT5 symbol"><option value="XAUUSD-VIP" selected>XAUUSD-VIP</option><option value="XAUUSD-STD">XAUUSD-STD</option></select><button id="pause" class="btn">Pause</button><button id="resume" class="btn primary">Resume</button><button id="export" class="btn">Export CSV</button><button id="reset" class="btn">Reset paper history</button></div></div>
  <div id="decisionMessage" class="status" role="status" aria-live="polite">Waiting for verified MT5 data. Paper trading will only mirror a BUY/SELL setup returned by the DARS Robot.</div>
 </section>
 
@@ -82,7 +82,8 @@ table{max-width:100%}
 <script>
 (function(){
 "use strict";
-const $=id=>document.getElementById(id), STORE="dars-adaptive-paper-v2", SYMBOL="XAUUSD-STD", CHOICE_STORE="dars-seven-strategy-choice-v1";
+const $=id=>document.getElementById(id), STORE_PREFIX="dars-adaptive-paper-v3", CHOICE_STORE="dars-seven-strategy-choice-v1";
+let SYMBOL="XAUUSD-VIP", STORE=STORE_PREFIX+"-"+SYMBOL;
 const CANDIDATE_PRIORS=[
  {strategy:"WILLIAMS_REVERSION-STRICT-V2",developmentTrades:64,holdoutTrades:30,holdoutWinRate:56.7,holdoutNetR:7.63,holdoutExpectancyR:.25,holdoutProfitFactor:1.54,holdoutMaxDrawdownR:3.39},
  {strategy:"STOCHASTIC_REVERSION-BASE-V4",developmentTrades:49,holdoutTrades:24,holdoutWinRate:45.8,holdoutNetR:3.50,holdoutExpectancyR:.15,holdoutProfitFactor:1.27,holdoutMaxDrawdownR:3.10},
@@ -201,7 +202,7 @@ function renderAnalysis(a,quote,frames){
  say("candleCount","M5 "+closed.length+" · M15 "+(frames.M15||[]).length+" · H1 "+(frames.H1||[]).length);
  say("barTime",closed.length?"Last closed M5: "+time(closed[closed.length-1].bar_time):"No closed M5 candle");
  if(quote){const liveQuote=quote.quote||quote;say("quote",fmt(liveQuote.bid)+" / "+fmt(liveQuote.ask));say("quoteMeta","Spread "+fmt(n(liveQuote.ask)-n(liveQuote.bid))+" · Quote age "+(quote.age_seconds??"—")+"s");}
- const bar=closed[closed.length-1];if(bar&&bar.bar_time!==lastProcessedBar){lastProcessedBar=bar.bar_time;updateOpenTrades(closed);createVirtualTrades(a,bar);save();}
+ const bar=closed[closed.length-1];if(bar){if(bar.bar_time!==lastProcessedBar){lastProcessedBar=bar.bar_time;updateOpenTrades(closed);}createVirtualTrades(a,bar);save();}
  renderHistory();
 }
 async function cycle(){
@@ -225,6 +226,7 @@ try{const saved=localStorage.getItem(CHOICE_STORE);if(saved==="ROBOT_AUTO"||save
 $("strategyChoice").value=strategyChoice;
 $("strategyChoice").addEventListener("change",()=>{strategyChoice=$("strategyChoice").value;try{localStorage.setItem(CHOICE_STORE,strategyChoice);}catch(e){}say("strategyModeStatus",strategyChoice==="ROBOT_AUTO"?"ROBOT AUTO":"MANUAL MODE");say("strategyModeHint",strategyChoice==="ROBOT_AUTO"?"Robot Auto ranks all eight candidates, including EHL as the eighth discovery candidate.":"Manual discovery active: "+strategyChoice+". DARS will use only this strategy; it will not silently switch to another.");cycle();});
 $("addEhl").addEventListener("click",()=>{$("strategyChoice").value="DARS_EHL_BREAKOUT_V1_10";$("strategyChoice").dispatchEvent(new Event("change"));say("decisionMessage","EHL Breakout v1.10 added to Paper Trading. Waiting for a confirmed closed-M5 setup; no broker orders will be sent.");});
+const symbolPicker=$("paperSymbol");symbolPicker.value=SYMBOL;symbolPicker.addEventListener("change",()=>{SYMBOL=symbolPicker.value;STORE=STORE_PREFIX+"-"+SYMBOL;book={trades:[],netR:0};lastProcessedBar="";load();renderHistory();say("feedStatus","Switched to "+SYMBOL+". Verifying matching MT5 quote and candles…");cycle();});
 load();renderCandidateBoard(CANDIDATE_PRIORS.map(x=>({...x,score:scorePrior(x),priorOnly:true})));renderHistory();cycle();setInterval(cycle,15000);
 })();
 </script>
