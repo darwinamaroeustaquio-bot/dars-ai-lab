@@ -42,6 +42,7 @@ module.exports = async (req,res) => {
       const slReached=active.side==="BUY"?bid<=sl:ask>=sl;
       if(tp2Reached)tp1Management={status:"TP2_REACHED",threshold:70,score:null,decision:"TARGET_COMPLETE",scoreIsProbability:false};
       else if(slReached)tp1Management={status:"STOP_REACHED",threshold:70,score:null,decision:"STOP_LOSS_REACHED",scoreIsProbability:false};
+      else if(active.tp1Management?.decision==="HOLD_REMAINDER_TO_TP2")tp1Management=active.tp1Management;
       else if(tp1Reached)tp1Management=assessTp1Continuation(active,base.frames);
       else tp1Management={status:"MONITORING_TO_TP1",threshold:70,score:null,decision:"WAIT_FOR_TP1",scoreIsProbability:false};
     }
