@@ -33,7 +33,19 @@ module.exports = async (req,res) => {
       return res.status(200).json({ok:true,analysis:base});
     }
     const result=analyzeSevenCandidatePool({frames:base.frames,quote:body.quote,paperTrades:Array.isArray(body.paperTrades)?body.paperTrades.slice(-5000):[],marketBlockReason:base.engineBlockReason||null});
-    const analysis={...base,engine:"DARS_SEVEN_CANDIDATE_ROBOT_V1",decision:result.setup?.side||"WAIT",setup:result.setup?{
+    const active=body.activeSetup&&["BUY","SELL"].includes(body.activeSetup.side)?body.activeSetup:null;
+    let tp1Management={status:"NO_ACTIVE_SETUP",threshold:70,score:null,decision:"WAITING",scoreIsProbability:false};
+    if(active){
+      const bid=Number(body.quote.bid),ask=Number(body.quote.ask),tp1=Number(active.takeProfit1),tp2=Number(active.takeProfit2),sl=Number(active.stopLoss);
+      const tp1Reached=body.tp1Reached===true||(active.side==="BUY"?bid>=tp1:ask<=tp1);
+      const tp2Reached=active.side==="BUY"?bid>=tp2:ask<=tp2;
+      const slReached=active.side==="BUY"?bid<=sl:ask>=sl;
+      if(tp2Reached)tp1Management={status:"TP2_REACHED",threshold:70,score:null,decision:"TARGET_COMPLETE",scoreIsProbability:false};
+      else if(slReached)tp1Management={status:"STOP_REACHED",threshold:70,score:null,decision:"STOP_LOSS_REACHED",scoreIsProbability:false};
+      else if(tp1Reached)tp1Management=assessTp1Continuation(active,base.frames);
+      else tp1Management={status:"MONITORING_TO_TP1",threshold:70,score:null,decision:"WAIT_FOR_TP1",scoreIsProbability:false};
+    }
+    const analysis={...base,tp1Management,engine:"DARS_SEVEN_CANDIDATE_ROBOT_V1",decision:result.setup?.side||"WAIT",setup:result.setup?{
       side:result.setup.side,entry:result.setup.entry,stopLoss:result.setup.stopLoss,
       takeProfit1:result.setup.takeProfit1,takeProfit2:result.setup.takeProfit2,
       riskDistance:result.setup.riskDistance,rewardRiskTP1:result.setup.rewardRiskTP1,
