@@ -25,7 +25,7 @@ module.exports = async (req,res) => {
       takeProfit1:result.setup.takeProfit1,takeProfit2:result.setup.takeProfit2,
       riskDistance:result.setup.riskDistance,rewardRiskTP1:result.setup.rewardRiskTP1,
       rewardRiskTP2:result.setup.rewardRiskTP2,strategy:result.setup.strategy,
-      strategyId:result.setup.strategyId,family:result.setup.family,profile:result.setup.profile,
+      strategyId:result.setup.strategyId,strategyScore:result.selection?.score??null,liveFitScore:result.selection?.liveFitScore??null,family:result.setup.family,profile:result.setup.profile,
       targetR:result.setup.targetR,stopMultiple:result.setup.stopMultiple,maxBars:result.setup.maxBars,
       signalBarTime:result.setup.signalBarTime,oscillator:result.setup.oscillator,
       previousOscillator:result.setup.previousOscillator,lowerThreshold:result.setup.lowerThreshold,
