@@ -39,3 +39,4 @@ module.exports = async (req,res) => {
     return res.status(500).json({ok:false,error:"DARS seven-candidate analysis failed safely. No setup was generated."});
   }
 };
+
