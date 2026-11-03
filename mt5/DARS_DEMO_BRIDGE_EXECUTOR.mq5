@@ -5,7 +5,7 @@
 //| NO order is sent until the user clicks APPROVE on the chart.     |
 //+------------------------------------------------------------------+
 #property strict
-#property version "1.10"
+#property version "1.11"
 #property description "DARS all-in-one authenticated quote, candle and Demo execution bridge for XAUUSD-STD or XAUUSD-VIP. Fixed 0.01 lot."
 
 #include <Trade/Trade.mqh>
@@ -116,11 +116,9 @@ bool ApiRequest(const string method,const string path,const string payload,strin
       StringToCharArray(payload,data,0,WHOLE_ARRAY,CP_UTF8);
       if(ArraySize(data)>0) ArrayResize(data,ArraySize(data)-1);
    }
-   string headers="Accept: application/json\r
-X-Bridge-Token: "+InpBridgeToken+"\r
-";
-   if(method=="POST") headers+="Content-Type: application/json\r
-";
+   string headers="Accept: application/json\r\nX-Bridge-Token: "+InpBridgeToken+"\r\n";
+   if(method=="POST") headers+="Content-Type: application/json\r\n";
+
    ResetLastError();
    httpCode=WebRequest(method,InpApiBaseURL+path,headers,8000,data,result,responseHeaders);
    response=CharArrayToString(result,0,-1,CP_UTF8);
@@ -149,7 +147,7 @@ void SendQuoteData()
    int digits=(int)SymbolInfoInteger(g_symbol,SYMBOL_DIGITS);
    double point=SymbolInfoDouble(g_symbol,SYMBOL_POINT);
    double spread=point>0?(tick.ask-tick.bid)/point:0;
-   string payload=StringFormat("{\\"symbol\\":\\"%s\\",\\"bid\\":%s,\\"ask\\":%s,\\"last\\":%s,\\"digits\\":%d,\\"spread\\":%s}",
+   string payload=StringFormat("{\"symbol\":\"%s\",\"bid\":%s,\"ask\":%s,\"last\":%s,\"digits\":%d,\"spread\":%s}",
       g_symbol,DoubleToString(tick.bid,digits),DoubleToString(tick.ask,digits),DoubleToString(tick.last,digits),digits,DoubleToString(spread,1));
    string response;int code=0;
    if(ApiRequest("POST","/api/mt5-quote",payload,response,code))
@@ -159,9 +157,11 @@ void SendQuoteData()
          Print("DARS quote OK: ",g_symbol," Bid=",DoubleToString(tick.bid,digits)," Ask=",DoubleToString(tick.ask,digits)," HTTP=",code);
    }
 }
+
 string BuildFrameJson(const ENUM_TIMEFRAMES tf,const string frameName,const int requestedBars)
 {
-   MqlRates rates[];ArraySetAsSeries(rates,false);
+   MqlRates rates[];
+   ArraySetAsSeries(rates,false);
    int wanted=MathMax(2,MathMin(5000,requestedBars));
    ResetLastError();
    int copied=CopyRates(g_symbol,tf,0,wanted,rates);
@@ -175,23 +175,45 @@ string BuildFrameJson(const ENUM_TIMEFRAMES tf,const string frameName,const int 
    string arr="[";
    for(int i=0;i<copied;i++)
    {
-      if(i>0)arr+=",";
+      if(i>0) arr+=",";
       datetime utcTime=(datetime)((long)rates[i].time-offset);
-      arr+=StringFormat("{\\"time\\":%I64d,\\"open\\":%s,\\"high\\":%s,\\"low\\":%s,\\"close\\":%s,\\"tick_volume\\":%I64d}",
+      arr+=StringFormat("{\"time\":%I64d,\"open\":%s,\"high\":%s,\"low\":%s,\"close\":%s,\"tick_volume\":%I64d}",
          (long)utcTime,DoubleToString(rates[i].open,digits),DoubleToString(rates[i].high,digits),
          DoubleToString(rates[i].low,digits),DoubleToString(rates[i].close,digits),(long)rates[i].tick_volume);
    }
    return arr+"]";
 }
+
 void PostCandleFrame(const ENUM_TIMEFRAMES tf,const string frameName,const int bars)
 {
    string candles=BuildFrameJson(tf,frameName,bars);
-   if(candles=="")return;
-   string payload="{\\"symbol\\":\\""+g_symbol+"\\",\\"timeframe\\":\\""+frameName+"\\",\\"candles\\":"+candles+"}";
+   if(candles=="") return;
+   string payload="{\"symbol\":\""+g_symbol+"\",\"timeframe\":\""+frameName+"\",\"candles\":"+candles+"}";
    string response;int code=0;
    if(ApiRequest("POST","/api/mt5-candles",payload,response,code))
       Print("DARS candles OK: ",g_symbol," ",frameName," bars=",bars," HTTP=",code);
 }
+
+void SendCandleHistory()
+{
+   PostCandleFrame(PERIOD_M1,"M1",InpBarsPerTimeframe);
+   PostCandleFrame(PERIOD_M5,"M5",InpBarsPerTimeframe);
+   PostCandleFrame(PERIOD_M15,"M15",InpBarsPerTimeframe);
+   PostCandleFrame(PERIOD_M30,"M30",InpBarsPerTimeframe);
+   PostCandleFrame(PERIOD_H1,"H1",InpBarsPerTimeframe);
+   PostCandleFrame(PERIOD_H4,"H4",InpBarsPerTimeframe);
+}
+
+void SendLiveCandleUpdates()
+{
+   PostCandleFrame(PERIOD_M1,"M1",3);
+   PostCandleFrame(PERIOD_M5,"M5",3);
+   PostCandleFrame(PERIOD_M15,"M15",3);
+   PostCandleFrame(PERIOD_M30,"M30",3);
+   PostCandleFrame(PERIOD_H1,"H1",3);
+   PostCandleFrame(PERIOD_H4,"H4",3);
+}
+
 void SendCandleHistory()
 {
    PostCandleFrame(PERIOD_M1,"M1",InpBarsPerTimeframe);
@@ -458,30 +480,22 @@ void MonitorTP1()
 
 void DrawPanel()
 {
-   MqlTick tick;double bid=0,ask=0;
+   MqlTick tick;
+   double bid=0,ask=0;
    if(SymbolInfoTick(g_symbol,tick)){bid=tick.bid;ask=tick.ask;}
-   Comment("DARS MT5 ALL-IN-ONE DEMO BRIDGE v1.10
-",
+   Comment("DARS MT5 ALL-IN-ONE DEMO BRIDGE v1.11\n",
       "Bridge: ",(StringLen(InpBridgeToken)>=24?"TOKEN SET":"TOKEN MISSING"),
-      " | Account: ",(DemoAccount()?"DEMO":"NOT DEMO"),"
-",
-      "API: ",InpApiBaseURL," | Symbol: ",g_symbol,"
-",
+      " | Account: ",(DemoAccount()?"DEMO":"NOT DEMO"),"\n",
+      "API: ",InpApiBaseURL," | Symbol: ",g_symbol,"\n",
       "Bid: ",DoubleToString(bid,_Digits)," Ask: ",DoubleToString(ask,_Digits),
-      " Spread: ",DoubleToString(ask-bid,_Digits),"
-",
-      "Pending: ",(g_commandId==""?"NONE":g_commandId),"
-",
-      "Robot: ",g_side," ",g_strategy," Score: ",DoubleToString(g_score,1),"%
-",
+      " Spread: ",DoubleToString(ask-bid,_Digits),"\n",
+      "Pending: ",(g_commandId==""?"NONE":g_commandId),"\n",
+      "Robot: ",g_side," ",g_strategy," Score: ",DoubleToString(g_score,1),"%\n",
       "Entry: ",DoubleToString(g_entry,_Digits)," SL: ",DoubleToString(g_sl,_Digits),
-      " TP1: ",DoubleToString(g_tp1,_Digits)," TP2: ",DoubleToString(g_tp2,_Digits),"
-",
+      " TP1: ",DoubleToString(g_tp1,_Digits)," TP2: ",DoubleToString(g_tp2,_Digits),"\n",
       "Risk: ",DoubleToString(InpRiskPercent,2),"% | Trades today: ",TradesToday(),"/",InpMaxTradesPerDay,
-      " | Daily P/L: ",DoubleToString(TodayNet(),2),"
-",
-      "STATUS: ",g_status,"
-",
+      " | Daily P/L: ",DoubleToString(TodayNet(),2),"\n",
+      "STATUS: ",g_status,"\n",
       "Quote + candles + Robot command bridge active. Manual approval required. DEMO ONLY. TP1 alert-only.");
 }
 
