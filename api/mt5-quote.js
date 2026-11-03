@@ -1,5 +1,5 @@
 // Read-only MT5 quote bridge. Secrets stay in Vercel environment variables.
-const ALLOWED = new Set(["XAUUSD-STD", "XAUUSD"]);
+const ALLOWED = new Set(["XAUUSD-STD", "XAUUSD-VIP", "XAUUSD"]);
 
 function send(res, status, body) {
   res.status(status);
