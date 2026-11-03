@@ -214,25 +214,6 @@ void SendLiveCandleUpdates()
    PostCandleFrame(PERIOD_H4,"H4",3);
 }
 
-void SendCandleHistory()
-{
-   PostCandleFrame(PERIOD_M1,"M1",InpBarsPerTimeframe);
-   PostCandleFrame(PERIOD_M5,"M5",InpBarsPerTimeframe);
-   PostCandleFrame(PERIOD_M15,"M15",InpBarsPerTimeframe);
-   PostCandleFrame(PERIOD_M30,"M30",InpBarsPerTimeframe);
-   PostCandleFrame(PERIOD_H1,"H1",InpBarsPerTimeframe);
-   PostCandleFrame(PERIOD_H4,"H4",InpBarsPerTimeframe);
-}
-void SendLiveCandleUpdates()
-{
-   PostCandleFrame(PERIOD_M1,"M1",3);
-   PostCandleFrame(PERIOD_M5,"M5",3);
-   PostCandleFrame(PERIOD_M15,"M15",3);
-   PostCandleFrame(PERIOD_M30,"M30",3);
-   PostCandleFrame(PERIOD_H1,"H1",3);
-   PostCandleFrame(PERIOD_H4,"H4",3);
-}
-
 void ClearCommand()
 {
    g_commandId="";g_side="";g_strategy="";
