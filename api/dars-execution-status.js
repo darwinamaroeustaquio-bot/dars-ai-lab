@@ -20,7 +20,7 @@ function authorized(req){
   return a.length===b.length&&crypto.timingSafeEqual(a,b);
 }
 function config(){
-  const root=String(process.env.SUPABASE_URL||"").trim().replace(/\\/+$/,"").replace(/\\/rest\\/v1$/i,"");
+  const root=String(process.env.SUPABASE_URL||"").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
   const key=String(process.env.SUPABASE_SERVICE_ROLE_KEY||"").trim();
   return root&&key?{root,key}:null;
 }
