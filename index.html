@@ -536,6 +536,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const incomingKey=incoming?(incoming.strategyId||incoming.strategy)+"|"+(incoming.signalBarTime||""):"";
   if(incoming&&!state.activeSetup&&incomingKey!==state.completedSetupKey)state.activeSetup=incoming;
   const management=a.tp1Management||{};
+  if(management.decision==="HOLD_REMAINDER_TO_TP2"&&state.activeSetup)state.activeSetup.tp1Management=management;
   if(["CLOSE_REMAINDER_AT_TP1","TARGET_COMPLETE","STOP_LOSS_REACHED"].includes(management.decision)){
     const active=state.activeSetup;
     state.completedSetupKey=active?(active.strategyId||active.strategy)+"|"+(active.signalBarTime||""):"";
