@@ -1,19 +1,19 @@
 //+------------------------------------------------------------------+
 //| DARS_DEMO_BRIDGE_EXECUTOR.mq5                                    |
-//| Authenticated DARS Robot -> MT5 Demo command bridge              |
+//| Authenticated DARS Robot -> MT5 Demo command bridge (STD/VIP)              |
 //| Robot setups are polled with MT5_BRIDGE_TOKEN.                   |
 //| NO order is sent until the user clicks APPROVE on the chart.     |
 //+------------------------------------------------------------------+
 #property strict
-#property version "1.00"
-#property description "DARS authenticated Demo-only Robot setup receiver and manual execution EA."
+#property version "1.01"
+#property description "DARS authenticated Demo-only Robot setup receiver for XAUUSD-STD or XAUUSD-VIP. Fixed 0.01 lot."
 
 #include <Trade/Trade.mqh>
 CTrade trade;
 
 input string InpApiBaseURL          = "https://dars-indol.vercel.app";
 input string InpBridgeToken         = ""; // Paste the SAME MT5_BRIDGE_TOKEN configured in Vercel
-input string InpSymbol              = "XAUUSD-STD";
+input string InpSymbol              = ""; // Blank = auto-detect chart symbol (XAUUSD-STD or XAUUSD-VIP)
 input int    InpPollSeconds         = 3;
 input double InpRiskPercent         = 0.25; // Risk ceiling; order size is fixed at 0.01 lot
 input double InpMaxDailyLossPct     = 1.00;
@@ -26,6 +26,7 @@ input int    InpDeviationPoints     = 30;
 string BTN_APPROVE="DARS_CMD_APPROVE";
 string BTN_REJECT="DARS_CMD_REJECT";
 string g_status="INITIALIZING";
+string g_symbol="";
 string g_commandId="";
 string g_side="";
 string g_strategy="";
@@ -142,7 +143,7 @@ void PollCommand()
       return;
    }
    string response;int code=0;
-   string path="/api/dars-execution-status?symbol="+InpSymbol;
+   string path="/api/dars-execution-status?symbol="+g_symbol;
    if(!ApiRequest("GET",path,"",response,code)) return;
    if(StringFind(response,"\"ok\":true")<0)
    {
@@ -210,7 +211,7 @@ int TradesToday()
       ulong deal=HistoryDealGetTicket(i);
       if(deal==0) continue;
       if((ulong)HistoryDealGetInteger(deal,DEAL_MAGIC)!=InpMagic) continue;
-      if(HistoryDealGetString(deal,DEAL_SYMBOL)!=InpSymbol) continue;
+      if(HistoryDealGetString(deal,DEAL_SYMBOL)!=g_symbol) continue;
       ENUM_DEAL_ENTRY e=(ENUM_DEAL_ENTRY)HistoryDealGetInteger(deal,DEAL_ENTRY);
       if(e==DEAL_ENTRY_IN || e==DEAL_ENTRY_INOUT) count++;
    }
@@ -226,7 +227,7 @@ double TodayNet()
       ulong deal=HistoryDealGetTicket(i);
       if(deal==0) continue;
       if((ulong)HistoryDealGetInteger(deal,DEAL_MAGIC)!=InpMagic) continue;
-      if(HistoryDealGetString(deal,DEAL_SYMBOL)!=InpSymbol) continue;
+      if(HistoryDealGetString(deal,DEAL_SYMBOL)!=g_symbol) continue;
       net+=HistoryDealGetDouble(deal,DEAL_PROFIT)+HistoryDealGetDouble(deal,DEAL_SWAP)+HistoryDealGetDouble(deal,DEAL_COMMISSION);
    }
    return net;
@@ -239,7 +240,7 @@ bool HasPosition()
       ulong t=PositionGetTicket(i);
       if(t==0) continue;
       // Block if ANY position already exists on this symbol (including manual trades).
-      if(PositionGetString(POSITION_SYMBOL)==InpSymbol) return true;
+      if(PositionGetString(POSITION_SYMBOL)==g_symbol) return true;
    }
    return false;
 }
@@ -248,14 +249,14 @@ double LotForRisk(const ENUM_ORDER_TYPE type,const double entry,const double sl,
 {
    // Fixed user-selected size: never scale up beyond 0.01 lots.
    const double lots=0.01;
-   double minLot=SymbolInfoDouble(InpSymbol,SYMBOL_VOLUME_MIN);
-   double maxLot=SymbolInfoDouble(InpSymbol,SYMBOL_VOLUME_MAX);
-   double step=SymbolInfoDouble(InpSymbol,SYMBOL_VOLUME_STEP);
+   double minLot=SymbolInfoDouble(g_symbol,SYMBOL_VOLUME_MIN);
+   double maxLot=SymbolInfoDouble(g_symbol,SYMBOL_VOLUME_MAX);
+   double step=SymbolInfoDouble(g_symbol,SYMBOL_VOLUME_STEP);
    if(step<=0 || minLot<=0){why="Invalid broker volume specification";return 0;}
    if(lots<minLot-1e-8 || lots>maxLot+1e-8 || MathAbs(lots/step-MathRound(lots/step))>1e-6)
    {why="Broker does not support exactly 0.01 lot";return 0;}
    double oneLot=0;
-   if(!OrderCalcProfit(type,InpSymbol,1.0,entry,sl,oneLot) || oneLot>=0)
+   if(!OrderCalcProfit(type,g_symbol,1.0,entry,sl,oneLot) || oneLot>=0)
    {why="Cannot calculate stop risk from broker contract specifications";return 0;}
    double estimatedRisk=MathAbs(oneLot)*lots;
    double riskCash=AccountInfoDouble(ACCOUNT_BALANCE)*InpRiskPercent/100.0;
@@ -292,7 +293,7 @@ void RejectCommand(const string reason)
 void ApproveAndExecute()
 {
    if(!DemoAccount()){g_status="SAFETY LOCK - DEMO ACCOUNT REQUIRED";return;}
-   if(_Symbol!=InpSymbol){g_status="Attach EA to exact "+InpSymbol+" chart";return;}
+   if(_Symbol!=g_symbol){g_status="Attach EA to exact "+g_symbol+" chart";return;}
    if(g_commandId=="" || (g_side!="BUY" && g_side!="SELL")){g_status="No pending Robot setup to approve";return;}
    if(HasPosition()){g_status="BLOCKED - one DARS position already open";return;}
    if(TradesToday()>=InpMaxTradesPerDay){RejectCommand("Daily trade limit reached");return;}
@@ -300,7 +301,7 @@ void ApproveAndExecute()
    if(TodayNet()<=-maxLoss){RejectCommand("Daily loss limit reached");return;}
 
    MqlTick tick;
-   if(!SymbolInfoTick(InpSymbol,tick) || tick.bid<=0 || tick.ask<=0){g_status="BLOCKED - no live quote";return;}
+   if(!SymbolInfoTick(g_symbol,tick) || tick.bid<=0 || tick.ask<=0){g_status="BLOCKED - no live quote";return;}
    double spread=tick.ask-tick.bid;
    if(spread>InpMaxSpreadPrice){g_status="BLOCKED - spread too wide";return;}
    double currentEntry=g_side=="BUY"?tick.ask:tick.bid;
@@ -312,12 +313,12 @@ void ApproveAndExecute()
    double lots=LotForRisk(type,currentEntry,g_sl,why);
    if(lots<=0){RejectCommand(why);return;}
    double margin=0;
-   if(!OrderCalcMargin(type,InpSymbol,lots,currentEntry,margin) || margin>AccountInfoDouble(ACCOUNT_MARGIN_FREE))
+   if(!OrderCalcMargin(type,g_symbol,lots,currentEntry,margin) || margin>AccountInfoDouble(ACCOUNT_MARGIN_FREE))
    {RejectCommand("Insufficient free margin");return;}
 
    trade.SetExpertMagicNumber(InpMagic);
    trade.SetDeviationInPoints(InpDeviationPoints);
-   trade.SetTypeFillingBySymbol(InpSymbol);
+   trade.SetTypeFillingBySymbol(g_symbol);
    // Claim the one-time command before sending the broker request. If the terminal
    // crashes after this point, the server will not hand the same command to MT5 again.
    if(!SendCommandStatus("CLAIMED","","Manual approval clicked; validating broker order"))
@@ -329,9 +330,9 @@ void ApproveAndExecute()
    bool sent=false;
    string comment="DARS DEMO "+StringSubstr(g_commandId,0,12);
    if(g_side=="BUY")
-      sent=trade.Buy(lots,InpSymbol,0.0,NormalizeDouble(g_sl,_Digits),NormalizeDouble(g_tp2,_Digits),comment);
+      sent=trade.Buy(lots,g_symbol,0.0,NormalizeDouble(g_sl,_Digits),NormalizeDouble(g_tp2,_Digits),comment);
    else
-      sent=trade.Sell(lots,InpSymbol,0.0,NormalizeDouble(g_sl,_Digits),NormalizeDouble(g_tp2,_Digits),comment);
+      sent=trade.Sell(lots,g_symbol,0.0,NormalizeDouble(g_sl,_Digits),NormalizeDouble(g_tp2,_Digits),comment);
 
    uint rc=trade.ResultRetcode();
    if(!sent || (rc!=TRADE_RETCODE_DONE && rc!=TRADE_RETCODE_PLACED && rc!=TRADE_RETCODE_DONE_PARTIAL))
@@ -355,11 +356,11 @@ void MonitorTP1()
    {
       ulong ticket=PositionGetTicket(i);
       if(ticket==0) continue;
-      if(PositionGetString(POSITION_SYMBOL)!=InpSymbol ||
+      if(PositionGetString(POSITION_SYMBOL)!=g_symbol ||
          (ulong)PositionGetInteger(POSITION_MAGIC)!=InpMagic) continue;
       if(g_tp1Alerted && g_tp1Ticket==ticket) return;
       if(g_tp1<=0) return;
-      MqlTick tick;if(!SymbolInfoTick(InpSymbol,tick))return;
+      MqlTick tick;if(!SymbolInfoTick(g_symbol,tick))return;
       long type=PositionGetInteger(POSITION_TYPE);
       bool hit=(type==POSITION_TYPE_BUY?tick.bid>=g_tp1:tick.ask<=g_tp1);
       if(hit)
@@ -375,11 +376,11 @@ void MonitorTP1()
 void DrawPanel()
 {
    MqlTick tick;double bid=0,ask=0;
-   if(SymbolInfoTick(InpSymbol,tick)){bid=tick.bid;ask=tick.ask;}
-   Comment("DARS MT5 DEMO EXECUTOR v1.00\n",
+   if(SymbolInfoTick(g_symbol,tick)){bid=tick.bid;ask=tick.ask;}
+   Comment("DARS MT5 DEMO EXECUTOR v1.01\n",
       "Bridge: ",(StringLen(InpBridgeToken)>=24?"TOKEN SET":"TOKEN MISSING"),
       " | Account: ",(DemoAccount()?"DEMO":"NOT DEMO"),"\n",
-      "API: ",InpApiBaseURL," | Symbol: ",InpSymbol,"\n",
+      "API: ",InpApiBaseURL," | Symbol: ",g_symbol,"\n",
       "Bid: ",DoubleToString(bid,_Digits)," Ask: ",DoubleToString(ask,_Digits),
       " Spread: ",DoubleToString(ask-bid,_Digits),"\n",
       "Pending: ",(g_commandId==""?"NONE":g_commandId),"\n",
@@ -394,8 +395,18 @@ void DrawPanel()
 
 int OnInit()
 {
+   g_symbol=(InpSymbol==""?_Symbol:InpSymbol);
+   if(g_symbol!="XAUUSD-STD" && g_symbol!="XAUUSD-VIP")
+   {
+      Print("DARS supports XAUUSD-STD or XAUUSD-VIP only. Selected symbol=",g_symbol);
+      return INIT_FAILED;
+   }
+   if(_Symbol!=g_symbol)
+   {
+      Print("Attach this EA to ",g_symbol," chart. Current chart=",_Symbol);
+      return INIT_FAILED;
+   }
    if(!DemoAccount()){Print("DARS safety lock: this EA only starts on a DEMO account.");return INIT_FAILED;}
-   if(_Symbol!=InpSymbol){Print("Attach this EA to ",InpSymbol,". Current chart=",_Symbol);return INIT_FAILED;}
    if(StringLen(InpBridgeToken)<24){Print("Enter the same MT5_BRIDGE_TOKEN in EA Inputs.");g_status="TOKEN REQUIRED";}
    if(InpPollSeconds<1 || InpRiskPercent<=0 || InpRiskPercent>0.50 ||
       InpMaxDailyLossPct<=0 || InpMaxDailyLossPct>2.0 ||
