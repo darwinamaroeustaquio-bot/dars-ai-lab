@@ -238,8 +238,8 @@ bool HasPosition()
    {
       ulong t=PositionGetTicket(i);
       if(t==0) continue;
-      if(PositionGetString(POSITION_SYMBOL)==InpSymbol &&
-         (ulong)PositionGetInteger(POSITION_MAGIC)==InpMagic) return true;
+      // Block if ANY position already exists on this symbol (including manual trades).
+      if(PositionGetString(POSITION_SYMBOL)==InpSymbol) return true;
    }
    return false;
 }
