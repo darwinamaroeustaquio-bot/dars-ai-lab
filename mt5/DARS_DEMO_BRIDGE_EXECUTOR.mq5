@@ -489,7 +489,12 @@ int OnInit()
    MakeButton(BTN_APPROVE,"APPROVE DEMO ORDER",20,clrDarkGreen);
    MakeButton(BTN_REJECT,"REJECT SETUP",175,clrFireBrick);
    EventSetTimer(InpPollSeconds);
-   if(StringLen(InpBridgeToken)>=24) PollCommand();
+   if(StringLen(InpBridgeToken)>=24)
+   {
+      SendQuoteData();
+      SendCandleHistory();
+      PollCommand();
+   }
    DrawPanel();
    Print("DARS Demo Executor started. No order will be sent without chart approval.");
    return INIT_SUCCEEDED;
@@ -502,7 +507,18 @@ void OnDeinit(const int reason)
 
 void OnTimer()
 {
-   if(StringLen(InpBridgeToken)>=24 && g_commandId=="") PollCommand();
+   if(StringLen(InpBridgeToken)>=24)
+   {
+      SendQuoteData();
+      SendLiveCandleUpdates();
+      if(g_commandId=="") PollCommand();
+      g_candleElapsed+=InpPollSeconds;
+      if(g_candleElapsed>=MathMax(10,InpCandleRefreshSeconds))
+      {
+         g_candleElapsed=0;
+         SendCandleHistory();
+      }
+   }
    DrawPanel();
 }
 
