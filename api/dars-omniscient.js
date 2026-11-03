@@ -36,7 +36,7 @@ module.exports = async (req,res) => {
     // Persist a fresh Robot setup as a short-lived PENDING command for the authenticated MT5 Demo terminal.
     // The EA still requires a human click before any broker order can be submitted.
     if(result.setup && ["BUY","SELL"].includes(result.setup.side)){
-      const root=String(process.env.SUPABASE_URL||"").trim().replace(/\\/+$/,"").replace(/\\/rest\\/v1$/i,"");
+      const root=String(process.env.SUPABASE_URL||"").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
       const key=String(process.env.SUPABASE_SERVICE_ROLE_KEY||"").trim();
       const signalTime=result.setup.signalBarTime?new Date(result.setup.signalBarTime):null;
       const validSignalTime=signalTime && Number.isFinite(signalTime.getTime());
