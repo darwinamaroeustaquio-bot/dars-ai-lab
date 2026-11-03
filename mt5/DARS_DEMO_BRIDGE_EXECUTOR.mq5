@@ -265,16 +265,19 @@ double LotForRisk(const ENUM_ORDER_TYPE type,const double entry,const double sl,
    return lots;
 }
 
-void SendCommandStatus(const string status,const string ticket,const string note)
+bool SendCommandStatus(const string status,const string ticket,const string note)
 {
-   if(g_commandId=="") return;
+   if(g_commandId=="") return false;
    string payload="{\"command_id\":\""+JsonEscape(g_commandId)+"\",\"status\":\""+status+
       "\",\"broker_order_ticket\":\""+JsonEscape(ticket)+"\",\"execution_note\":\""+JsonEscape(note)+"\"}";
    string response;int code=0;
    if(!ApiRequest("POST","/api/dars-execution-status",payload,response,code))
-      Print("DARS status callback failed after local action: ",g_status," response=",response);
-   else
-      Print("DARS command status updated: ",response);
+   {
+      Print("DARS status callback failed: ",g_status," response=",response);
+      return false;
+   }
+   Print("DARS command status updated: ",response);
+   return StringFind(response,"\"ok\":true")>=0;
 }
 
 void RejectCommand(const string reason)
@@ -316,6 +319,14 @@ void ApproveAndExecute()
    trade.SetExpertMagicNumber(InpMagic);
    trade.SetDeviationInPoints(InpDeviationPoints);
    trade.SetTypeFillingBySymbol(InpSymbol);
+   // Claim the one-time command before sending the broker request. If the terminal
+   // crashes after this point, the server will not hand the same command to MT5 again.
+   if(!SendCommandStatus("CLAIMED","","Manual approval clicked; validating broker order"))
+   {
+      g_status="ORDER BLOCKED - could not claim command on DARS server";
+      return;
+   }
+
    bool sent=false;
    string comment="DARS DEMO "+StringSubstr(g_commandId,0,12);
    if(g_side=="BUY")
