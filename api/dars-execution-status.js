@@ -42,13 +42,16 @@ module.exports=async(req,res)=>{
       return send(res,200,{ok:true,connected:true,command:rows[0]||null,server_time:new Date().toISOString()});
     }
     const body=req.body||{},commandId=String(body.command_id||"").trim(),status=String(body.status||"").toUpperCase();
-    if(!commandId||!["EXECUTED","REJECTED"].includes(status))return send(res,400,{ok:false,error:"Expected command_id and status EXECUTED or REJECTED"});
+    if(!commandId||!["CLAIMED","EXECUTED","REJECTED"].includes(status))return send(res,400,{ok:false,error:"Expected command_id and status CLAIMED, EXECUTED or REJECTED"});
     const note=String(body.execution_note||"").slice(0,240),ticket=String(body.broker_order_ticket||"").slice(0,80);
     const lookup=await fetch(cfg.root+"/rest/v1/mt5_demo_execution_commands?"+new URLSearchParams({select:"command_id,status,expires_at",command_id:"eq."+commandId,limit:"1"}).toString(),{headers});
     if(!lookup.ok)return send(res,502,{ok:false,error:"Could not verify command state"});
     const rows=await lookup.json();
-    if(!rows.length||rows[0].status!=="PENDING"||new Date(rows[0].expires_at).getTime()<=Date.now())return send(res,409,{ok:false,error:"Command missing, expired or already consumed"});
-    const update=await fetch(cfg.root+"/rest/v1/mt5_demo_execution_commands?command_id=eq."+encodeURIComponent(commandId)+"&status=eq.PENDING",{method:"PATCH",headers:{...headers,Prefer:"return=representation"},body:JSON.stringify({status,broker_order_ticket:ticket||null,execution_note:note,updated_at:new Date().toISOString()})});
+    if(!rows.length||new Date(rows[0].expires_at).getTime()<=Date.now())return send(res,409,{ok:false,error:"Command missing or expired"});
+    const current=rows[0].status;
+    const allowed=status==="CLAIMED"?current==="PENDING":(current==="PENDING"||current==="CLAIMED");
+    if(!allowed)return send(res,409,{ok:false,error:"Command already claimed or consumed"});
+    const update=await fetch(cfg.root+"/rest/v1/mt5_demo_execution_commands?command_id=eq."+encodeURIComponent(commandId)+"&status=eq."+current,{method:"PATCH",headers:{...headers,Prefer:"return=representation"},body:JSON.stringify({status,broker_order_ticket:ticket||null,execution_note:note,updated_at:new Date().toISOString()})});
     if(!update.ok)return send(res,502,{ok:false,error:"Could not update command state",upstream_status:update.status});
     const changed=await update.json();
     if(!changed.length)return send(res,409,{ok:false,error:"Command was consumed by another terminal"});
