@@ -3,6 +3,19 @@
 const { analyzeDarsMarket } = require("../lib/dars-omniscient");
 const { analyzeSevenCandidatePool } = require("../lib/dars-seven-candidate-paper");
 
+function assessTp1Continuation(setup,frames){
+  const bars=frames?.M5?.candles||[],last=bars[bars.length-1],prev=bars[bars.length-2];
+  if(!last||!prev)return {status:"WAITING_FOR_CLOSED_M5",threshold:70,score:null,decision:"HOLD_FOR_MORE_DATA",scoreIsProbability:false};
+  const buy=setup.side==="BUY",m15=frames?.M15?.trend,h1=frames?.H1?.trend;
+  let score=0;
+  if(buy?Number(last.close)>Number(prev.close):Number(last.close)<Number(prev.close))score+=25;
+  if(buy?Number(last.close)>Number(prev.high):Number(last.close)<Number(prev.low))score+=25;
+  if(buy?m15==="BULLISH":m15==="BEARISH")score+=25;
+  if(buy?h1==="BULLISH":h1==="BEARISH")score+=25;
+  return {status:"TP1_REACHED",threshold:70,score,decision:score>=70?"HOLD_REMAINDER_TO_TP2":"CLOSE_REMAINDER_AT_TP1",scoreIsProbability:false,
+    rationale:score>=70?"Closed-M5 continuation structure remains aligned.":"Continuation checks are insufficient; protect the TP1 result."};
+}
+
 module.exports = async (req,res) => {
   res.setHeader("Content-Type","application/json; charset=utf-8");
   res.setHeader("Cache-Control","no-store, max-age=0");
