@@ -33,6 +33,14 @@ body{background:radial-gradient(ellipse at 50% -20%,#183957 0,transparent 52%),#
 .omni-metric small{font-size:10px;color:var(--muted)}
 .omni-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.8fr);gap:14px}
 .omni-chart-wrap{background:#07111e;border:1px solid #20334a;border-radius:13px;overflow:hidden;margin-top:12px}
+.omni-zoom-controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:10px}
+.omni-zoom-controls button{min-width:38px;padding:7px 11px;border:1px solid var(--line);border-radius:8px;background:#0a1727;color:var(--text);font-weight:800;cursor:pointer}
+.omni-zoom-controls button:hover{border-color:var(--blue);filter:brightness(1.12)}
+.omni-zoom-controls #omniZoomReset{font-weight:650}
+.omni-zoom-controls span{font-size:11px;color:var(--muted)}
+.omni-zoom-controls #omniZoomLabel{font-weight:800;color:var(--blue);min-width:75px}
+.omni-zoom-hint{margin-left:auto}
+@media(max-width:520px){.omni-zoom-hint{display:none}.omni-zoom-controls{gap:6px}.omni-zoom-controls button{flex:0 0 auto}}
 #omniChart{width:100%;height:460px;display:block;min-height:460px}
 .omni-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .omni-controls select,.omni-controls button{width:auto;min-width:110px;padding:9px 11px;border-radius:10px;background:#0a1727;color:var(--text);border:1px solid var(--line)}
@@ -266,6 +274,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
      <label><input type="checkbox" data-overlay="ema20" checked> EMA 20</label><label><input type="checkbox" data-overlay="ema50"> EMA 50</label><label><input type="checkbox" data-overlay="ema100"> EMA 100</label><label><input type="checkbox" data-overlay="ema200"> EMA 200 · LONG-TERM TREND</label><label><input type="checkbox" data-overlay="emaBands"> EMA RIBBON BANDS</label><label><input type="checkbox" data-overlay="bb"> Bollinger</label><label><input type="checkbox" data-overlay="vwap"> VWAP</label><label><input type="checkbox" data-overlay="sr"> Support / Resistance</label><label><input type="checkbox" data-overlay="poi"> POI · Supply / Demand</label><label><input type="checkbox" data-overlay="equal"> Equal Highs / Lows</label><label><input type="checkbox" data-overlay="trendline"> Trendlines</label><label><input type="checkbox" data-overlay="structure"> BOS / MSS / Sweep</label><label><input type="checkbox" data-overlay="marketStructure"> High / Low · HH / HL / LH / LL</label><label><input type="checkbox" data-overlay="trade"> Entry / SL / TP</label><label><input type="checkbox" data-panel="omniRSI" checked> RSI panel</label><label><input type="checkbox" data-panel="omniSTOCH"> Stochastic panel</label><label><input type="checkbox" data-panel="omniCCI"> CCI panel</label><label><input type="checkbox" data-panel="omniMACD"> MACD panel</label>
     </div>
    </div>
+   <div class="omni-zoom-controls" aria-label="Chart zoom controls"><button type="button" id="omniZoomIn" aria-label="Zoom in">＋</button><button type="button" id="omniZoomOut" aria-label="Zoom out">－</button><button type="button" id="omniZoomReset">Reset</button><span id="omniZoomLabel">80 candles</span><span class="omni-zoom-hint">Mouse wheel to zoom</span></div>
    <div class="omni-chart-wrap"><svg id="omniChart" viewBox="0 0 800 460" role="img" aria-label="Live MT5 candlestick chart with selectable technical overlays"></svg></div>
    <div class="omni-indicator-grid"><div class="omni-indicator"><b>RSI 14</b><svg id="omniRSI" viewBox="0 0 800 105"></svg></div><div class="omni-indicator"><b>STOCHASTIC 14,3</b><svg id="omniSTOCH" viewBox="0 0 800 105"></svg></div><div class="omni-indicator"><b>CCI 20</b><svg id="omniCCI" viewBox="0 0 800 105"></svg></div><div class="omni-indicator"><b>MACD 12,26,9</b><svg id="omniMACD" viewBox="0 0 800 105"></svg></div></div>
    <p class="omni-foot" id="omniChartMeta">Chart will appear only when actual MT5 candle history is available. No synthetic candles.</p>
@@ -321,6 +330,8 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 (()=>{
  const $=id=>document.getElementById(id);
  const state={quote:null,analysis:null,frames:{},busy:false};
+ let chartVisibleBars=80;
+ const CHART_MIN_BARS=15,CHART_MAX_BARS=200,CHART_ZOOM_STEP=10;
  const closedBarCache={}; // immutable closed-bar EMA snapshots, keyed by timeframe
  const fmt=v=>Number.isFinite(Number(v))?Number(v).toFixed(2):"—";
  const set=(id,v)=>{const n=$(id);if(n)n.textContent=v;};
@@ -329,7 +340,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const svg=$("omniChart"),tf=$("omniTimeframe").value,rows=state.frames[tf]||[];
   svg.replaceChildren();
   const enabled=k=>!!document.querySelector('[data-overlay="'+k+'"]')?.checked;
-  const allValid=rows.filter(c=>[c.open,c.high,c.low,c.close].every(v=>Number.isFinite(Number(v)))&&Number(c.high)>=Number(c.low)).slice().sort((a,b)=>{const ta=Date.parse(a.bar_time||a.time||a.timestamp)||0,tb=Date.parse(b.bar_time||b.time||b.timestamp)||0;return ta-tb;}),valid=allValid.slice(-80);
+  const allValid=rows.filter(c=>[c.open,c.high,c.low,c.close].every(v=>Number.isFinite(Number(v)))&&Number(c.high)>=Number(c.low)).slice().sort((a,b)=>{const ta=Date.parse(a.bar_time||a.time||a.timestamp)||0,tb=Date.parse(b.bar_time||b.time||b.timestamp)||0;return ta-tb;}),valid=allValid.slice(-chartVisibleBars);
   const ns="http://www.w3.org/2000/svg",el=(root,tag,attrs,txt)=>{const n=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,String(v)));if(txt!==undefined)n.textContent=txt;root.appendChild(n);return n;};
   if(valid.length<2){el(svg,"text",{x:400,y:155,"text-anchor":"middle",fill:"#91a8c2","font-size":15},"Waiting for verified "+tf+" MT5 candle history");set("omniChartMeta","No chart data available. No synthetic candles are drawn.");["RSI","STOCH","CCI","MACD"].forEach(k=>{const n=$("omni"+k);if(n)n.replaceChildren();});return;}
   const allCloses=allValid.map(c=>Number(c.close)),closes=valid.map(c=>Number(c.close)),highs=valid.map(c=>Number(c.high)),lows=valid.map(c=>Number(c.low)),opens=valid.map(c=>Number(c.open));
@@ -603,6 +614,19 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
    set("omniChartMeta","VT Markets MT5 · XAUUSD-STD · "+tf+" · "+state.frames[tf].length+" broker candles · "+stamp+" · "+(q?.connected?"LIVE BID "+fmt(q.quote.bid)+" · "+q.age_seconds+"s":"QUOTE STALE"));
   }catch(_){drawChart();set("omniChartMeta","MT5 chart feed temporarily unavailable; showing last received broker candles only.");}
  }
+ function setChartZoom(next){
+  chartVisibleBars=Math.max(CHART_MIN_BARS,Math.min(CHART_MAX_BARS,Math.round(next/CHART_ZOOM_STEP)*CHART_ZOOM_STEP));
+  set("omniZoomLabel",chartVisibleBars+" candles");
+  drawChart();
+ }
+ $("omniZoomIn").addEventListener("click",()=>setChartZoom(chartVisibleBars-CHART_ZOOM_STEP));
+ $("omniZoomOut").addEventListener("click",()=>setChartZoom(chartVisibleBars+CHART_ZOOM_STEP));
+ $("omniZoomReset").addEventListener("click",()=>setChartZoom(80));
+ $("omniChart").addEventListener("wheel",event=>{
+  event.preventDefault();
+  setChartZoom(chartVisibleBars+(event.deltaY>0?CHART_ZOOM_STEP:-CHART_ZOOM_STEP));
+ },{passive:false});
+ set("omniZoomLabel",chartVisibleBars+" candles");
  $("omniRefresh").addEventListener("click",analyze);
  $("omniTimeframe").addEventListener("change",refreshChartOnly);
  document.querySelectorAll("[data-overlay]").forEach(n=>n.addEventListener("change",drawChart));
