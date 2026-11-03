@@ -1138,7 +1138,7 @@ $("copyPlan").addEventListener("click",async()=>{const txt="Dars AI Lab risk pla
 $("saveTrade").addEventListener("click",()=>{const pnlRaw=$("jPnl").value;const t={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),date:new Date().toISOString(),symbol:$("jSymbol").value,side:$("jSide").value,outcome:$("jOutcome").value,pnl:pnlRaw.trim()===""?null:Number(pnlRaw),note:$("jNote").value.trim()};journal.unshift(t);persist();$("jPnl").value="";$("jNote").value=""});
 $("clearJournal").addEventListener("click",()=>{if(confirm("Delete all locally saved journal entries? Export CSV first if you need a backup.")){journal=[];persist()}});
 $("exportJournal").addEventListener("click",()=>{const rows=[["date","symbol","side","outcome","pnl","notes"],...journal.map(t=>[t.date,t.symbol,t.side,t.outcome,t.pnl===null?"":t.pnl,t.note])];const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="dars-ai-lab-journal.csv";a.click();URL.revokeObjectURL(url)});
-renderWatch();refreshWatchlist();setInterval(refreshWatchlist,5000);drawChart();refreshLiveChart();chartFetchTimer=setInterval(refreshLiveChart,5000);// Forming OHLC is refreshed from MT5 CopyRates history, not browser quote-time buckets.updateRisk();updateScore();renderJournal();
+renderWatch();refreshWatchlist();setInterval(refreshWatchlist,5000);drawChart();refreshLiveChart();chartFetchTimer=setInterval(refreshLiveChart,5000);setInterval(updateFormingCandleFromQuote,1000);updateRisk();updateScore();renderJournal();
 
 const setupEl=id=>document.getElementById(id);
 let setupBusy=false,lastSetupSnapshot=null;
@@ -1312,7 +1312,7 @@ if(reverseEdgeButton){
      checkQuote();
    });
    checkQuote();
-   setInterval(checkQuote,5000);
+   setInterval(checkQuote,1000);
  })();
 
 </script>
