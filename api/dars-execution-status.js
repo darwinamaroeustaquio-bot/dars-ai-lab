@@ -3,7 +3,7 @@
 // POST consumes a setup as EXECUTED or REJECTED after manual MT5 approval.
 // This replaces the old status-only interlock to stay within Vercel Hobby's function limit.
 const crypto = require("crypto");
-const ALLOWED = new Set(["XAUUSD-STD", "XAUUSD"]);
+const ALLOWED = new Set(["XAUUSD-STD", "XAUUSD-VIP", "XAUUSD"]);
 function send(res,status,body){
   res.status(status);
   res.setHeader("Content-Type","application/json; charset=utf-8");
