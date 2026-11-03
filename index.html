@@ -290,6 +290,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
     <div class="omni-level tp"><small id="omniTP2Label">TAKE PROFIT 2</small><strong id="omniTP2">—</strong></div>
    </div>
    <div class="omni-reason" id="omniRiskNote">No setup is issued until every data-quality and rule check passes. Lot size remains uncalculated until broker tick value and symbol specifications are verified.</div>
+   <div class="omni-reason" id="omniTP1Management">TP1 management: waiting for a Robot setup.</div>
    <div class="omni-list" id="omniDiagnostics"><div class="omni-check">Waiting for first analysis…</div></div>
   </div>
  </div>
@@ -329,7 +330,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 <script id="darsOmniscientRuntime">
 (()=>{
  const $=id=>document.getElementById(id);
- const state={quote:null,analysis:null,frames:{},busy:false};
+ const state={quote:null,analysis:null,frames:{},busy:false,activeSetup:null,completedSetupKey:null};
  let chartVisibleBars=80;
  const CHART_MIN_BARS=15,CHART_MAX_BARS=200,CHART_ZOOM_STEP=10;
  const closedBarCache={}; // immutable closed-bar EMA snapshots, keyed by timeframe
@@ -531,6 +532,15 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   mini("omniRSI",rsi,0,100,[30,70]);mini("omniSTOCH",stoch,0,100,[20,80]);mini("omniCCI",cci,-200,200,[-100,100]);mini("omniMACD",hist,-Math.max(.01,...hist.map(Math.abs)),Math.max(.01,...hist.map(Math.abs)),[0]);
  }
  function renderAnalysis(a,q){
+  const incoming=a.setup;
+  const incomingKey=incoming?(incoming.strategyId||incoming.strategy)+"|"+(incoming.signalBarTime||""):"";
+  if(incoming&&!state.activeSetup&&incomingKey!==state.completedSetupKey)state.activeSetup=incoming;
+  const management=a.tp1Management||{};
+  if(["CLOSE_REMAINDER_AT_TP1","TARGET_COMPLETE","STOP_LOSS_REACHED"].includes(management.decision)){
+    const active=state.activeSetup;
+    state.completedSetupKey=active?(active.strategyId||active.strategy)+"|"+(active.signalBarTime||""):"";
+    state.activeSetup=null;
+  }
   state.analysis=a;state.quote=q?.quote||null;state.quoteAgeSeconds=q?.age_seconds??999999;const live=!!q?.connected&&!!q?.quote;
   $("omniDot").className="omni-dot"+(live?" live":" bad");
   set("omniConnection",live?"MT5 LIVE · READ ONLY":"MT5 OFFLINE / STALE");
@@ -540,7 +550,8 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const f=a.frames||{};set("omniRegime",f.H1?.regime||"—");set("omniM15",f.M15?.trend||"—");set("omniM5",f.M5?.trend||"—");
   const good=Object.values(f).filter(x=>x.ok).length;set("omniDataQuality",good+"/3 frames");set("omniDataAge",a.diagnostics?.length? "Checks: "+a.diagnostics.length:"All configured checks passed");
   const d=a.decision||"WAIT",dn=$("omniDecision");dn.textContent=d==="WAIT"?"WAIT · NO TRADE":d+" · SETUP";dn.className="omni-decision "+(d==="BUY"?"buy":d==="SELL"?"sell":"wait");
-  const s=a.setup;set("omniEntry",s?fmt(s.entry):"—");set("omniSL",s?fmt(s.stopLoss):"—");set("omniTP1",s?fmt(s.takeProfit1):"—");set("omniTP2",s?fmt(s.takeProfit2):"—");
+  const s=state.activeSetup||a.setup;set("omniEntry",s?fmt(s.entry):"—");set("omniSL",s?fmt(s.stopLoss):"—");set("omniTP1",s?fmt(s.takeProfit1):"—");set("omniTP2",s?fmt(s.takeProfit2):"—");
+  const tp1Text=management.score!==null&&management.score!==undefined?"TP1 reached · continuation score "+management.score+"/100 · "+management.decision.replaceAll("_"," "):management.status==="MONITORING_TO_TP1"?"Monitoring active setup toward TP1 · continuation check will run when TP1 is reached.":management.status==="TP2_REACHED"?"TP2 reached · setup complete.":management.status==="STOP_REACHED"?"Stop level reached · setup invalidated.":"No active setup to manage.";set("omniTP1Management",tp1Text);
   set("omniDecisionReason",s?"ROBOT PICK: "+(s.strategy||"Selected strategy")+" · "+(Number.isFinite(Number(s.strategyScore))?Number(s.strategyScore).toFixed(1)+"% strategy-fit score":"score unavailable")+". Highest-scoring valid signal among eight candidates. Draft paper setup; validate broker execution details.":(a.diagnostics||[]).join(" "));
   set("omniTP1Label",s?"TAKE PROFIT 1 · "+Number(s.rewardRiskTP1||1).toFixed(2)+"R":"TAKE PROFIT 1");set("omniTP2Label",s?"TAKE PROFIT 2 · "+Number(s.rewardRiskTP2||s.targetR||2.5).toFixed(2)+"R":"TAKE PROFIT 2");set("omniRiskNote",s?"Entry uses current ask for BUY / bid for SELL. Stop and targets follow the selected strategy parameters. Lot sizing is withheld until broker tick value, tick size, volume step and stop-level metadata are verified.":"No entry or targets issued. DARS waits for fresh quote, sufficient closed candles and aligned multi-timeframe evidence.");
   const list=$("omniDiagnostics");list.replaceChildren();
@@ -590,7 +601,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
    const frames={};for(let i=0;i<candleData.length;i++){const d=candleData[i];if(!d.ok)throw new Error(d.error||"MT5 candle endpoint failed.");frames[["M5","M15","H1"][i]]=Array.isArray(d.candles)?d.candles:[];}
    state.frames={...state.frames,...frames};
    const quote=q.quote?{bid:q.quote.bid,ask:q.quote.ask,received_at:q.quote.received_at}: {};
-   const ad=await fetchJson("/api/dars-omniscient",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({symbol:"XAUUSD-STD",quote,frames})},12000);
+   const ad=await fetchJson("/api/dars-omniscient",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({symbol:"XAUUSD-STD",quote,frames,activeSetup:state.activeSetup})},12000);
    if(!ad.ok)throw new Error(ad.error||"Analysis endpoint unavailable");
    renderAnalysis(ad.analysis,q);
   }catch(e){
