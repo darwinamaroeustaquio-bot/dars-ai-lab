@@ -15,7 +15,7 @@ input string InpApiBaseURL          = "https://dars-indol.vercel.app";
 input string InpBridgeToken         = ""; // Paste the SAME MT5_BRIDGE_TOKEN configured in Vercel
 input string InpSymbol              = "XAUUSD-STD";
 input int    InpPollSeconds         = 3;
-input double InpRiskPercent         = 0.25;
+input double InpRiskPercent         = 0.25; // Risk ceiling; order size is fixed at 0.01 lot
 input double InpMaxDailyLossPct     = 1.00;
 input int    InpMaxTradesPerDay     = 3;
 input double InpMaxSpreadPrice      = 0.50;
@@ -246,22 +246,21 @@ bool HasPosition()
 
 double LotForRisk(const ENUM_ORDER_TYPE type,const double entry,const double sl,string &why)
 {
-   double oneLot=0;
-   if(!OrderCalcProfit(type,InpSymbol,1.0,entry,sl,oneLot) || oneLot>=0)
-   {
-      why="Cannot calculate stop risk from broker contract specifications";
-      return 0;
-   }
-   double riskCash=AccountInfoDouble(ACCOUNT_BALANCE)*InpRiskPercent/100.0;
-   double step=SymbolInfoDouble(InpSymbol,SYMBOL_VOLUME_STEP);
+   // Fixed user-selected size: never scale up beyond 0.01 lots.
+   const double lots=0.01;
    double minLot=SymbolInfoDouble(InpSymbol,SYMBOL_VOLUME_MIN);
    double maxLot=SymbolInfoDouble(InpSymbol,SYMBOL_VOLUME_MAX);
+   double step=SymbolInfoDouble(InpSymbol,SYMBOL_VOLUME_STEP);
    if(step<=0 || minLot<=0){why="Invalid broker volume specification";return 0;}
-   double lots=MathFloor((riskCash/MathAbs(oneLot))/step)*step;
-   lots=MathMin(lots,maxLot);
-   lots=NormalizeDouble(lots,step<0.01?3:(step<0.1?2:(step<1.0?1:0)));
-   if(lots<minLot){why="Broker minimum lot exceeds the risk budget";return 0;}
-   if(MathAbs(oneLot)*lots>riskCash*1.01){why="Rounded lot exceeds risk cap";return 0;}
+   if(lots<minLot-1e-8 || lots>maxLot+1e-8 || MathAbs(lots/step-MathRound(lots/step))>1e-6)
+   {why="Broker does not support exactly 0.01 lot";return 0;}
+   double oneLot=0;
+   if(!OrderCalcProfit(type,InpSymbol,1.0,entry,sl,oneLot) || oneLot>=0)
+   {why="Cannot calculate stop risk from broker contract specifications";return 0;}
+   double estimatedRisk=MathAbs(oneLot)*lots;
+   double riskCash=AccountInfoDouble(ACCOUNT_BALANCE)*InpRiskPercent/100.0;
+   if(estimatedRisk>riskCash*1.01)
+   {why="Fixed 0.01 lot exceeds the configured risk cap; trade skipped";return 0;}
    return lots;
 }
 
