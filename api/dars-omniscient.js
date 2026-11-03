@@ -1,4 +1,4 @@
-// DARS Robot analysis now uses the same fixed seven-candidate pool as paper trading.
+// DARS Robot analysis now uses the same eight-candidate pool as paper trading.
 // Read-only research/paper mode. No broker order methods.
 const { analyzeDarsMarket } = require("../lib/dars-omniscient");
 const { analyzeSevenCandidatePool } = require("../lib/dars-seven-candidate-paper");
@@ -14,7 +14,7 @@ module.exports = async (req,res) => {
     const base=analyzeDarsMarket({symbol:body.symbol,quote:body.quote,frames:body.frames,now:Date.now()});
     if(base.diagnostics?.length || !base.frames?.M5?.ok || !base.frames?.M15?.ok || !base.frames?.H1?.ok){
       base.engine="DARS_SEVEN_CANDIDATE_ROBOT_V1";
-      base.strategySelection={candidate:"NO_TRADE",status:"BLOCKED_BY_MARKET_DATA",eligible:false,rationale:base.engineBlockReason||"Verified market data is not ready.",evaluatedCandidates:7,strategyRanking:[]};
+      base.strategySelection={candidate:"NO_TRADE",status:"BLOCKED_BY_MARKET_DATA",eligible:false,rationale:base.engineBlockReason||"Verified market data is not ready.",evaluatedCandidates:8,strategyRanking:[]};
       base.engineBoard=[];
       base.decision="WAIT";base.setup=null;
       return res.status(200).json({ok:true,analysis:base});
@@ -30,7 +30,7 @@ module.exports = async (req,res) => {
       signalBarTime:result.setup.signalBarTime,oscillator:result.setup.oscillator,
       previousOscillator:result.setup.previousOscillator,lowerThreshold:result.setup.lowerThreshold,
       upperThreshold:result.setup.upperThreshold,features:{atr:result.setup.atr14,oscillator:result.setup.oscillator},
-      source:"Live VT Markets quote + verified closed MT5 candles; fixed seven-candidate pool",
+      source:"Live VT Markets quote + verified closed MT5 candles; eight-candidate pool",
       note:result.setup.note
     }:null,strategySelection:result.selection,engineBoard:result.board,diagnostics:result.diagnostics};
     return res.status(200).json({ok:true,analysis});

@@ -49,7 +49,7 @@ table{max-width:100%}
   <div class="level"><small>Quote spread</small><strong id="spread">—</strong></div>
   <div class="level"><small>Engine</small><strong id="engineVersion">—</strong></div>
  </div>
- <p class="note" id="selectorReason">Robot Auto ranks the seven approved candidates. EHL Breakout v1.10 is separately selectable in discovery mode and cannot be promoted until forward-paper evidence passes validation. Scores are research ratings, not win probabilities.</p><p class="note">Research integrity: your report did not include exact oscillator periods/entry bands. The forward-paper build uses provisional 14-period standard bands (Stochastic 20/80 or 25/75; Williams %R -80/-20, -75/-25 or -70/-30). Stop, target and time limits follow your table. Do not compare new paper results as an exact reproduction of the historical report until the original entry parameters are confirmed.</p><div class="strategy-picker"><label for="strategyChoice"><strong>Strategy control</strong></label><button id="addEhl" class="btn primary" type="button">＋ Add EHL Breakout to Paper Trading</button><select id="strategyChoice"><option value="ROBOT_AUTO">🤖 ROBOT AUTO — choose highest score with valid signal</option><option value="DARS_EHL_BREAKOUT_V1_10">DARS EHL BREAKOUT v1.10 · DISCOVERY</option><option value="WILLIAMS_REVERSION-STRICT-V2">WILLIAMS REVERSION · STRICT V2</option><option value="STOCHASTIC_REVERSION-BASE-V4">STOCHASTIC REVERSION · BASE V4</option><option value="WILLIAMS_REVERSION-BASE-V4">WILLIAMS REVERSION · BASE V4</option><option value="WILLIAMS_REVERSION-SENSITIVE-V4">WILLIAMS REVERSION · SENSITIVE V4</option><option value="STOCHASTIC_REVERSION-STRICT-V4">STOCHASTIC REVERSION · STRICT V4</option><option value="WILLIAMS_REVERSION-STRICT-V4">WILLIAMS REVERSION · STRICT V4</option><option value="STOCHASTIC_REVERSION-BASE-V2">STOCHASTIC REVERSION · BASE V2</option></select><span id="strategyModeStatus" class="pill">ROBOT AUTO</span></div><p class="strategy-hint" id="strategyModeHint">Auto mode ranks the seven approved candidates. EHL Breakout v1.10 is also installed as a separate discovery candidate. Press Add EHL Breakout to Paper Trading to start its independent forward-paper journal. It remains excluded from Robot Auto until it passes validation.</p><div class="scroll" style="margin-top:10px"><table style="min-width:1600px"><thead><tr><th>Strategy</th><th>Score %</th><th>Dev / Holdout</th><th>Holdout win</th><th>Holdout Net R</th><th>Holdout Exp.</th><th>Holdout PF</th><th>Holdout DD</th><th>Forward trades</th><th>Forward W/L</th><th>Forward win %</th><th>Forward Net R</th><th>Forward Exp.</th><th>Forward PF</th><th>Forward DD</th><th>Signal / status</th></tr></thead><tbody id="candidateBoard"><tr><td colspan="16" class="empty">Loading seven approved candidates…</td></tr></tbody></table></div>
+ <p class="note" id="selectorReason">Robot Auto ranks all eight candidates, including EHL Breakout v1.10 as a discovery candidate. EHL cannot be promoted until forward-paper evidence passes validation. Scores are research ratings, not win probabilities.</p><p class="note">Research integrity: your report did not include exact oscillator periods/entry bands. The forward-paper build uses provisional 14-period standard bands (Stochastic 20/80 or 25/75; Williams %R -80/-20, -75/-25 or -70/-30). Stop, target and time limits follow your table. Do not compare new paper results as an exact reproduction of the historical report until the original entry parameters are confirmed.</p><div class="strategy-picker"><label for="strategyChoice"><strong>Strategy control</strong></label><button id="addEhl" class="btn primary" type="button">＋ Select EHL Breakout manually</button><select id="strategyChoice"><option value="ROBOT_AUTO">🤖 ROBOT AUTO — choose highest score with valid signal</option><option value="DARS_EHL_BREAKOUT_V1_10">DARS EHL BREAKOUT v1.10 · DISCOVERY</option><option value="WILLIAMS_REVERSION-STRICT-V2">WILLIAMS REVERSION · STRICT V2</option><option value="STOCHASTIC_REVERSION-BASE-V4">STOCHASTIC REVERSION · BASE V4</option><option value="WILLIAMS_REVERSION-BASE-V4">WILLIAMS REVERSION · BASE V4</option><option value="WILLIAMS_REVERSION-SENSITIVE-V4">WILLIAMS REVERSION · SENSITIVE V4</option><option value="STOCHASTIC_REVERSION-STRICT-V4">STOCHASTIC REVERSION · STRICT V4</option><option value="WILLIAMS_REVERSION-STRICT-V4">WILLIAMS REVERSION · STRICT V4</option><option value="STOCHASTIC_REVERSION-BASE-V2">STOCHASTIC REVERSION · BASE V2</option></select><span id="strategyModeStatus" class="pill">ROBOT AUTO</span></div><p class="strategy-hint" id="strategyModeHint">Auto mode ranks the seven approved candidates. EHL Breakout v1.10 is also installed as a separate discovery candidate. Press Add EHL Breakout to Paper Trading to start its independent forward-paper journal. It is included in Robot Auto now, but remains discovery-only until it passes validation.</p><div class="scroll" style="margin-top:10px"><table style="min-width:1600px"><thead><tr><th>Strategy</th><th>Score %</th><th>Dev / Holdout</th><th>Holdout win</th><th>Holdout Net R</th><th>Holdout Exp.</th><th>Holdout PF</th><th>Holdout DD</th><th>Forward trades</th><th>Forward W/L</th><th>Forward win %</th><th>Forward Net R</th><th>Forward Exp.</th><th>Forward PF</th><th>Forward DD</th><th>Signal / status</th></tr></thead><tbody id="candidateBoard"><tr><td colspan="16" class="empty">Loading seven approved candidates…</td></tr></tbody></table></div>
 </section>
 
 <section class="panel">
@@ -90,7 +90,8 @@ const CANDIDATE_PRIORS=[
  {strategy:"WILLIAMS_REVERSION-SENSITIVE-V4",developmentTrades:63,holdoutTrades:27,holdoutWinRate:44.4,holdoutNetR:3.53,holdoutExpectancyR:.13,holdoutProfitFactor:1.23,holdoutMaxDrawdownR:3.91},
  {strategy:"STOCHASTIC_REVERSION-STRICT-V4",developmentTrades:58,holdoutTrades:27,holdoutWinRate:44.4,holdoutNetR:3.52,holdoutExpectancyR:.13,holdoutProfitFactor:1.23,holdoutMaxDrawdownR:3.91},
  {strategy:"WILLIAMS_REVERSION-STRICT-V4",developmentTrades:54,holdoutTrades:27,holdoutWinRate:40.7,holdoutNetR:3.06,holdoutExpectancyR:.11,holdoutProfitFactor:1.18,holdoutMaxDrawdownR:3.89},
- {strategy:"STOCHASTIC_REVERSION-BASE-V2",developmentTrades:64,holdoutTrades:26,holdoutWinRate:50.0,holdoutNetR:2.26,holdoutExpectancyR:.09,holdoutProfitFactor:1.17,holdoutMaxDrawdownR:4.34}
+ {strategy:"STOCHASTIC_REVERSION-BASE-V2",developmentTrades:64,holdoutTrades:26,holdoutWinRate:50.0,holdoutNetR:2.26,holdoutExpectancyR:.09,holdoutProfitFactor:1.17,holdoutMaxDrawdownR:4.34},
+ {strategy:"DARS_EHL_BREAKOUT_V1_10",developmentTrades:0,holdoutTrades:0,holdoutWinRate:null,holdoutNetR:null,holdoutExpectancyR:null,holdoutProfitFactor:null,holdoutMaxDrawdownR:null,discovery:true}
 ];
 function scorePrior(x){const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));const e=clamp(((x.holdoutExpectancyR+.05)/.35)*100,0,100),pf=clamp(((x.holdoutProfitFactor-.8)/1.2)*100,0,100),dd=clamp((8-x.holdoutMaxDrawdownR)/8*100,0,100),wr=clamp((x.holdoutWinRate-35)/30*100,0,100),sample=clamp(x.holdoutTrades/60*100,0,100);return Number((e*.30+pf*.25+dd*.20+wr*.10+sample*.15).toFixed(1));}
 let strategyChoice="ROBOT_AUTO";
@@ -104,7 +105,7 @@ function save(){try{localStorage.setItem(STORE,JSON.stringify(book));}catch(e){$
 function say(id,value){$(id).textContent=value==null?"—":String(value);}
 function setState(value){say("engineState",value);$("engineState").className=value==="RUNNING"?"good":"tag";}
 async function getJSON(url){const r=await fetch(url,{cache:"no-store",headers:{Accept:"application/json"}});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||("Request failed: "+url));return d;}
-async function getFrame(tf){const d=await getJSON("/api/mt5-candles?symbol="+SYMBOL+"&timeframe="+tf+"&limit=120");return d.candles||[];}
+async function getFrame(tf){const d=await getJSON("/api/mt5-candles?symbol="+SYMBOL+"&timeframe="+tf+"&limit="+(tf==="M5"?300:120));return d.candles||[];}
 function renderHistory(){
  const rows=book.trades.slice().reverse();$("historyCount").textContent=rows.length+" records";$("closedCount").textContent=book.trades.filter(t=>t.status==="CLOSED").length;
  $("openCount").textContent=book.trades.filter(t=>t.status==="OPEN").length;
@@ -164,11 +165,11 @@ function createVirtualTrades(a,bar){
 }
 function renderCandidateBoard(rows){
  const body=$("candidateBoard");body.replaceChildren();
- const data=Array.isArray(rows)&&rows.length?rows:CANDIDATE_PRIORS.map(x=>({...x,score:scorePrior(x),forwardTrades:0,forwardWins:0,forwardLosses:0,detected:false,paused:false,priorOnly:true}));
+ const data=Array.isArray(rows)&&rows.length?rows:CANDIDATE_PRIORS.map(x=>({...x,score:x.discovery?0:scorePrior(x),forwardTrades:0,forwardWins:0,forwardLosses:0,detected:false,paused:false,priorOnly:true}));
  data.forEach(x=>{
   const tr=document.createElement("tr");
   const values=[
-   x.strategy||"—",Number(x.score??scorePrior(x)).toFixed(1)+"%",
+   x.strategy||"—",Number(x.score??(x.discovery?0:scorePrior(x))).toFixed(1)+"%",
    (x.developmentTrades??"—")+" / "+(x.holdoutTrades??"—"),
    x.holdoutWinRate==null?"—":Number(x.holdoutWinRate).toFixed(1)+"%",
    x.holdoutNetR==null?"—":Number(x.holdoutNetR).toFixed(2)+"R",
@@ -181,7 +182,7 @@ function renderCandidateBoard(rows){
    x.forwardExpectancyR==null?"—":Number(x.forwardExpectancyR).toFixed(3)+"R",
    x.forwardProfitFactor==null?"—":Number(x.forwardProfitFactor).toFixed(2),
    x.forwardMaxDrawdownR==null?"—":Number(x.forwardMaxDrawdownR).toFixed(2)+"R",
-   x.paused?"PAUSED · risk guard":x.detected&&!x.eligible?"SIGNAL · BELOW 60% GATE":x.eligible?"QUALIFIED PAPER SIGNAL":x.priorOnly?"AWAITING LIVE EVALUATION":"NO CURRENT SIGNAL"
+   x.paused?"PAUSED · risk guard":x.discovery?(x.detected?"EHL DISCOVERY · PAPER ONLY":"AWAITING EHL BREAKOUT"):x.detected&&!x.eligible?"SIGNAL · BELOW 60% GATE":x.eligible?"QUALIFIED PAPER SIGNAL":x.priorOnly?"AWAITING LIVE EVALUATION":"NO CURRENT SIGNAL"
   ];
   values.forEach((v,j)=>{const td=document.createElement("td");td.textContent=v;if(j===1){const span=document.createElement("span");span.className="score-chip";span.textContent=v;td.replaceChildren(span);}if(j===0&&x.strategy===strategyChoice)td.className="good";tr.appendChild(td);});
   body.appendChild(tr);
@@ -193,7 +194,7 @@ function renderAnalysis(a,quote,frames){
  say("decisionMeta",a.setup?"Robot setup passed":"No validated setup");
  say("regime",m5?.regime||"UNAVAILABLE");say("strategy",sel.candidate||"NO SELECTION");say("eligibility",sel.status||"BLOCKED / WAIT");say("selectorStatus",sel.status||"WAITING FOR ANALYSIS");
  say("spread",a.quoteQuality?.spread==null?"—":fmt(a.quoteQuality.spread));say("engineVersion",a.engine||"—");
- say("selectorReason",[sel.rationale,sel.evidence?.reason,sel.implementation].filter(Boolean).join(" "));say("strategyModeStatus",strategyChoice==="ROBOT_AUTO"?"ROBOT AUTO":"MANUAL MODE");say("strategyModeHint",strategyChoice==="ROBOT_AUTO"?"DARS ranks all seven by the 0–100 score, then chooses the highest-ranked candidate that has a valid signal.":"Manual selection active: "+strategyChoice+". DARS will not switch to another candidate if this one has no signal or is paused.");
+ say("selectorReason",[sel.rationale,sel.evidence?.reason,sel.implementation].filter(Boolean).join(" "));say("strategyModeStatus",strategyChoice==="ROBOT_AUTO"?"ROBOT AUTO":"MANUAL MODE");say("strategyModeHint",strategyChoice==="ROBOT_AUTO"?"DARS ranks all eight candidates, including EHL discovery, then chooses the highest-ranked valid paper signal.":"Manual selection active: "+strategyChoice+". DARS will not switch to another candidate if this one has no signal or is paused.");
  const diagnostics=Array.isArray(a.diagnostics)?a.diagnostics:[];say("decisionMessage",a.decision==="WAIT"?(diagnostics.join(" ")||"DARS is waiting for a validated setup."):"DARS returned "+a.decision+" from verified MT5 data. A virtual position is being tracked; no broker order is sent.");
  renderSetup(a);renderCandidateBoard(sel.strategyRanking||[]);
  const m5bars=frames.M5||[];const closed=m5bars.filter(b=>new Date(b.bar_time).getTime()+300000<=Date.now());
@@ -212,7 +213,7 @@ async function cycle(){
   // Send the exact same quote/candle inputs to the Robot core.
   const response=await fetch("/api/dars-paper-analysis",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({...body,paperTrades:book.trades.slice(-5000)}),cache:"no-store"});
   const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||"DARS analysis unavailable.");
-  renderAnalysis(result.analysis,q,{M5:m5,M15:m15,H1:h1});say("feedStatus","Connected to fresh VT Markets MT5 quote and candle history. Robot Auto evaluates the seven approved candidates; EHL remains available in manual discovery mode.");setState("RUNNING");
+  renderAnalysis(result.analysis,q,{M5:m5,M15:m15,H1:h1});say("feedStatus","Connected to fresh VT Markets MT5 quote and candle history. Robot Auto evaluates all eight candidates, including EHL discovery mode.");setState("RUNNING");
  }catch(e){say("feedStatus",e.message+" No new virtual trade will be opened.");say("decision","WAIT");say("decisionMessage",e.message);say("setupState","FEED BLOCKED");say("side","WAIT");["entry","stop","tp1","tp2"].forEach(id=>say(id,"—"));setState("WAIT / FEED BLOCKED");}
  finally{busy=false;}
 }
