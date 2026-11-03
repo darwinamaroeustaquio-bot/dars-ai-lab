@@ -558,8 +558,8 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   board.forEach(x=>{
     const tr=document.createElement("tr");
     const score=Number.isFinite(Number(x.score))?Number(x.score):null;
-    const pct=v=>Number.isFinite(Number(v))?Number(v).toFixed(1)+"%":"—";
-    const num=v=>Number.isFinite(Number(v))?Number(v).toFixed(2):"—";
+    const pct=v=>v!==null&&v!==undefined&&Number.isFinite(Number(v))?Number(v).toFixed(1)+"%":"—";
+    const num=v=>v!==null&&v!==undefined&&Number.isFinite(Number(v))?Number(v).toFixed(2):"—";
     const holdout=Number(x.holdoutTrades)>0?String(x.holdoutTrades)+" trades":(x.discovery?"DISCOVERY":"—");
     const status=x.paused?"PAUSED":x.eligible?"SIGNAL READY":(x.reason||"WAIT");
     const values=[x.strategy,score===null?"—":score.toFixed(1)+"%",pct(x.liveFitScore),holdout,pct(x.holdoutWinRate),num(x.holdoutNetR),num(x.holdoutProfitFactor),num(x.holdoutMaxDrawdownR),x.detected?(x.side+" · "+fmt(x.entry)):"No setup",status];
