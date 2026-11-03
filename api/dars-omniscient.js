@@ -31,7 +31,8 @@ module.exports = async (req,res) => {
       previousOscillator:result.setup.previousOscillator,lowerThreshold:result.setup.lowerThreshold,
       upperThreshold:result.setup.upperThreshold,features:{atr:result.setup.atr14,oscillator:result.setup.oscillator},
       source:"Live VT Markets quote + verified closed MT5 candles; eight-candidate pool",
-      note:result.setup.note
+      note:result.setup.note,
+      tp1Management:{continuationThreshold:70,decisionRule:"At TP1, score closed-M5 continuation structure. Hold the remainder toward TP2 only when the structure score is at least 70/100; otherwise close the remainder at TP1.",scoreIsProbability:false}
     }:null,strategySelection:result.selection,engineBoard:result.board,diagnostics:result.diagnostics};
     return res.status(200).json({ok:true,analysis});
   }catch(error){
