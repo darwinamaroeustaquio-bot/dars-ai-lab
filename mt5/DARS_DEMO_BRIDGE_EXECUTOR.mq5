@@ -14,7 +14,9 @@ CTrade trade;
 input string InpApiBaseURL          = "https://dars-indol.vercel.app";
 input string InpBridgeToken         = ""; // Paste the SAME MT5_BRIDGE_TOKEN configured in Vercel
 input string InpSymbol              = ""; // Leave blank to use the current chart symbol
-input int    InpPollSeconds         = 3;\ninput int    InpCandleRefreshSeconds = 60;\ninput int    InpBarsPerTimeframe    = 500;
+input int    InpPollSeconds         = 3;
+input int    InpCandleRefreshSeconds = 60;
+input int    InpBarsPerTimeframe    = 500;
 input double InpRiskPercent         = 0.25; // Risk ceiling; order size is fixed at 0.01 lot
 input double InpMaxDailyLossPct     = 1.00;
 input int    InpMaxTradesPerDay     = 3;
@@ -31,7 +33,9 @@ string g_commandId="";
 string g_side="";
 string g_strategy="";
 double g_entry=0,g_sl=0,g_tp1=0,g_tp2=0,g_score=0;
-datetime g_lastPoll=0;\nint g_candleElapsed=0;\nint g_quotePosts=0;
+datetime g_lastPoll=0;
+int g_candleElapsed=0;
+int g_quotePosts=0;
 bool g_tp1Alerted=false;
 ulong g_tp1Ticket=0;
 
@@ -62,7 +66,8 @@ double JsonNumber(const string src,const string key)
    while(e<StringLen(src))
    {
       ushort c=StringGetCharacter(src,e);
-      if(c==',' || c=='}' || c==']' || c==' ' || c=='\r' || c=='\n') break;
+      if(c==',' || c=='}' || c==']' || c==' ' || c=='\r' || c=='
+') break;
       e++;
    }
    if(e<=p) return 0.0;
@@ -75,7 +80,8 @@ string JsonEscape(const string value)
    StringReplace(out,"\\","\\\\");
    StringReplace(out,"\"","\\\"");
    StringReplace(out,"\r","");
-   StringReplace(out,"\n"," ");
+   StringReplace(out,"
+"," ");
    return out;
 }
 
@@ -110,8 +116,11 @@ bool ApiRequest(const string method,const string path,const string payload,strin
       StringToCharArray(payload,data,0,WHOLE_ARRAY,CP_UTF8);
       if(ArraySize(data)>0) ArrayResize(data,ArraySize(data)-1);
    }
-   string headers="Accept: application/json\r\nX-Bridge-Token: "+InpBridgeToken+"\r\n";
-   if(method=="POST") headers+="Content-Type: application/json\r\n";
+   string headers="Accept: application/json\r
+X-Bridge-Token: "+InpBridgeToken+"\r
+";
+   if(method=="POST") headers+="Content-Type: application/json\r
+";
    ResetLastError();
    httpCode=WebRequest(method,InpApiBaseURL+path,headers,8000,data,result,responseHeaders);
    response=CharArrayToString(result,0,-1,CP_UTF8);
@@ -201,7 +210,8 @@ void SendLiveCandleUpdates()
    PostCandleFrame(PERIOD_H1,"H1",3);
    PostCandleFrame(PERIOD_H4,"H4",3);
 }
-\nvoid ClearCommand()
+
+void ClearCommand()
 {
    g_commandId="";g_side="";g_strategy="";
    g_entry=0;g_sl=0;g_tp1=0;g_tp2=0;g_score=0;
@@ -450,25 +460,41 @@ void DrawPanel()
 {
    MqlTick tick;double bid=0,ask=0;
    if(SymbolInfoTick(g_symbol,tick)){bid=tick.bid;ask=tick.ask;}
-   Comment("DARS MT5 ALL-IN-ONE DEMO BRIDGE v1.10\n",
+   Comment("DARS MT5 ALL-IN-ONE DEMO BRIDGE v1.10
+",
       "Bridge: ",(StringLen(InpBridgeToken)>=24?"TOKEN SET":"TOKEN MISSING"),
-      " | Account: ",(DemoAccount()?"DEMO":"NOT DEMO"),"\n",
-      "API: ",InpApiBaseURL," | Symbol: ",g_symbol,"\n",
+      " | Account: ",(DemoAccount()?"DEMO":"NOT DEMO"),"
+",
+      "API: ",InpApiBaseURL," | Symbol: ",g_symbol,"
+",
       "Bid: ",DoubleToString(bid,_Digits)," Ask: ",DoubleToString(ask,_Digits),
-      " Spread: ",DoubleToString(ask-bid,_Digits),"\n",
-      "Pending: ",(g_commandId==""?"NONE":g_commandId),"\n",
-      "Robot: ",g_side," ",g_strategy," Score: ",DoubleToString(g_score,1),"%\n",
+      " Spread: ",DoubleToString(ask-bid,_Digits),"
+",
+      "Pending: ",(g_commandId==""?"NONE":g_commandId),"
+",
+      "Robot: ",g_side," ",g_strategy," Score: ",DoubleToString(g_score,1),"%
+",
       "Entry: ",DoubleToString(g_entry,_Digits)," SL: ",DoubleToString(g_sl,_Digits),
-      " TP1: ",DoubleToString(g_tp1,_Digits)," TP2: ",DoubleToString(g_tp2,_Digits),"\n",
+      " TP1: ",DoubleToString(g_tp1,_Digits)," TP2: ",DoubleToString(g_tp2,_Digits),"
+",
       "Risk: ",DoubleToString(InpRiskPercent,2),"% | Trades today: ",TradesToday(),"/",InpMaxTradesPerDay,
-      " | Daily P/L: ",DoubleToString(TodayNet(),2),"\n",
-      "STATUS: ",g_status,"\n",
+      " | Daily P/L: ",DoubleToString(TodayNet(),2),"
+",
+      "STATUS: ",g_status,"
+",
       "Quote + candles + Robot command bridge active. Manual approval required. DEMO ONLY. TP1 alert-only.");
 }
 
 int OnInit()
 {
-   string requestedSymbol=InpSymbol;\n   StringTrimLeft(requestedSymbol);\n   StringTrimRight(requestedSymbol);\n   StringToUpper(requestedSymbol);\n   if(requestedSymbol=="" || requestedSymbol=="XAUUSD-STD OR XAUUSD-VIP" || requestedSymbol=="AUTO")\n      g_symbol=_Symbol;\n   else\n      g_symbol=requestedSymbol;
+   string requestedSymbol=InpSymbol;
+   StringTrimLeft(requestedSymbol);
+   StringTrimRight(requestedSymbol);
+   StringToUpper(requestedSymbol);
+   if(requestedSymbol=="" || requestedSymbol=="XAUUSD-STD OR XAUUSD-VIP" || requestedSymbol=="AUTO")
+      g_symbol=_Symbol;
+   else
+      g_symbol=requestedSymbol;
    if(g_symbol!="XAUUSD-STD" && g_symbol!="XAUUSD-VIP")
    {
       Print("DARS supports XAUUSD-STD or XAUUSD-VIP only. Selected symbol=",g_symbol);
