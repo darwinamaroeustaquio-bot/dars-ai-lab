@@ -26,7 +26,7 @@ table{max-width:100%}
 </style>
 </head>
 <body><main class="wrap">
-<header class="row"><div><div class="tag">DARS AI LAB · SAME ENGINE AS THE ROBOT</div><h1 style="margin:6px 0">Adaptive Paper Trading</h1><p class="note">Eight-candidate adaptive paper selector; EHL Breakout v1.10 is candidate eight in Robot Auto. Verified VT Markets MT5 feed; paper-only, no broker orders.</p></div><a class="btn" href="/">← Back to DARS dashboard</a></header>
+<header class="row"><div><div class="tag">DARS AI LAB · SAME ENGINE AS THE ROBOT</div><h1 style="margin:6px 0">Adaptive Paper Trading</h1><p class="note">Eight-candidate adaptive paper selector; Robot Auto chooses the highest eligible strategy. Paper mode only; no broker orders.</p></div><a class="btn" href="/">← Back to DARS dashboard</a></header>
 
 <section class="panel">
  <div class="row"><div><strong>Paper engine: <span id="engineState" class="tag">CONNECTING</span></strong><p id="feedStatus" class="note">Verifying live MT5 quote and closed candles…</p></div><div class="controls"><label for="paperSymbol" class="note">MT5 symbol</label><select id="paperSymbol" aria-label="MT5 symbol"><option value="XAUUSD-VIP" selected>XAUUSD-VIP</option><option value="XAUUSD-STD">XAUUSD-STD</option></select><button id="pause" class="btn">Pause</button><button id="resume" class="btn primary">Resume</button><button id="export" class="btn">Export CSV</button><button id="reset" class="btn">Reset paper history</button></div></div>
@@ -49,7 +49,7 @@ table{max-width:100%}
   <div class="level"><small>Quote spread</small><strong id="spread">—</strong></div>
   <div class="level"><small>Engine</small><strong id="engineVersion">—</strong></div>
  </div>
- <p class="note" id="selectorReason">Robot Auto ranks all eight candidates, including EHL Breakout v1.10 as a discovery candidate. EHL cannot be promoted until forward-paper evidence passes validation. Scores are research ratings, not win probabilities.</p><p class="note">Research integrity: this board now uses the seven named GOLD candidates: Sweep+MSS 5/4, 8/3 and 5/3; CCI20 ±100; Stochastic14 20/80 and 30/70; Williams %R14 -80/-20. Stochastic/Williams use the recorded 2 ATR stop and 3 ATR final target; TP1 is a 1R management checkpoint. Sweep+MSS uses the recorded sweep lookback and confirmation window. Historical research metrics are snapshots, not guarantees; TP1 management is a structural score, not a win probability.</p><div class="strategy-picker"><label for="strategyChoice"><strong>Strategy control</strong></label><button id="addEhl" class="btn primary" type="button">＋ Select EHL Breakout manually</button><select id="strategyChoice"><option value="ROBOT_AUTO">🤖 ROBOT AUTO — highest score among eligible signals</option><option value="GOLD-583">GOLD-583 · Sweep 5 / MSS confirm 4</option><option value="GOLD-589">GOLD-589 · Sweep 8 / MSS confirm 3</option><option value="GOLD-580">GOLD-580 · Sweep 5 / MSS confirm 3</option><option value="GOLD-294">GOLD-294 · CCI20 ±100</option><option value="GOLD-257">GOLD-257 · Stochastic14 20/80</option><option value="GOLD-265">GOLD-265 · Stochastic14 30/70</option><option value="GOLD-425">GOLD-425 · Williams14 -80/-20</option><option value="DARS_EHL_BREAKOUT_V1_10">DARS EHL BREAKOUT v1.10 · DISCOVERY</option></select><span id="strategyModeStatus" class="pill">ROBOT AUTO</span></div><p class="strategy-hint" id="strategyModeHint">Auto mode ranks all eight candidates. EHL Breakout v1.10 is candidate eight in Robot Auto and has its own forward-paper journal. It remains discovery-only until it passes validation.</p><div class="scroll" style="margin-top:10px"><table style="min-width:1600px"><thead><tr><th>Strategy</th><th>Score %</th><th>Dev / Holdout</th><th>Holdout win</th><th>Holdout Net R</th><th>Holdout Exp.</th><th>Holdout PF</th><th>Holdout DD</th><th>Forward trades</th><th>Forward W/L</th><th>Forward win %</th><th>Forward Net R</th><th>Forward Exp.</th><th>Forward PF</th><th>Forward DD</th><th>Signal / status</th></tr></thead><tbody id="candidateBoard"><tr><td colspan="16" class="empty">Loading eight candidates…</td></tr></tbody></table></div>
+ <p class="note" id="selectorReason">Robot Auto ranks all eight candidates, including EHL Breakout v1.10 as a discovery candidate. EHL cannot be promoted until forward-paper evidence passes validation. Scores are research ratings, not win probabilities.</p><p class="note">Research integrity: this board now uses the seven named GOLD candidates: Sweep+MSS 5/4, 8/3 and 5/3; CCI20 ±100; Stochastic14 20/80 and 30/70; Williams %R14 -80/-20. Stochastic/Williams use the recorded 2 ATR stop and 3 ATR final target; TP1 is a 1R management checkpoint. Sweep+MSS uses the recorded sweep lookback and confirmation window. Historical research metrics are snapshots, not guarantees; TP1 management is a structural score, not a win probability.</p><div class="strategy-picker"><strong>🤖 ROBOT AUTO — ENABLED</strong><span class="pill">All 8 candidates ranked automatically</span></div><p class="strategy-hint" id="strategyModeHint">Robot Auto selects the highest-scoring eligible setup across all eight candidates. No manual strategy selection.</p><div class="scroll" style="margin-top:10px"><table style="min-width:1600px"><thead><tr><th>Strategy</th><th>Score %</th><th>Dev / Holdout</th><th>Holdout win</th><th>Holdout Net R</th><th>Holdout Exp.</th><th>Holdout PF</th><th>Holdout DD</th><th>Forward trades</th><th>Forward W/L</th><th>Forward win %</th><th>Forward Net R</th><th>Forward Exp.</th><th>Forward PF</th><th>Forward DD</th><th>Signal / status</th></tr></thead><tbody id="candidateBoard"><tr><td colspan="16" class="empty">Loading eight candidates…</td></tr></tbody></table></div>
 </section>
 
 <section class="panel">
@@ -82,7 +82,7 @@ table{max-width:100%}
 <script>
 (function(){
 "use strict";
-const $=id=>document.getElementById(id), STORE_PREFIX="dars-adaptive-paper-v3", CHOICE_STORE="dars-seven-strategy-choice-v1";
+const $=id=>document.getElementById(id), STORE_PREFIX="dars-adaptive-paper-v3";
 let SYMBOL="XAUUSD-VIP", STORE=STORE_PREFIX+"-"+SYMBOL;
 const CANDIDATE_PRIORS=[
  {strategy:"WILLIAMS_REVERSION-STRICT-V2",developmentTrades:64,holdoutTrades:30,holdoutWinRate:56.7,holdoutNetR:7.63,holdoutExpectancyR:.25,holdoutProfitFactor:1.54,holdoutMaxDrawdownR:3.39},
@@ -95,7 +95,7 @@ const CANDIDATE_PRIORS=[
  {strategy:"DARS_EHL_BREAKOUT_V1_10",developmentTrades:0,holdoutTrades:0,holdoutWinRate:null,holdoutNetR:null,holdoutExpectancyR:null,holdoutProfitFactor:null,holdoutMaxDrawdownR:null,discovery:true}
 ];
 function scorePrior(x){const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));const e=clamp(((x.holdoutExpectancyR+.05)/.35)*100,0,100),pf=clamp(((x.holdoutProfitFactor-.8)/1.2)*100,0,100),dd=clamp((8-x.holdoutMaxDrawdownR)/8*100,0,100),wr=clamp((x.holdoutWinRate-35)/30*100,0,100),sample=clamp(x.holdoutTrades/60*100,0,100);return Number((e*.30+pf*.25+dd*.20+wr*.10+sample*.15).toFixed(1));}
-let strategyChoice="ROBOT_AUTO";
+const strategyChoice="ROBOT_AUTO";
 let running=true,busy=false,lastProcessedBar="",lastSignalKey="";
 let book={trades:[],open:null,netR:0};
 const n=v=>Number.isFinite(Number(v))?Number(v):0;
@@ -210,7 +210,7 @@ async function cycle(){
  try{
   const [q,m5,m15,h1]=await Promise.all([getJSON("/api/mt5-quote?symbol="+SYMBOL),getFrame("M5"),getFrame("M15"),getFrame("H1")]);
   if(!q.connected||!q.quote)throw new Error("MT5 quote is not fresh. Paper entries are paused.");
-  const body={symbol:SYMBOL,quote:q.quote,frames:{M5:m5,M15:m15,H1:h1},strategyMode:strategyChoice==="ROBOT_AUTO"?"ROBOT_AUTO":"MANUAL",selectedStrategyId:strategyChoice==="ROBOT_AUTO"?null:strategyChoice};
+  const body={symbol:SYMBOL,quote:q.quote,frames:{M5:m5,M15:m15,H1:h1},strategyMode:"ROBOT_AUTO",selectedStrategyId:null};
   // Send the exact same quote/candle inputs to the Robot core.
   const response=await fetch("/api/dars-paper-analysis",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({...body,paperTrades:book.trades.slice(-5000)}),cache:"no-store"});
   const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.error||"DARS analysis unavailable.");
@@ -222,10 +222,8 @@ $("pause").addEventListener("click",()=>{running=false;setState("PAUSED");say("f
 $("resume").addEventListener("click",()=>{running=true;cycle();});
 $("reset").addEventListener("click",()=>{if(!confirm("Delete this browser's DARS eight-candidate paper-trade history?"))return;book={trades:[],netR:0};lastSignalKey="";save();renderHistory();});
 $("export").addEventListener("click",()=>{const cols=["openedAt","strategy","side","entry","stopLoss","tp1","tp2","status","exit","exitReason","netR"];const lines=[cols.join(","),...book.trades.map(t=>cols.map(k=>JSON.stringify(t[k]??"")).join(","))];const blob=new Blob([lines.join("\n")],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="dars-adaptive-paper-trades.csv";a.click();URL.revokeObjectURL(url);});
-try{const saved=localStorage.getItem(CHOICE_STORE);if(saved==="ROBOT_AUTO"||saved==="DARS_EHL_BREAKOUT_V1_10"||CANDIDATE_PRIORS.some(x=>x.strategy===saved))strategyChoice=saved;}catch(e){}
-$("strategyChoice").value=strategyChoice;
-$("strategyChoice").addEventListener("change",()=>{strategyChoice=$("strategyChoice").value;try{localStorage.setItem(CHOICE_STORE,strategyChoice);}catch(e){}say("strategyModeStatus",strategyChoice==="ROBOT_AUTO"?"ROBOT AUTO":"MANUAL MODE");say("strategyModeHint",strategyChoice==="ROBOT_AUTO"?"Robot Auto ranks all eight candidates, including EHL as the eighth discovery candidate.":"Manual discovery active: "+strategyChoice+". DARS will use only this strategy; it will not silently switch to another.");cycle();});
-$("addEhl").addEventListener("click",()=>{$("strategyChoice").value="DARS_EHL_BREAKOUT_V1_10";$("strategyChoice").dispatchEvent(new Event("change"));say("decisionMessage","EHL Breakout v1.10 added to Paper Trading. Waiting for a confirmed closed-M5 setup; no broker orders will be sent.");});
+say("strategyModeStatus","ROBOT AUTO");
+say("strategyModeHint","All eight candidates are evaluated continuously. The Robot selects the highest-scoring eligible setup; otherwise it waits.");
 const symbolPicker=$("paperSymbol");symbolPicker.value=SYMBOL;symbolPicker.addEventListener("change",()=>{SYMBOL=symbolPicker.value;STORE=STORE_PREFIX+"-"+SYMBOL;book={trades:[],netR:0};lastProcessedBar="";load();renderHistory();say("feedStatus","Switched to "+SYMBOL+". Verifying matching MT5 quote and candles…");cycle();});
 load();renderCandidateBoard(CANDIDATE_PRIORS.map(x=>({...x,score:scorePrior(x),priorOnly:true})));renderHistory();cycle();setInterval(cycle,15000);
 })();
