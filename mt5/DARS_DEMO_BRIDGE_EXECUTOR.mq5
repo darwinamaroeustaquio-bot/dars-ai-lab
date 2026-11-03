@@ -5,7 +5,7 @@
 //| NO order is sent until the user clicks APPROVE on the chart.     |
 //+------------------------------------------------------------------+
 #property strict
-#property version "1.01"
+#property version "1.02"
 #property description "DARS authenticated Demo-only Robot setup receiver for XAUUSD-STD or XAUUSD-VIP. Fixed 0.01 lot."
 
 #include <Trade/Trade.mqh>
@@ -13,7 +13,7 @@ CTrade trade;
 
 input string InpApiBaseURL          = "https://dars-indol.vercel.app";
 input string InpBridgeToken         = ""; // Paste the SAME MT5_BRIDGE_TOKEN configured in Vercel
-input string InpSymbol              = ""; // Blank = auto-detect chart symbol (XAUUSD-STD or XAUUSD-VIP)
+input string InpSymbol              = ""; // Leave blank to use the current chart symbol
 input int    InpPollSeconds         = 3;
 input double InpRiskPercent         = 0.25; // Risk ceiling; order size is fixed at 0.01 lot
 input double InpMaxDailyLossPct     = 1.00;
@@ -377,7 +377,7 @@ void DrawPanel()
 {
    MqlTick tick;double bid=0,ask=0;
    if(SymbolInfoTick(g_symbol,tick)){bid=tick.bid;ask=tick.ask;}
-   Comment("DARS MT5 DEMO EXECUTOR v1.01\n",
+   Comment("DARS MT5 DEMO EXECUTOR v1.02\n",
       "Bridge: ",(StringLen(InpBridgeToken)>=24?"TOKEN SET":"TOKEN MISSING"),
       " | Account: ",(DemoAccount()?"DEMO":"NOT DEMO"),"\n",
       "API: ",InpApiBaseURL," | Symbol: ",g_symbol,"\n",
@@ -395,7 +395,7 @@ void DrawPanel()
 
 int OnInit()
 {
-   g_symbol=(InpSymbol==""?_Symbol:InpSymbol);
+   string requestedSymbol=InpSymbol;\n   StringTrimLeft(requestedSymbol);\n   StringTrimRight(requestedSymbol);\n   StringToUpper(requestedSymbol);\n   if(requestedSymbol=="" || requestedSymbol=="XAUUSD-STD OR XAUUSD-VIP" || requestedSymbol=="AUTO")\n      g_symbol=_Symbol;\n   else\n      g_symbol=requestedSymbol;
    if(g_symbol!="XAUUSD-STD" && g_symbol!="XAUUSD-VIP")
    {
       Print("DARS supports XAUUSD-STD or XAUUSD-VIP only. Selected symbol=",g_symbol);
