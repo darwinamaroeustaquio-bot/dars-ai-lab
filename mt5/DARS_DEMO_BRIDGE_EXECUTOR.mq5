@@ -142,7 +142,7 @@ void PollCommand()
       return;
    }
    string response;int code=0;
-   string path="/api/mt5-demo-command?symbol="+InpSymbol;
+   string path="/api/dars-execution-status?symbol="+InpSymbol;
    if(!ApiRequest("GET",path,"",response,code)) return;
    if(StringFind(response,"\"ok\":true")<0)
    {
@@ -271,7 +271,7 @@ void SendCommandStatus(const string status,const string ticket,const string note
    string payload="{\"command_id\":\""+JsonEscape(g_commandId)+"\",\"status\":\""+status+
       "\",\"broker_order_ticket\":\""+JsonEscape(ticket)+"\",\"execution_note\":\""+JsonEscape(note)+"\"}";
    string response;int code=0;
-   if(!ApiRequest("POST","/api/mt5-demo-command",payload,response,code))
+   if(!ApiRequest("POST","/api/dars-execution-status",payload,response,code))
       Print("DARS status callback failed after local action: ",g_status," response=",response);
    else
       Print("DARS command status updated: ",response);
