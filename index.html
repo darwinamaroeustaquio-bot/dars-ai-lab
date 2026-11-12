@@ -245,7 +245,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   <div class="omni-card">
    <div class="omni-eyebrow">DARS OMNISCIENT · QUANT INTELLIGENCE</div>
    <h1 class="omni-title">Think in evidence.<br><span style="color:var(--green)">Trade with discipline.</span></h1>
-   <p class="omni-muted">Independent market-analysis core · VT Markets MT5 · XAUUSD-VIP · Manual execution only.</p>
+   <p class="omni-muted">Independent market-analysis core · VT Markets MT5 · XAUUSD-STD · Manual execution only.</p>
    <div class="omni-controls" style="margin-top:15px"><span class="omni-status"><i class="omni-dot" id="omniDot"></i><span id="omniConnection">Checking MT5 feed…</span></span><button class="omni-primary" id="omniRefresh" type="button">Analyze market</button><a class="omni-nav-link" href="/adaptive-paper.html"><span aria-hidden="true">▦</span> Paper Trading <span aria-hidden="true">→</span></a></div>
   </div>
   <div class="omni-card">
@@ -287,7 +287,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
     <div class="omni-level entry"><small>ENTRY</small><strong id="omniEntry">—</strong></div>
     <div class="omni-level sl"><small>STOP LOSS</small><strong id="omniSL">—</strong></div>
     <div class="omni-level tp"><small id="omniTP1Label">TAKE PROFIT 1</small><strong id="omniTP1">—</strong></div>
-    <div class="omni-level tp"><small id="omniTP2Label">TAKE PROFIT 2</small><strong id="omniTP2">—</strong></div>
+    <div class="omni-level tp"><small>TP1 STATUS</small><strong id="omniTP1Status">WAITING</strong></div>
    </div>
    <div class="omni-reason" id="omniRiskNote">No setup is issued until every data-quality and rule check passes. Lot size remains uncalculated until broker tick value and symbol specifications are verified.</div>
    <div class="omni-reason" id="omniTP1Management">TP1 management: waiting for a Robot setup.</div>
@@ -519,7 +519,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
     line(pivotLows,"#53d9b0","UPTREND LINE","up");
   }
   const decision=state.analysis?.decision;if(enabled("structure")&&(decision==="BUY"||decision==="SELL")){const i=valid.length-1,up=decision==="BUY";chartLabel(x(i),up?y(lows[i])+30:y(highs[i])-25,decision,{fill:up?"#48e0ad":"#ff7187","font-size":11,"font-weight":900});}
-  const setup=state.activeSetup||state.analysis?.setup;if(enabled("trade")&&setup){[["ENTRY",setup.entry,"#65b5ff"],["SL",setup.stopLoss,"#ff7187"],["TP1",setup.takeProfit1,"#48e0ad"],["TP2",setup.takeProfit2,"#80e8c1"]].forEach(([label,v,col])=>{const yy=y(Number(v));if(Number.isFinite(yy)&&yy>=top&&yy<=bottom){el(svg,"line",{x1:left,x2:right,y1:yy,y2:yy,stroke:col,"stroke-width":1.7,"stroke-dasharray":"7 4"});chartLabel(right-4,yy-5,label+" "+fmt(v),{fill:col,"font-size":11,"font-weight":700,"text-anchor":"end"});}});}
+  const setup=state.activeSetup||state.analysis?.setup;if(enabled("trade")&&setup){[["ENTRY",setup.entry,"#65b5ff"],["SL",setup.stopLoss,"#ff7187"],["TP1",setup.takeProfit1,"#48e0ad"]].forEach(([label,v,col])=>{const yy=y(Number(v));if(Number.isFinite(yy)&&yy>=top&&yy<=bottom){el(svg,"line",{x1:left,x2:right,y1:yy,y2:yy,stroke:col,"stroke-width":1.7,"stroke-dasharray":"7 4"});chartLabel(right-4,yy-5,label+" "+fmt(v),{fill:col,"font-size":11,"font-weight":700,"text-anchor":"end"});}});}
   const last=valid[valid.length-1],stamp=last.bar_time||last.time||last.timestamp||"",lastPrice=closes[closes.length-1],lastY=y(lastPrice);
   el(svg,"line",{x1:left,x2:right,y1:lastY,y2:lastY,stroke:"#65b5ff","stroke-width":1,"stroke-dasharray":"4 4",opacity:.85});
   if(!quoteFresh){el(svg,"rect",{x:702,y:lastY-10,width:94,height:20,rx:4,fill:"#17466b"});el(svg,"text",{x:749,y:lastY+4,fill:"#f0f7ff","font-size":11,"font-weight":800,"text-anchor":"middle"},fmt(lastPrice));}
@@ -536,8 +536,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const incomingKey=incoming?(incoming.strategyId||incoming.strategy)+"|"+(incoming.signalBarTime||""):"";
   if(incoming&&!state.activeSetup&&incomingKey!==state.completedSetupKey)state.activeSetup=incoming;
   const management=a.tp1Management||{};
-  if(management.decision==="HOLD_REMAINDER_TO_TP2"&&state.activeSetup)state.activeSetup.tp1Management=management;
-  if(["CLOSE_REMAINDER_AT_TP1","TARGET_COMPLETE","STOP_LOSS_REACHED"].includes(management.decision)){
+  if(["CLOSE_AT_TP1","CLOSE_REMAINDER_AT_TP1","TARGET_COMPLETE","STOP_LOSS_REACHED"].includes(management.decision)){
     const active=state.activeSetup;
     state.completedSetupKey=active?(active.strategyId||active.strategy)+"|"+(active.signalBarTime||""):"";
     state.activeSetup=null;
@@ -551,10 +550,10 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const f=a.frames||{};set("omniRegime",f.H1?.regime||"—");set("omniM15",f.M15?.trend||"—");set("omniM5",f.M5?.trend||"—");
   const good=Object.values(f).filter(x=>x.ok).length;set("omniDataQuality",good+"/3 frames");set("omniDataAge",a.diagnostics?.length? "Checks: "+a.diagnostics.length:"All configured checks passed");
   const d=a.decision||"WAIT",dn=$("omniDecision");dn.textContent=d==="WAIT"?"WAIT · NO TRADE":d+" · SETUP";dn.className="omni-decision "+(d==="BUY"?"buy":d==="SELL"?"sell":"wait");
-  const s=state.activeSetup||a.setup;set("omniEntry",s?fmt(s.entry):"—");set("omniSL",s?fmt(s.stopLoss):"—");set("omniTP1",s?fmt(s.takeProfit1):"—");set("omniTP2",s?fmt(s.takeProfit2):"—");
-  const tp1Text=management.score!==null&&management.score!==undefined?"TP1 reached · continuation structure score "+management.score+"/100 (not probability) · "+management.decision.replaceAll("_"," "):management.status==="MONITORING_TO_TP1"?"Monitoring active setup toward TP1 · continuation check will run when TP1 is reached.":management.status==="TP2_REACHED"?"TP2 reached · setup complete.":management.status==="STOP_REACHED"?"Stop level reached · setup invalidated.":"No active setup to manage.";set("omniTP1Management",tp1Text);
-  set("omniDecisionReason",s?(state.activeSetup&&!a.setup?"ACTIVE SETUP MONITOR: "+(s.strategy||"Selected strategy")+" · Entry "+fmt(s.entry)+", SL "+fmt(s.stopLoss)+", TP1 "+fmt(s.takeProfit1)+", TP2 "+fmt(s.takeProfit2)+". Dashboard-only tracking; no broker order is sent.":"ROBOT PICK: "+(s.strategy||"Selected strategy")+" · "+(Number.isFinite(Number(s.strategyScore))?Number(s.strategyScore).toFixed(1)+"% strategy-fit score":"score unavailable")+". Highest-scoring valid signal among eight candidates. Draft setup only; no broker order is sent."):(a.diagnostics||[]).join(" "));
-  set("omniTP1Label",s?"TAKE PROFIT 1 · "+Number(s.rewardRiskTP1||1).toFixed(2)+"R":"TAKE PROFIT 1");set("omniTP2Label",s?"TAKE PROFIT 2 · "+Number(s.rewardRiskTP2||s.targetR||2.5).toFixed(2)+"R":"TAKE PROFIT 2");set("omniRiskNote",s?"Entry uses current ask for BUY / bid for SELL. Stop and targets follow the selected strategy parameters. Lot sizing is withheld until broker tick value, tick size, volume step and stop-level metadata are verified.":"No entry or targets issued. DARS waits for fresh quote, sufficient closed candles and aligned multi-timeframe evidence.");
+  const s=state.activeSetup||a.setup;set("omniEntry",s?fmt(s.entry):"—");set("omniSL",s?fmt(s.stopLoss):"—");set("omniTP1",s?fmt(s.takeProfit1):"—");set("omniTP1Status",management.status==="TP1_HIT"?"HIT · CLOSE FULL":management.status==="STOP_REACHED"?"STOP REACHED":s?"WAITING":"—");
+  const tp1Text=management.status==="TP1_HIT"?"TP1 HIT · CLOSE THE FULL MANUAL POSITION. No TP2.":management.status==="MONITORING_TO_TP1"?"Monitoring the active setup toward its single TP1 target.":management.status==="STOP_REACHED"?"Stop level reached · review and close the manual position.":"No active setup to manage.";set("omniTP1Management",tp1Text);
+  set("omniDecisionReason",s?(state.activeSetup&&!a.setup?"ACTIVE SETUP MONITOR: "+(s.strategy||"Selected strategy")+" · Entry "+fmt(s.entry)+", SL "+fmt(s.stopLoss)+", TP1 "+fmt(s.takeProfit1)+". TP1 only; close the full manual position at target. No broker order is sent.":"ROBOT PICK: "+(s.strategy||"Selected strategy")+" · "+(Number.isFinite(Number(s.strategyScore))?Number(s.strategyScore).toFixed(1)+"% strategy-fit score":"score unavailable")+". Highest-scoring valid signal among eight candidates. Draft setup only; no broker order is sent."):(a.diagnostics||[]).join(" "));
+  set("omniTP1Label",s?"TAKE PROFIT 1 · "+Number(s.rewardRiskTP1||1).toFixed(2)+"R":"TAKE PROFIT 1");set("omniRiskNote",s?"Entry uses current ask for BUY / bid for SELL. Stop and targets follow the selected strategy parameters. Lot sizing is withheld until broker tick value, tick size, volume step and stop-level metadata are verified.":"No entry or targets issued. DARS waits for fresh quote, sufficient closed candles and aligned multi-timeframe evidence.");
   const list=$("omniDiagnostics");list.replaceChildren();
   (a.diagnostics||[]).forEach(t=>{const row=document.createElement("div");row.className="omni-check";row.textContent=t;list.appendChild(row);});
   const board=Array.isArray(a.engineBoard)?a.engineBoard:[];
@@ -652,7 +651,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   if(!a){message("DARS: Wala pang verified analysis. I-check muna natin ang MT5 connection.");return;}
   const lower=q.toLowerCase(),s=a.setup;
   let answer;
-  if(/setup|entry|tp1|tp2|stop|sl|buy|sell/.test(lower))answer=s?"DARS: "+a.decision+" draft setup. Entry "+fmt(s.entry)+", SL "+fmt(s.stopLoss)+", TP1 "+fmt(s.takeProfit1)+", TP2 "+fmt(s.takeProfit2)+". Research/paper output lamang; hindi ito guaranteed trade.":"DARS: WAIT. "+(a.diagnostics||[]).join(" ");
+  if(/setup|entry|tp1|tp2|stop|sl|buy|sell/.test(lower))answer=s?"DARS: "+a.decision+" draft setup. Entry "+fmt(s.entry)+", SL "+fmt(s.stopLoss)+", TP1 "+fmt(s.takeProfit1)+". TP1 only; close the full manual position at target. Research/paper output lamang; hindi ito guaranteed trade.":"DARS: WAIT. "+(a.diagnostics||[]).join(" ");
   else if(/bakit|why|wait|no trade/.test(lower))answer="DARS: Current decision is "+a.decision+". "+(a.diagnostics||[]).join(" ");
   else answer="DARS: H1 regime "+(a.frames?.H1?.regime||"unavailable")+", M15 trend "+(a.frames?.M15?.trend||"unavailable")+", M5 trend "+(a.frames?.M5?.trend||"unavailable")+". Decision: "+a.decision+". I can explain the current setup checks, but this first release is a deterministic, auditable analysis engine—not a self-learning model.";
   message(answer);
