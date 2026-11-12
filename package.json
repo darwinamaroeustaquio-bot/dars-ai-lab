@@ -7,6 +7,6 @@
   },
   "dependencies": {},
   "scripts": {
-    "test": "node tests/dars-omniscient.test.js && node tests/dars-seven-candidate-paper.test.js"
+    "test": "node tests/dars-omniscient.test.js && node tests/dars-seven-candidate-paper.test.js && node tests/dars-tp1-only.test.js"
   }
 }
