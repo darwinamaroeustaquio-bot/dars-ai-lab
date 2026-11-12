@@ -1,7 +1,7 @@
 # DARS OMNISCIENT — Foundation
 
 ## Product objective
-Build an independent, read-only XAUUSD-STD trading-intelligence workspace. DARS analyzes verified VT Markets MT5 data, decides BUY / SELL / WAIT, and presents an auditable Entry / SL / TP1 / TP2 setup for the user to copy manually. No live order execution is in scope.
+Build an independent, read-only XAUUSD-STD trading-intelligence workspace. DARS analyzes verified VT Markets MT5 data, decides BUY / SELL / WAIT, and presents an auditable Entry / SL / TP1-only setup for the user to copy manually. No live order execution is in scope.
 
 ## Architecture
 1. **MT5 data adapter (existing bridge):** terminal sends quote and timestamped OHLC candles. Secrets remain in Vercel environment variables; never commit bridge tokens or Supabase service keys.
@@ -13,7 +13,7 @@ Build an independent, read-only XAUUSD-STD trading-intelligence workspace. DARS 
 7. **Dashboard:** live status, data age, timeframe selector, chart, analysis rationale, setup drawing, risk details and signal journal. Phone-first layout.
 
 ## Non-negotiable safeguards
-- No live trading or broker order API.
+- No live trading or broker order API; all execution remains manual.
 - Never display sample/demo candles as live.
 - Never output entry levels when data-quality gates fail.
 - WAIT is a valid and preferred decision when evidence is insufficient.
@@ -38,3 +38,11 @@ Build an independent, read-only XAUUSD-STD trading-intelligence workspace. DARS 
 
 ## First-core rule (provisional)
 The initial transparent research rule requires aligned M15/H1 trend, a M5 liquidity sweep and reclaim in trend direction, an EMA20 reclaim, RSI sanity range, acceptable ATR-based stop distance, fresh quote and sufficient valid candles. This is only a baseline hypothesis to test—not a proven profitable strategy or a final adaptive model.
+
+## Current TP1-only dashboard behavior
+
+- Main symbol default is `XAUUSD-STD`.
+- Each approved draft setup exposes Entry, structural Stop Loss and one TP1 target at 1R; no TP2 target is presented.
+- When the active setup's TP1 is reached, the dashboard displays `TP1 HIT — CLOSE FULL` and retains the completed setup levels for review. The user closes the position manually.
+- The live analysis endpoint does not write pending execution commands to Supabase or send broker orders.
+- A successful analysis may include diagnostic/rationale text. The endpoint gates on the explicit engine status and market-block reason, not on whether the diagnostics array is non-empty.
