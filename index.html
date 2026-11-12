@@ -330,7 +330,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 <script id="darsOmniscientRuntime">
 (()=>{
  const $=id=>document.getElementById(id);
- const state={quote:null,analysis:null,frames:{},busy:false,activeSetup:null,completedSetupKey:null};
+ const state={quote:null,analysis:null,frames:{},busy:false,activeSetup:null,completedSetup:null,completedSetupKey:null};
  let chartVisibleBars=80;
  const CHART_MIN_BARS=15,CHART_MAX_BARS=200,CHART_ZOOM_STEP=10;
  const closedBarCache={}; // immutable closed-bar EMA snapshots, keyed by timeframe
@@ -534,10 +534,11 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
  function renderAnalysis(a,q){
   const incoming=a.setup;
   const incomingKey=incoming?(incoming.strategyId||incoming.strategy)+"|"+(incoming.signalBarTime||""):"";
-  if(incoming&&!state.activeSetup&&incomingKey!==state.completedSetupKey)state.activeSetup=incoming;
+  if(incoming&&!state.activeSetup&&incomingKey!==state.completedSetupKey){state.activeSetup=incoming;state.completedSetup=null;}
   const management=a.tp1Management||{};
   if(["CLOSE_AT_TP1","CLOSE_REMAINDER_AT_TP1","TARGET_COMPLETE","STOP_LOSS_REACHED"].includes(management.decision)){
     const active=state.activeSetup;
+    if(active)state.completedSetup={...active,status:management.status};
     state.completedSetupKey=active?(active.strategyId||active.strategy)+"|"+(active.signalBarTime||""):"";
     state.activeSetup=null;
   }
@@ -549,9 +550,10 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   set("omniQuoteMeta",live?"Spread "+fmt(Number(quote.ask)-Number(quote.bid))+" · Quote age "+q.age_seconds+"s":"No fresh broker quote");
   const f=a.frames||{};set("omniRegime",f.H1?.regime||"—");set("omniM15",f.M15?.trend||"—");set("omniM5",f.M5?.trend||"—");
   const good=Object.values(f).filter(x=>x.ok).length;set("omniDataQuality",good+"/3 frames");set("omniDataAge",a.diagnostics?.length? "Checks: "+a.diagnostics.length:"All configured checks passed");
+  const tp1Status=management.status==="NO_ACTIVE_SETUP"&&state.completedSetup?state.completedSetup.status:management.status;
   const d=a.decision||"WAIT",dn=$("omniDecision");dn.textContent=d==="WAIT"?"WAIT · NO TRADE":d+" · SETUP";dn.className="omni-decision "+(d==="BUY"?"buy":d==="SELL"?"sell":"wait");
-  const s=state.activeSetup||a.setup;set("omniEntry",s?fmt(s.entry):"—");set("omniSL",s?fmt(s.stopLoss):"—");set("omniTP1",s?fmt(s.takeProfit1):"—");set("omniTP1Status",management.status==="TP1_HIT"?"HIT · CLOSE FULL":management.status==="STOP_REACHED"?"STOP REACHED":s?"WAITING":"—");
-  const tp1Text=management.status==="TP1_HIT"?"TP1 HIT · CLOSE THE FULL MANUAL POSITION. No TP2.":management.status==="MONITORING_TO_TP1"?"Monitoring the active setup toward its single TP1 target.":management.status==="STOP_REACHED"?"Stop level reached · review and close the manual position.":"No active setup to manage.";set("omniTP1Management",tp1Text);
+  const s=state.activeSetup||state.completedSetup||a.setup;set("omniEntry",s?fmt(s.entry):"—");set("omniSL",s?fmt(s.stopLoss):"—");set("omniTP1",s?fmt(s.takeProfit1):"—");set("omniTP1Status",tp1Status==="TP1_HIT"?"HIT · CLOSE FULL":tp1Status==="STOP_REACHED"?"STOP REACHED":s?"WAITING":"—");
+  const tp1Text=tp1Status==="TP1_HIT"?"TP1 HIT · CLOSE THE FULL MANUAL POSITION. No TP2.":tp1Status==="MONITORING_TO_TP1"?"Monitoring the active setup toward its single TP1 target.":tp1Status==="STOP_REACHED"?"Stop level reached · review and close the manual position.":"No active setup to manage.";set("omniTP1Management",tp1Text);
   set("omniDecisionReason",s?(state.activeSetup&&!a.setup?"ACTIVE SETUP MONITOR: "+(s.strategy||"Selected strategy")+" · Entry "+fmt(s.entry)+", SL "+fmt(s.stopLoss)+", TP1 "+fmt(s.takeProfit1)+". TP1 only; close the full manual position at target. No broker order is sent.":"ROBOT PICK: "+(s.strategy||"Selected strategy")+" · "+(Number.isFinite(Number(s.strategyScore))?Number(s.strategyScore).toFixed(1)+"% strategy-fit score":"score unavailable")+". Highest-scoring valid signal among eight candidates. Draft setup only; no broker order is sent."):(a.diagnostics||[]).join(" "));
   set("omniTP1Label",s?"TAKE PROFIT 1 · "+Number(s.rewardRiskTP1||1).toFixed(2)+"R":"TAKE PROFIT 1");set("omniRiskNote",s?"Entry uses current ask for BUY / bid for SELL. Stop and targets follow the selected strategy parameters. Lot sizing is withheld until broker tick value, tick size, volume step and stop-level metadata are verified.":"No entry or targets issued. DARS waits for fresh quote, sufficient closed candles and aligned multi-timeframe evidence.");
   const list=$("omniDiagnostics");list.replaceChildren();
