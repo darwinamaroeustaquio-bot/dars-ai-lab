@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
     const base = analyzeDarsMarket({
       symbol: body.symbol, quote: body.quote, frames: body.frames, now: Date.now()
     });
-    if (base.diagnostics?.length || !base.frames?.M5?.ok ||
+    if (base.engineStatus !== "SCANNED" || base.engineBlockReason || !base.frames?.M5?.ok ||
         !base.frames?.M15?.ok || !base.frames?.H1?.ok) {
       base.engine = "DARS_MULTI_SETUP_TP1_ONLY";
       base.strategySelection = {
