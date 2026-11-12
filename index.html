@@ -249,7 +249,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
    <div class="omni-controls" style="margin-top:15px"><span class="omni-status"><i class="omni-dot" id="omniDot"></i><span id="omniConnection">Checking MT5 feed…</span></span><button class="omni-primary" id="omniRefresh" type="button">Analyze market</button><a class="omni-nav-link" href="/adaptive-paper.html"><span aria-hidden="true">▦</span> Paper Trading <span aria-hidden="true">→</span></a></div>
   </div>
   <div class="omni-card">
-   <div class="omni-eyebrow">LIVE GOLD · XAUUSD-VIP</div><div class="omni-price" id="omniPrice">—</div>
+   <div class="omni-eyebrow">LIVE GOLD · XAUUSD-STD</div><div class="omni-price" id="omniPrice">—</div>
    <div class="omni-muted" id="omniQuoteMeta">Waiting for verified bid / ask</div>
    <div class="omni-metrics" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:15px">
     <div class="omni-metric"><small>BID</small><strong id="omniBid">—</strong></div>
@@ -402,7 +402,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   el(svg,"line",{x1:694,y1:top-4,x2:694,y2:bottom+2,stroke:"#cbd5e1"});
   const candleTime=i=>{const raw=valid[i].bar_time||valid[i].time||valid[i].timestamp;if(!raw)return "";const d=new Date(raw);return Number.isNaN(d.getTime())?"":d.getUTCHours().toString().padStart(2,"0")+":"+d.getUTCMinutes().toString().padStart(2,"0");};
   [0,Math.floor((valid.length-1)/3),Math.floor(2*(valid.length-1)/3),valid.length-1].forEach(i=>{const t=candleTime(i);if(t)el(svg,"text",{x:x(i),y:410,fill:"#64748b","font-size":10,"text-anchor":"middle"},t);});
-  el(svg,"text",{x:left,y:442,fill:"#64748b","font-size":9},"XAUUSD-VIP · "+tf+" · MT5");
+  el(svg,"text",{x:left,y:442,fill:"#64748b","font-size":9},"XAUUSD-STD · "+tf+" · MT5");
   const path=(arr,color,width=1.6,dash="")=>{let d="";arr.forEach((v,i)=>{if(!Number.isFinite(v))return;d+=(d?" L":"M")+x(i)+" "+y(v);});if(d)el(svg,"path",{d,fill:"none",stroke:color,"stroke-width":width,"stroke-dasharray":dash});};
   const ribbon=(a,b,color)=>{const ids=[];for(let i=0;i<Math.min(a.length,b.length);i++)if(Number.isFinite(a[i])&&Number.isFinite(b[i]))ids.push(i);if(ids.length<2)return;let d="M"+ids.map(i=>x(i)+" "+y(a[i])).join(" L")+" L"+ids.slice().reverse().map(i=>x(i)+" "+y(b[i])).join(" L")+" Z";el(svg,"path",{d,fill:color,opacity:.13,stroke:"none"});};
   if(enabled("emaBands")){ribbon(ema20,ema50,"#079669");ribbon(ema50,ema100,"#2876c7");ribbon(ema100,ema200,"#d69a24");}
@@ -596,12 +596,12 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
  async function analyze(){
   if(state.busy)return;state.busy=true;set("omniConnection","Checking MT5…");
   try{
-   const [q,...candleData]=await Promise.all(["/api/mt5-quote?symbol=XAUUSD-VIP",...["M5","M15","H1"].map(tf=>"/api/mt5-candles?symbol=XAUUSD-VIP&timeframe="+tf+"&limit=120")].map(url=>fetchJson(url,{headers:{Accept:"application/json"}},9000)));
+   const [q,...candleData]=await Promise.all(["/api/mt5-quote?symbol=XAUUSD-STD",...["M5","M15","H1"].map(tf=>"/api/mt5-candles?symbol=XAUUSD-STD&timeframe="+tf+"&limit=120")].map(url=>fetchJson(url,{headers:{Accept:"application/json"}},9000)));
    if(!q.ok)throw new Error(q.error||"MT5 quote endpoint failed.");
    const frames={};for(let i=0;i<candleData.length;i++){const d=candleData[i];if(!d.ok)throw new Error(d.error||"MT5 candle endpoint failed.");frames[["M5","M15","H1"][i]]=Array.isArray(d.candles)?d.candles:[];}
    state.frames={...state.frames,...frames};
    const quote=q.quote?{bid:q.quote.bid,ask:q.quote.ask,received_at:q.quote.received_at}: {};
-   const ad=await fetchJson("/api/dars-omniscient",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({symbol:"XAUUSD-VIP",quote,frames,activeSetup:state.activeSetup})},12000);
+   const ad=await fetchJson("/api/dars-omniscient",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({symbol:"XAUUSD-STD",quote,frames,activeSetup:state.activeSetup})},12000);
    if(!ad.ok)throw new Error(ad.error||"Analysis endpoint unavailable");
    renderAnalysis(ad.analysis,q);
   }catch(e){
@@ -617,14 +617,14 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   const tf=$("omniTimeframe").value;
   try{
    const [d,q]=await Promise.all([
-    fetchJson("/api/mt5-candles?symbol=XAUUSD-VIP&timeframe="+tf+"&limit=200",{},7000),
-    fetchJson("/api/mt5-quote?symbol=XAUUSD-VIP",{},7000)
+    fetchJson("/api/mt5-candles?symbol=XAUUSD-STD&timeframe="+tf+"&limit=200",{},7000),
+    fetchJson("/api/mt5-quote?symbol=XAUUSD-STD",{},7000)
    ]);
    state.frames[tf]=d.ok&&Array.isArray(d.candles)?d.candles:[];
    state.quote=q?.quote||state.quote;state.quoteAgeSeconds=q?.age_seconds??999999;
    drawChart();
    const latest=state.frames[tf].at(-1),stamp=latest?.bar_time?new Date(latest.bar_time).toISOString().replace("T"," ").slice(0,19)+" MT5 broker clock":"No MT5 bar";
-   set("omniChartMeta","VT Markets MT5 · XAUUSD-VIP · "+tf+" · "+state.frames[tf].length+" broker candles · "+stamp+" · "+(q?.connected?"LIVE BID "+fmt(q.quote.bid)+" · "+q.age_seconds+"s":"QUOTE STALE"));
+   set("omniChartMeta","VT Markets MT5 · XAUUSD-STD · "+tf+" · "+state.frames[tf].length+" broker candles · "+stamp+" · "+(q?.connected?"LIVE BID "+fmt(q.quote.bid)+" · "+q.age_seconds+"s":"QUOTE STALE"));
   }catch(_){drawChart();set("omniChartMeta","MT5 chart feed temporarily unavailable; showing last received broker candles only.");}
  }
  function setChartZoom(next){
@@ -656,19 +656,19 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
   else answer="DARS: H1 regime "+(a.frames?.H1?.regime||"unavailable")+", M15 trend "+(a.frames?.M15?.trend||"unavailable")+", M5 trend "+(a.frames?.M5?.trend||"unavailable")+". Decision: "+a.decision+". I can explain the current setup checks, but this first release is a deterministic, auditable analysis engine—not a self-learning model.";
   message(answer);
  });
- analyze();refreshChartOnly();setInterval(analyze,15000);setInterval(refreshChartOnly,2000);setInterval(async()=>{try{const d=await fetchJson("/api/mt5-quote?symbol=XAUUSD-VIP",{},5000);const live=!!d.connected&&!!d.quote;$("omniDot").className="omni-dot"+(live?" live":" bad");set("omniConnection",live?"MT5 LIVE · READ ONLY":"MT5 OFFLINE / STALE");if(d.quote){const x=d.quote;set("omniBid",fmt(x.bid));set("omniAsk",fmt(x.ask));set("omniPrice",fmt((Number(x.bid)+Number(x.ask))/2));set("omniQuoteMeta",live?"Spread "+fmt(Number(x.ask)-Number(x.bid))+" · Quote age "+d.age_seconds+"s":"Quote stale · "+d.age_seconds+"s");}else{set("omniQuoteMeta",d.message||"No MT5 quote received yet.");}}catch(e){$("omniDot").className="omni-dot bad";set("omniConnection","MT5 API ERROR");set("omniQuoteMeta",e.message||"MT5 quote check failed.");}},1000);
+ analyze();refreshChartOnly();setInterval(analyze,15000);setInterval(refreshChartOnly,2000);setInterval(async()=>{try{const d=await fetchJson("/api/mt5-quote?symbol=XAUUSD-STD",{},5000);const live=!!d.connected&&!!d.quote;$("omniDot").className="omni-dot"+(live?" live":" bad");set("omniConnection",live?"MT5 LIVE · READ ONLY":"MT5 OFFLINE / STALE");if(d.quote){const x=d.quote;set("omniBid",fmt(x.bid));set("omniAsk",fmt(x.ask));set("omniPrice",fmt((Number(x.bid)+Number(x.ask))/2));set("omniQuoteMeta",live?"Spread "+fmt(Number(x.ask)-Number(x.bid))+" · Quote age "+d.age_seconds+"s":"Quote stale · "+d.age_seconds+"s");}else{set("omniQuoteMeta",d.message||"No MT5 quote received yet.");}}catch(e){$("omniDot").className="omni-dot bad";set("omniConnection","MT5 API ERROR");set("omniQuoteMeta",e.message||"MT5 quote check failed.");}},1000);
 })();
 </script><header class="top"><div><div class="brand">DARS <span>OMNISCIENT</span></div><div class="sub">Adaptive Quantitative Trading Intelligence · Research / Paper Mode</div></div><div class="row" style="justify-content:flex-end;gap:8px"><button class="btn hidden" id="cloudSync" type="button">Sync journal</button><button class="btn danger hidden" id="cloudSignOut" type="button">Sign out</button><span class="pill" id="topConnectionStatus">● MT5 STATUS · CHECKING</span></div></header>
 <div class="notice" id="dashboardMainNotice"><b>LIVE CONNECTION:</b> Checking MT5 bridge status… This dashboard reads real VT Markets MT5 quotes and candles when the bridge is online. Paper trading / analysis only; no real orders are sent.</div>
 <section class="panel" id="mt5LivePanel" style="margin-bottom:15px">
 <div class="row"><div><div class="eyebrow">VT Markets · MT5 Bridge · GOLD ONLY</div><h2 style="margin:5px 0 8px">Gold live quote connection</h2></div><span class="tag" id="mt5LiveStatus">Waiting for MT5 bridge</span></div>
 <div class="metrics" style="margin:12px 0 0">
-<div class="metric"><div class="eyebrow">Symbol</div><strong style="font-size:17px" id="mt5Symbol">XAUUSD-VIP</strong><small>Broker symbol</small></div>
+<div class="metric"><div class="eyebrow">Symbol</div><strong style="font-size:17px" id="mt5Symbol">XAUUSD-STD</strong><small>Broker symbol</small></div>
 <div class="metric"><div class="eyebrow">Bid</div><strong id="mt5Bid">—</strong><small>Latest received quote</small></div>
 <div class="metric"><div class="eyebrow">Ask</div><strong id="mt5Ask">—</strong><small>Latest received quote</small></div>
 <div class="metric"><div class="eyebrow">Last update</div><strong style="font-size:16px" id="mt5Age">Not connected</strong><small id="mt5Spread">Spread: —</small></div>
 </div><p class="note" id="mt5LiveMessage" role="status">Connection status is based on the latest quote received from the read-only MT5 bridge. This dashboard does not send trades.</p>
-<div class="row" style="justify-content:flex-start"><label for="mt5SymbolSelect" class="muted">Broker symbol</label><select id="mt5SymbolSelect" aria-label="MT5 broker symbol"><option value="XAUUSD-VIP" selected>XAUUSD-VIP · Gold</option></select><button class="btn" id="mt5Refresh" type="button">Refresh quote</button></div>
+<div class="row" style="justify-content:flex-start"><label for="mt5SymbolSelect" class="muted">Broker symbol</label><select id="mt5SymbolSelect" aria-label="MT5 broker symbol"><option value="XAUUSD-STD" selected>XAUUSD-STD · Gold</option></select><button class="btn" id="mt5Refresh" type="button">Refresh quote</button></div>
 </section>
 <section class="panel" id="newsRiskPanel" style="margin-bottom:15px;border-color:#806b3e">
 <div class="row"><div><div class="eyebrow">Economic calendar · trade safety</div><h2 style="margin:5px 0 8px">MT5 Broker News Context</h2></div><span class="tag" id="newsFilterStatus">MT5 calendar · waiting for bridge</span></div>
@@ -701,7 +701,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 </section>
 <section class="panel" id="darsChatPanel" style="margin-bottom:15px;border-color:#527b9b">
 <div class="row"><div><div class="eyebrow">ASK DARS · GROUNDED IN RECEIVED DATA</div><h2 style="margin:5px 0 8px">AI Trading Assistant</h2></div><span class="tag" id="darsChatStatus">Ready to connect</span></div>
-<p class="note">Magtanong tungkol sa XAUUSD-VIP setup, market bias, bakit WAIT, at paper-trading strategy results. Sasagot lang batay sa data na maipapasa at malinaw na sasabihin kung kulang o stale ang feed.</p>
+<p class="note">Magtanong tungkol sa XAUUSD-STD setup, market bias, bakit WAIT, at paper-trading strategy results. Sasagot lang batay sa data na maipapasa at malinaw na sasabihin kung kulang o stale ang feed.</p>
 <div id="darsChatMessages" role="log" aria-live="polite" style="display:grid;gap:10px;max-height:none;overflow:visible;margin:12px 0">
 <div style="padding:12px;border:1px solid var(--line);border-radius:11px;background:#091522;line-height:1.6">Kumusta! Tanungin mo ako, halimbawa: <b>“Ano ang setup natin ngayon sa Gold?”</b> o <b>“Bakit walang trade?”</b> Gumagamit ako ng lokal na rules-based analysis; ang chart ay mula sa candles na natanggap ko.</div>
 </div>
@@ -775,7 +775,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 }
  async function ask(text){if(!text||send.disabled)return;input.value="";bubble(text,"you");history.push({role:"user",content:text});send.disabled=true;status.textContent="Sinusuri ang data…";
   try{
-   const symbol=$("mt5SymbolSelect")?.value||"XAUUSD-VIP";
+   const symbol=$("mt5SymbolSelect")?.value||"XAUUSD-STD";
    const selectedTimeframe=$("darsSetupTimeframe")?.value||"M5";
    const frames=await Promise.all([...new Set([selectedTimeframe,"M1","M5","M15","M30","H1","H4"])].map(async timeframe=>{try{const r=await fetch("/api/mt5-candles?symbol="+encodeURIComponent(symbol)+"&timeframe="+timeframe+"&limit=80",{cache:"no-store"});const d=await r.json();return {timeframe,ok:r.ok&&d.ok,count:d.count||0,candles:(d.candles||[]).slice(-50)};}catch(e){return {timeframe,ok:false,error:"Fetch failed",candles:[]};}}));
    let quote={status:$("mt5LiveStatus")?.textContent||"Unknown",bid:$("mt5Bid")?.textContent||"—",ask:$("mt5Ask")?.textContent||"—",spread:$("mt5Spread")?.textContent||"—",age:$("mt5Age")?.textContent||"—"};
@@ -788,10 +788,10 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
  }
  form.addEventListener("submit",e=>{e.preventDefault();ask(input.value.trim());});
  document.querySelectorAll(".dars-chat-prompt").forEach(b=>b.addEventListener("click",()=>ask(b.textContent.trim())));
- const guide=$("darsSetupGuide");if(guide)guide.addEventListener("click",()=>ask("Ipakita ang SETUP GUIDE para sa XAUUSD-VIP sa napiling timeframe "+($("darsSetupTimeframe")?.value||"M5")+". Gumamit lang ng aktuwal na candles ng napiling timeframe; gumuhit ng chart na may Entry, Stop Loss (SL), TP1 at TP2. Kung kulang ang data o hindi valid ang setup, WAIT at huwag mag-imbento ng presyo."));
+ const guide=$("darsSetupGuide");if(guide)guide.addEventListener("click",()=>ask("Ipakita ang SETUP GUIDE para sa XAUUSD-STD sa napiling timeframe "+($("darsSetupTimeframe")?.value||"M5")+". Gumamit lang ng aktuwal na candles ng napiling timeframe; gumuhit ng chart na may Entry, Stop Loss (SL), TP1 at TP2. Kung kulang ang data o hindi valid ang setup, WAIT at huwag mag-imbento ng presyo."));
  // Automatically show the setup board once the authenticated dashboard becomes visible.
  const dashboard=$("dashboardContent");let autoGuideShown=false;
- if(dashboard){const showGuideIfReady=()=>{if(!autoGuideShown&&!dashboard.classList.contains("hidden")){autoGuideShown=true;ask("Ipakita agad ang automatic SETUP GUIDE para sa XAUUSD-VIP sa napiling timeframe "+($("darsSetupTimeframe")?.value||"M5")+". Gumamit lang ng aktuwal na MT5 candles ng timeframe na pinili; gumuhit ng chart na may Entry, SL, TP1 at TP2. Kung kulang ang data, WAIT at huwag mag-imbento ng presyo.");}};new MutationObserver(showGuideIfReady).observe(dashboard,{attributes:true,attributeFilter:["class"]});showGuideIfReady();}
+ if(dashboard){const showGuideIfReady=()=>{if(!autoGuideShown&&!dashboard.classList.contains("hidden")){autoGuideShown=true;ask("Ipakita agad ang automatic SETUP GUIDE para sa XAUUSD-STD sa napiling timeframe "+($("darsSetupTimeframe")?.value||"M5")+". Gumamit lang ng aktuwal na MT5 candles ng timeframe na pinili; gumuhit ng chart na may Entry, SL, TP1 at TP2. Kung kulang ang data, WAIT at huwag mag-imbento ng presyo.");}};new MutationObserver(showGuideIfReady).observe(dashboard,{attributes:true,attributeFilter:["class"]});showGuideIfReady();}
 })();
 </script>
 <section class="panel" id="candidateLabPanel" style="margin-bottom:15px;border-color:#7b6639">
@@ -869,7 +869,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 <div class="metric"><div class="eyebrow">Holdout accuracy</div><strong id="learningAccuracy">—</strong><small id="learningHoldout">Untested</small></div>
 </div>
 <div class="row" style="justify-content:flex-start;margin-top:12px"><div class="metric" style="flex:1;min-width:150px"><div class="eyebrow">Labeled examples</div><strong id="learningSamples">0</strong><small id="learningSplit">Train / test split</small></div><div class="metric" style="flex:1;min-width:150px"><div class="eyebrow">Last model refresh</div><strong id="learningUpdated" style="font-size:14px">—</strong><small>Retrains from saved candles</small></div><button class="btn" id="refreshLearning" type="button">Train / refresh model</button></div>
-<p class="note" id="learningExplanation" role="status" aria-live="polite">Gold-only research. It must collect enough real XAUUSD-VIP candles, pass holdout checks, and then prove itself through live paper-trade outcomes before any EA candidate is considered. No profit is guaranteed.</p>
+<p class="note" id="learningExplanation" role="status" aria-live="polite">Gold-only research. It must collect enough real XAUUSD-STD candles, pass holdout checks, and then prove itself through live paper-trade outcomes before any EA candidate is considered. No profit is guaranteed.</p>
  <div class="panel" style="margin-top:12px;background:var(--panel2,#101a2a)"><div class="row"><div><div class="eyebrow">Forward outcome tracking · paper only</div><h3 style="margin:5px 0 8px">Signal journal & outcome learning</h3></div><span class="tag" id="signalJournalStatus">Waiting for signals</span></div><div class="metrics"><div class="metric"><div class="eyebrow">Tracked</div><strong id="sjTracked">0</strong><small>Unique closed M5 bars</small></div><div class="metric"><div class="eyebrow">Resolved directional hit rate</div><strong id="sjHitRate">—</strong><small>3-bar close-to-close · before costs</small></div><div class="metric"><div class="eyebrow">Pending outcomes</div><strong id="sjPending">0</strong><small>Waiting for 3 future M5 bars</small></div></div><p class="note" id="sjNote">Records model probabilities once per new closed M5 candle, then scores the direction after three bars. Browser-local only; not a trade or proof of profitability.</p><div class="tablewrap"><table><thead><tr><th>Signal time</th><th>Model view</th><th>Up probability</th><th>Entry close</th><th>3-bar outcome</th></tr></thead><tbody id="signalJournalBody"><tr><td colspan="5" class="empty">Waiting for real MT5 candles and model output.</td></tr></tbody></table></div><div class="row" style="margin-top:10px"><button class="btn" id="exportSignalJournal" type="button">Export signal journal CSV</button><button class="btn" id="clearSignalJournal" type="button">Clear local signal journal</button></div></div>
 <p class="note">Experimental logistic-regression classifier. It retrains from stored candle history and reports a later holdout test, but this is not proof of profitability or guaranteed AI intelligence. Historical accuracy may change and may not persist in live markets. Paper-test only; read-only and no orders are sent.</p>
 </section>
@@ -882,7 +882,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 <div class="layout">
 <div class="stack">
 <section class="panel"><div class="row"><div><div class="eyebrow">Market lab</div><h1>See the setup.<br><span style="color:var(--green)">Control the risk.</span></h1></div><span class="tag">ILLUSTRATIVE DATA</span></div>
-<div class="tabs" id="assetTabs"><button class="tab active" data-asset="XAUUSD">GOLD · XAUUSD-VIP</button></div>
+<div class="tabs" id="assetTabs"><button class="tab active" data-asset="XAUUSD">GOLD · XAUUSD-STD</button></div>
 <div class="chart-head"><div><div class="eyebrow" id="chartName">Gold · XAUUSD</div><div class="price" id="chartPrice">Waiting for MT5 candles</div><div class="note" id="chartFeedStatus" role="status">Waiting for real broker candle feed · sample data is never labeled live</div></div><div><label for="timeframe">Chart timeframe</label><select id="timeframe"><option>M1</option><option selected>M5</option><option>M15</option><option>M30</option><option>H1</option><option>H4</option></select></div></div>
 <div class="chartbox"><svg id="chart" viewBox="0 0 760 270" role="img" aria-label="Illustrative candle chart, not live market data"></svg></div>
 <div class="row" style="margin-top:12px"><span class="note" id="chartOverlayNote">Live OHLC candles · EMA20 overlay</span><button class="btn" id="refreshChart">Refresh live chart</button></div>
@@ -904,7 +904,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 <div class="row"><h2>Trade Setup Builder</h2><span class="tag">AUTOMATIC · READ-ONLY</span></div>
 <p class="note">Awtomatikong kumukuha ng live MT5 quote, closed candles, ATR at validated model bias. Walang manual entry/stop input. Kapag hindi valid o walang malinaw na setup, WAIT ang resulta.</p>
 <div class="fields">
-<div><label for="setupSymbol">Broker symbol</label><select id="setupSymbol"><option value="XAUUSD-VIP" selected>XAUUSD-VIP · Gold</option></select></div>
+<div><label for="setupSymbol">Broker symbol</label><select id="setupSymbol"><option value="XAUUSD-STD" selected>XAUUSD-STD · Gold</option></select></div>
 <div><label>Automatic direction</label><input id="setupSide" readonly value="WAIT"></div>
 <div><label>Live entry price</label><input id="setupEntry" readonly value="—"></div>
 <div><label>ATR / stop distance</label><input id="setupDistance" readonly value="—"></div>
@@ -919,7 +919,7 @@ input,select,textarea{background:#091522!important;color:#edf4ff!important;borde
 <div class="row" style="margin-top:10px"><button class="btn primary" id="setupCopy" type="button">Copy setup</button><button class="btn" id="setupReset" type="button">Refresh automatic setup</button></div>
 </section>
 <section class="panel"><div class="row"><h2>Trade journal & performance</h2><span class="tag">LOCAL BROWSER SAVE</span></div>
-<div class="fields"><div><label for="jSymbol">Symbol</label><select id="jSymbol"><option selected>XAUUSD-VIP</option></select></div><div><label for="jSide">Side</label><select id="jSide"><option>BUY</option><option>SELL</option></select></div><div><label for="jOutcome">Outcome</label><select id="jOutcome"><option value="open">Open / pending</option><option value="win">Win</option><option value="loss">Loss</option><option value="breakeven">Breakeven</option></select></div><div><label for="jPnl">P/L amount (account currency)</label><input id="jPnl" type="number" step="0.01" placeholder="e.g. 12.50"></div></div>
+<div class="fields"><div><label for="jSymbol">Symbol</label><select id="jSymbol"><option selected>XAUUSD-STD</option></select></div><div><label for="jSide">Side</label><select id="jSide"><option>BUY</option><option>SELL</option></select></div><div><label for="jOutcome">Outcome</label><select id="jOutcome"><option value="open">Open / pending</option><option value="win">Win</option><option value="loss">Loss</option><option value="breakeven">Breakeven</option></select></div><div><label for="jPnl">P/L amount (account currency)</label><input id="jPnl" type="number" step="0.01" placeholder="e.g. 12.50"></div></div>
 <div style="margin-top:11px"><label for="jNote">Setup notes (optional)</label><input id="jNote" maxlength="180" placeholder="e.g. H1 retest, candle close confirmed"></div>
 <div class="row" style="margin-top:12px"><button class="btn primary" id="saveTrade">Save journal entry</button><button class="btn" id="exportJournal">Export CSV</button><button class="btn" id="clearJournal">Clear journal</button></div>
 <div class="tablewrap"><table><thead><tr><th>Date</th><th>Symbol / side</th><th>Outcome</th><th>P/L</th><th>Notes</th><th></th></tr></thead><tbody id="journalBody"><tr><td colspan="6" class="empty">No trades saved yet.</td></tr></tbody></table></div>
@@ -1008,7 +1008,7 @@ let lastChartQuoteAt=0,liveTickBusy=false;
 async function updateFormingCandleFromQuote(){
  if(liveTickBusy)return;liveTickBusy=true;
  try{
-  const sym=selected==="XAUUSD"?"XAUUSD-VIP":selected;
+  const sym=selected==="XAUUSD"?"XAUUSD-STD":selected;
   const r=await fetch("/api/mt5-quote?symbol="+encodeURIComponent(sym),{cache:"no-store",headers:{Accept:"application/json"}});
   const d=await r.json();
   if(!r.ok||!d.ok||!d.connected||!d.quote)throw new Error("Waiting for live MT5 tick");
@@ -1040,7 +1040,7 @@ async function updateFormingCandleFromQuote(){
 async function refreshLiveChart(){
  if(chartFetchBusy)return;chartFetchBusy=true;
  try{
-  const tf=$("timeframe").value,selectedSymbol=selected==="XAUUSD"?"XAUUSD-VIP":selected;
+  const tf=$("timeframe").value,selectedSymbol=selected==="XAUUSD"?"XAUUSD-STD":selected;
   const r=await fetch("/api/mt5-candles?symbol="+encodeURIComponent(selectedSymbol)+"&timeframe="+encodeURIComponent(tf)+"&limit=100",{cache:"no-store",headers:{Accept:"application/json"}});
   const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"Candle feed unavailable");
   liveChartCandles=Array.isArray(d.candles)?d.candles:[];
@@ -1055,7 +1055,7 @@ async function refreshLiveChart(){
 }
 
 const watchQuotes={};
-const watchSymbols={XAUUSD:"XAUUSD-VIP"};
+const watchSymbols={XAUUSD:"XAUUSD-STD"};
 function renderWatch(){const el=$("watchlist");el.innerHTML="";let anyLive=false;Object.keys(watchSymbols).forEach(k=>{const a=assets[k],q=watchQuotes[k],fresh=!!(q&&q.connected&&q.quote&&Number(q.quote.bid)>0&&Number(q.quote.ask)>0),price=fresh?(Number(q.quote.last)>0?Number(q.quote.last):(Number(q.quote.bid)+Number(q.quote.ask))/2):null;if(fresh)anyLive=true;const div=document.createElement("div");div.className="asset-row"+(selected===k?" selected":"");const priceText=fresh?price.toLocaleString(undefined,{maximumFractionDigits:5}):"—";const statusText=fresh?"LIVE":(q&&q.error?"ERROR":"OFFLINE");div.innerHTML='<div><b>'+k+'</b><small>'+a.name.split(" · ")[0]+'</small></div><div class="asset-price">'+priceText+'</div><div class="change">'+statusText+'</div>';div.addEventListener("click",()=>selectAsset(k));el.appendChild(div)});const badge=$("watchlistStatus");if(badge)badge.textContent=anyLive?"MT5 LIVE FEED":"WAITING FOR MT5";const note=$("watchlistNote");if(note)note.textContent=anyLive?"Prices shown are from fresh MT5 quotes. Daily percentage change is unavailable from the current quote bridge.":"No fresh MT5 quotes are available for the watchlist. Keep the bridge running and verify its symbol names and connection."}
 async function refreshWatchlist(){await Promise.all(Object.keys(watchSymbols).map(async k=>{try{const r=await fetch("/api/mt5-quote?symbol="+encodeURIComponent(watchSymbols[k]),{cache:"no-store"});const d=await r.json();watchQuotes[k]=r.ok&&d.ok?d:{error:d.error||"Quote request failed"};}catch(e){watchQuotes[k]={error:"Quote request failed"};}}));renderWatch();}
 function selectAsset(k){selected=k;document.querySelectorAll("[data-asset]").forEach(b=>b.classList.toggle("active",b.dataset.asset===k));liveChartCandles=[];drawChart();renderWatch();refreshLiveChart()}
@@ -1084,7 +1084,7 @@ function updateScore(){
  lastSetupReady=ready;
 }
 async function refreshConfluence(){
- const symbol=$("mt5SymbolSelect")?.value||"XAUUSD-VIP",boxes=[...document.querySelectorAll("#checks input[type=checkbox]")];
+ const symbol=$("mt5SymbolSelect")?.value||"XAUUSD-STD",boxes=[...document.querySelectorAll("#checks input[type=checkbox]")];
  try{
   const [qr,cr,lr]=await Promise.all([fetch("/api/mt5-quote?symbol="+encodeURIComponent(symbol),{cache:"no-store"}),fetch("/api/mt5-candles?symbol="+encodeURIComponent(symbol)+"&timeframe=M5&limit=100",{cache:"no-store"}),fetch("/api/learning?symbol="+encodeURIComponent(symbol),{cache:"no-store"})]);
   const [qd,cd,md]=await Promise.all([qr.json(),cr.json(),lr.json()]);
@@ -1182,7 +1182,7 @@ if(reverseEdgeButton){
   el("reverseEdgeMessage").textContent="Reading the verified MT5 candles, ranking weak originals on development data, then testing inverse signals on holdout…";
   try{
    const tf=el("candidateTimeframe")?.value||"M5";
-   const symbol=el("mt5SymbolSelect")?.value||"XAUUSD-VIP";
+   const symbol=el("mt5SymbolSelect")?.value||"XAUUSD-STD";
    const val=(id,fallback)=>{const x=Number(el(id)?.value);return Number.isFinite(x)&&x>=0?Math.min(10,x):fallback;};
    const params=new URLSearchParams({symbol,timeframe:tf,slippagePrice:String(val("candidateSlippagePrice",0.05)),commissionPrice:String(val("candidateCommissionPrice",0)),reverseEdge:"1"});
    const spreadOverride=el("candidateSpreadPrice")?.value??"";if(spreadOverride!=="")params.set("spreadPrice",String(val("candidateSpreadPrice",0.28)));
@@ -1256,7 +1256,7 @@ if(reverseEdgeButton){
    const status=document.getElementById("mt5LiveStatus");
    if(!status) return;
    const symbolSelect=document.getElementById("mt5SymbolSelect");
-   let activeSymbol=symbolSelect?.value||"XAUUSD-VIP";
+   let activeSymbol=symbolSelect?.value||"XAUUSD-STD";
    const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
    async function checkQuote(){
      activeSymbol=symbolSelect?.value||activeSymbol;
@@ -1368,7 +1368,7 @@ if(reverseEdgeButton){
  }
  async function analyze(){
    if(busy)return;busy=true;
-   const symbol=symbolEl?.value||"XAUUSD-VIP";
+   const symbol=symbolEl?.value||"XAUUSD-STD";
    try{
      const [m5raw,m15raw,h1raw]=await Promise.all([frame(symbol,"M5"),frame(symbol,"M15"),frame(symbol,"H1")]);
      // Exclude the still-forming candle; decisions use closed bars only.
@@ -1433,7 +1433,7 @@ if(reverseEdgeButton){
 <script>
 (function(){
  const el=id=>document.getElementById(id);
- const symbol=()=>el("mt5SymbolSelect")?.value||"XAUUSD-VIP";
+ const symbol=()=>el("mt5SymbolSelect")?.value||"XAUUSD-STD";
  let busy=false,lastAlert="";
  const pct=v=>Number.isFinite(Number(v))?(Number(v)*100).toFixed(1)+"%":"—";
  const JOURNAL_KEY="dars-ai-lab-signal-journal-v1";
@@ -1606,7 +1606,7 @@ if(reverseEdgeButton){
   try{
    const tf=$("candidateTimeframe").value;
    const spreadInput=$("candidateSpreadPrice")?.value??"",slippageInput=$("candidateSlippagePrice")?.value,commissionInput=$("candidateCommissionPrice")?.value;
-   const params=new URLSearchParams({symbol:(document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-VIP",timeframe:tf,slippagePrice:String(Math.max(0,Math.min(10,slippageInput===""?0.05:Number(slippageInput)))),commissionPrice:String(Math.max(0,Math.min(10,commissionInput===""?0:Number(commissionInput))))});
+   const params=new URLSearchParams({symbol:(document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD",timeframe:tf,slippagePrice:String(Math.max(0,Math.min(10,slippageInput===""?0.05:Number(slippageInput)))),commissionPrice:String(Math.max(0,Math.min(10,commissionInput===""?0:Number(commissionInput))))});
    if(spreadInput!=="")params.set("spreadPrice",String(Math.max(0,Math.min(10,Number(spreadInput)))));
    const r=await fetch("/api/candidate-lab?"+params.toString(),{cache:"no-store",headers:{Accept:"application/json"}});
    const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||"Candidate lab failed");
@@ -1642,7 +1642,7 @@ if(reverseEdgeButton){
   $("runScalpingLab")?.addEventListener("click",async()=>{
   const btn=$("runScalpingLab"),single=$("runCandidateLab");btn.disabled=true;single.disabled=true;btn.textContent="Testing M1 + M5…";$("candidateLabStatus").textContent="Running M1 + M5 research";
   try{
-   const symbol=(document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-VIP",spreadInput=$("candidateSpreadPrice").value,slippagePrice=Math.max(0,Math.min(10,Number($("candidateSlippagePrice").value)||0.05)),commissionPrice=Math.max(0,Math.min(10,Number($("candidateCommissionPrice").value)||0));
+   const symbol=(document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD",spreadInput=$("candidateSpreadPrice").value,slippagePrice=Math.max(0,Math.min(10,Number($("candidateSlippagePrice").value)||0.05)),commissionPrice=Math.max(0,Math.min(10,Number($("candidateCommissionPrice").value)||0));
    const run=async function(tf){const params=new URLSearchParams({symbol,timeframe:tf,slippagePrice:String(slippagePrice),commissionPrice:String(commissionPrice)});if(spreadInput!=="")params.set("spreadPrice",String(Math.max(0,Math.min(10,Number(spreadInput)))));const r=await fetch("/api/candidate-lab?"+params.toString(),{cache:"no-store"});const d=await r.json();if(!r.ok||!d.ok)throw new Error(tf+": "+(d.error||"Candidate lab failed"));d._timeframe=tf;return d;};
    const results=await Promise.all([run("M1"),run("M5")]),all=[];results.forEach(function(d){(d.candidates||[]).forEach(function(c){c._timeframe=d._timeframe;all.push(c);});});
    lastCandidates=all.sort(function(a,b){return Number(b.status==="REVIEW CANDIDATE")-Number(a.status==="REVIEW CANDIDATE")||b.score-a.score;});candidateRunLabel="M1 + M5 scalping";
@@ -1660,7 +1660,7 @@ if(reverseEdgeButton){
 $("copyCandidateReport")?.addEventListener("click",async()=>{
   const summary=[
    "DARS AI LAB — CANDIDATE LAB REPORT",
-   "Symbol: "+((document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-VIP"),
+   "Symbol: "+((document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD"),
    "Timeframe: "+(candidateRunLabel||$("candidateTimeframe")?.value||"unknown"),
    "Verified candles: "+($("candidateCandles")?.textContent||"unknown"),
    "Spread benchmark/input (USD per oz): "+($("candidateSpreadPrice")?.value||"0"),
@@ -1743,7 +1743,7 @@ $("copyCandidateReport")?.addEventListener("click",async()=>{
  btn.addEventListener("click",async()=>{
   btn.disabled=true;btn.textContent="⏳ RUNNING...";$("copy15EngineResult").disabled=true;$("copy15EngineStatus").textContent="Waiting for results...";$("engineLabStatus").textContent="RUNNING...";$("engineLabMessage").textContent="⏳ RUNNING... Kinukuha ang verified M5/M15/H1 candles at sinusuri ang 19 strategy engines. Huwag pindutin ulit habang tumatakbo.";
   try{
-   const qs=new URLSearchParams({symbol:(document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-VIP",slippagePrice:$("engineSlip").value||"0.05",commissionPrice:$("engineCommission").value||"0"});
+   const qs=new URLSearchParams({symbol:(document.getElementById("mt5SymbolSelect")||{}).value||"XAUUSD-STD",slippagePrice:$("engineSlip").value||"0.05",commissionPrice:$("engineCommission").value||"0"});
    const engineSpreadOverride=$("engineSpread").value;if(engineSpreadOverride!=="")qs.set("spreadPrice",engineSpreadOverride);
    const response=await fetch("/api/candidate-lab?engineReplay=1&"+qs.toString(),{cache:"no-store",headers:{Accept:"application/json"}});
    const d=await response.json();if(!response.ok||!d.ok)throw new Error(d.error||"19-engine backtest failed.");
