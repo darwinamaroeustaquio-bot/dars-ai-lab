@@ -1,100 +1,113 @@
-// DARS Robot analysis now uses the same eight-candidate pool as paper trading.
-// Read-only research/paper mode. No broker order methods.
+// DARS Omniscient: verified market analysis, manual execution only.
+// TP1 is the sole target. No order commands are created or sent.
 const { analyzeDarsMarket } = require("../lib/dars-omniscient");
 const { analyzeSevenCandidatePool } = require("../lib/dars-seven-candidate-paper");
 
-function assessTp1Continuation(setup,frames){
-  const bars=frames?.M5?.candles||[],last=bars[bars.length-1],prev=bars[bars.length-2];
-  if(!last||!prev)return {status:"WAITING_FOR_CLOSED_M5",threshold:70,score:null,decision:"HOLD_FOR_MORE_DATA",scoreIsProbability:false};
-  const buy=setup.side==="BUY",m15=frames?.M15?.trend,h1=frames?.H1?.trend;
-  let score=0;
-  if(buy?Number(last.close)>Number(prev.close):Number(last.close)<Number(prev.close))score+=25;
-  if(buy?Number(last.close)>Number(prev.high):Number(last.close)<Number(prev.low))score+=25;
-  if(buy?m15==="BULLISH":m15==="BEARISH")score+=25;
-  if(buy?h1==="BULLISH":h1==="BEARISH")score+=25;
-  return {status:"TP1_REACHED",threshold:70,score,decision:score>=70?"HOLD_REMAINDER_TO_TP2":"CLOSE_REMAINDER_AT_TP1",scoreIsProbability:false,
-    rationale:score>=70?"Closed-M5 continuation structure remains aligned.":"Continuation checks are insufficient; protect the TP1 result."};
+function stripTp2(rows) {
+  return (Array.isArray(rows) ? rows : []).map(row => {
+    const clean = { ...row };
+    delete clean.takeProfit2;
+    delete clean.rewardRiskTP2;
+    return clean;
+  });
 }
 
-module.exports = async (req,res) => {
-  res.setHeader("Content-Type","application/json; charset=utf-8");
-  res.setHeader("Cache-Control","no-store, max-age=0");
-  if(req.method!=="POST"){res.setHeader("Allow","POST");return res.status(405).json({ok:false,error:"POST only"});}
-  const body=req.body||{};
-  if(!body.quote||!body.frames||typeof body.frames!=="object")return res.status(400).json({ok:false,error:"Expected symbol, quote and frames."});
-  try{
-    // Keep the existing quote, candle freshness, spread and market-volatility safety checks.
-    const base=analyzeDarsMarket({symbol:body.symbol,quote:body.quote,frames:body.frames,now:Date.now()});
-    if(base.diagnostics?.length || !base.frames?.M5?.ok || !base.frames?.M15?.ok || !base.frames?.H1?.ok){
-      base.engine="DARS_SEVEN_CANDIDATE_ROBOT_V1";
-      base.strategySelection={candidate:"NO_TRADE",status:"BLOCKED_BY_MARKET_DATA",eligible:false,rationale:base.engineBlockReason||"Verified market data is not ready.",evaluatedCandidates:8,strategyRanking:[]};
-      base.engineBoard=[];
-      base.decision="WAIT";base.setup=null;
-      return res.status(200).json({ok:true,analysis:base});
+module.exports = async (req, res) => {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ ok: false, error: "POST only" });
+  }
+  const body = req.body || {};
+  if (!body.quote || !body.frames || typeof body.frames !== "object") {
+    return res.status(400).json({ ok: false, error: "Expected symbol, quote and frames." });
+  }
+  try {
+    const base = analyzeDarsMarket({
+      symbol: body.symbol, quote: body.quote, frames: body.frames, now: Date.now()
+    });
+    if (base.diagnostics?.length || !base.frames?.M5?.ok ||
+        !base.frames?.M15?.ok || !base.frames?.H1?.ok) {
+      base.engine = "DARS_MULTI_SETUP_TP1_ONLY";
+      base.strategySelection = {
+        candidate: "NO_TRADE", status: "BLOCKED_BY_MARKET_DATA", eligible: false,
+        rationale: base.engineBlockReason || "Verified market data is not ready.",
+        evaluatedCandidates: 8, strategyRanking: []
+      };
+      base.engineBoard = [];
+      base.decision = "WAIT";
+      base.setup = null;
+      base.tp1Management = { status: "DATA_NOT_READY", decision: "WAIT", score: null, scoreIsProbability: false };
+      return res.status(200).json({ ok: true, analysis: base });
     }
-    const result=analyzeSevenCandidatePool({frames:base.frames,quote:body.quote,paperTrades:Array.isArray(body.paperTrades)?body.paperTrades.slice(-5000):[],marketBlockReason:base.engineBlockReason||null});
-    // Persist a fresh Robot setup as a short-lived PENDING command for the authenticated MT5 Demo terminal.
-    // The EA still requires a human click before any broker order can be submitted.
-    if(result.setup && ["BUY","SELL"].includes(result.setup.side)){
-      const root=String(process.env.SUPABASE_URL||"").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
-      const key=String(process.env.SUPABASE_SERVICE_ROLE_KEY||"").trim();
-      const signalTime=result.setup.signalBarTime?new Date(result.setup.signalBarTime):null;
-      const validSignalTime=signalTime && Number.isFinite(signalTime.getTime());
-      const commandId=[String(body.symbol||"XAUUSD-STD"),String(result.setup.strategyId||result.setup.strategy||"DARS"),validSignalTime?signalTime.toISOString():"no-time"].join("|").slice(0,180);
-      if(root && key && validSignalTime){
-        const command={
-          command_id:commandId,symbol:String(body.symbol||"XAUUSD-STD"),
-          side:result.setup.side,entry:Number(result.setup.entry),stop_loss:Number(result.setup.stopLoss),
-          tp1:Number(result.setup.takeProfit1),tp2:Number(result.setup.takeProfit2),
-          strategy:String(result.setup.strategy||result.setup.strategyId||"DARS").slice(0,120),
-          strategy_score:Number.isFinite(Number(result.selection?.score))?Number(result.selection.score):null,
-          signal_bar_time:signalTime.toISOString(),status:"PENDING",
-          expires_at:new Date(Date.now()+10*60*1000).toISOString()
+
+    const result = analyzeSevenCandidatePool({
+      frames: base.frames, quote: body.quote,
+      paperTrades: Array.isArray(body.paperTrades) ? body.paperTrades.slice(-5000) : [],
+      marketBlockReason: base.engineBlockReason || null
+    });
+
+    const active = body.activeSetup && ["BUY", "SELL"].includes(body.activeSetup.side)
+      ? body.activeSetup : null;
+    let tp1Management = {
+      status: "NO_ACTIVE_SETUP", decision: "WAIT", score: null,
+      scoreIsProbability: false, note: "Waiting for a valid setup."
+    };
+    if (active) {
+      const bid = Number(body.quote.bid), ask = Number(body.quote.ask);
+      const tp1 = Number(active.takeProfit1), sl = Number(active.stopLoss);
+      const tp1Reached = body.tp1Reached === true ||
+        (active.side === "BUY" ? bid >= tp1 : ask <= tp1);
+      const slReached = active.side === "BUY" ? bid <= sl : ask >= sl;
+      if (slReached) {
+        tp1Management = {
+          status: "STOP_REACHED", decision: "STOP_LOSS_REACHED", score: null,
+          scoreIsProbability: false, note: "Stop level reached. Review and close the manual position."
         };
-        const valid=[command.entry,command.stop_loss,command.tp1,command.tp2].every(v=>Number.isFinite(v)&&v>0) &&
-          (command.side==="BUY" ? command.stop_loss<command.entry && command.tp1>command.entry && command.tp2>command.tp1 :
-           command.stop_loss>command.entry && command.tp1<command.entry && command.tp2<command.tp1);
-        if(valid){
-          try{
-            await fetch(root+"/rest/v1/mt5_demo_execution_commands?on_conflict=command_id",{
-              method:"POST",
-              headers:{apikey:key,Authorization:"Bearer "+key,"Content-Type":"application/json",Prefer:"resolution=ignore-duplicates,return=minimal"},
-              body:JSON.stringify(command)
-            });
-          }catch(_){ /* Dashboard analysis remains available; MT5 will show no pending command. */ }
-        }
+      } else if (tp1Reached) {
+        tp1Management = {
+          status: "TP1_HIT", decision: "CLOSE_AT_TP1", score: null,
+          scoreIsProbability: false, note: "TP1 reached. Close the full manual position here; there is no TP2."
+        };
+      } else {
+        tp1Management = {
+          status: "MONITORING_TO_TP1", decision: "WAIT_FOR_TP1", score: null,
+          scoreIsProbability: false, note: "Monitoring the active setup toward its single TP1 target."
+        };
       }
     }
-    const active=body.activeSetup&&["BUY","SELL"].includes(body.activeSetup.side)?body.activeSetup:null;
-    let tp1Management={status:"NO_ACTIVE_SETUP",threshold:70,score:null,decision:"WAITING",scoreIsProbability:false};
-    if(active){
-      const bid=Number(body.quote.bid),ask=Number(body.quote.ask),tp1=Number(active.takeProfit1),tp2=Number(active.takeProfit2),sl=Number(active.stopLoss);
-      const tp1Reached=body.tp1Reached===true||(active.side==="BUY"?bid>=tp1:ask<=tp1);
-      const tp2Reached=active.side==="BUY"?bid>=tp2:ask<=tp2;
-      const slReached=active.side==="BUY"?bid<=sl:ask>=sl;
-      if(tp2Reached)tp1Management={status:"TP2_REACHED",threshold:70,score:null,decision:"TARGET_COMPLETE",scoreIsProbability:false};
-      else if(slReached)tp1Management={status:"STOP_REACHED",threshold:70,score:null,decision:"STOP_LOSS_REACHED",scoreIsProbability:false};
-      else if(active.tp1Management?.decision==="HOLD_REMAINDER_TO_TP2")tp1Management=active.tp1Management;
-      else if(tp1Reached)tp1Management=assessTp1Continuation(active,base.frames);
-      else tp1Management={status:"MONITORING_TO_TP1",threshold:70,score:null,decision:"WAIT_FOR_TP1",scoreIsProbability:false};
-    }
-    const analysis={...base,tp1Management,engine:"DARS_SEVEN_CANDIDATE_ROBOT_V1",decision:result.setup?.side||"WAIT",setup:result.setup?{
-      side:result.setup.side,entry:result.setup.entry,stopLoss:result.setup.stopLoss,
-      takeProfit1:result.setup.takeProfit1,takeProfit2:result.setup.takeProfit2,
-      riskDistance:result.setup.riskDistance,rewardRiskTP1:result.setup.rewardRiskTP1,
-      rewardRiskTP2:result.setup.rewardRiskTP2,strategy:result.setup.strategy,
-      strategyId:result.setup.strategyId,strategyScore:result.selection?.score??null,liveFitScore:result.selection?.liveFitScore??null,family:result.setup.family,profile:result.setup.profile,
-      targetR:result.setup.targetR,stopMultiple:result.setup.stopMultiple,maxBars:result.setup.maxBars,
-      signalBarTime:result.setup.signalBarTime,oscillator:result.setup.oscillator,
-      previousOscillator:result.setup.previousOscillator,lowerThreshold:result.setup.lowerThreshold,
-      upperThreshold:result.setup.upperThreshold,features:{atr:result.setup.atr14,oscillator:result.setup.oscillator},
-      source:"Live VT Markets quote + verified closed MT5 candles; eight-candidate pool",
-      note:result.setup.note,
-      tp1Management:{continuationThreshold:70,decisionRule:"At TP1, score closed-M5 continuation structure. Hold the remainder toward TP2 only when the structure score is at least 70/100; otherwise close the remainder at TP1.",scoreIsProbability:false}
-    }:null,strategySelection:result.selection,engineBoard:result.board,diagnostics:result.diagnostics};
-    return res.status(200).json({ok:true,analysis});
-  }catch(error){
-    return res.status(500).json({ok:false,error:"DARS seven-candidate analysis failed safely. No setup was generated."});
+
+    const setup = result.setup ? {
+      side: result.setup.side, entry: result.setup.entry, stopLoss: result.setup.stopLoss,
+      takeProfit1: result.setup.takeProfit1, riskDistance: result.setup.riskDistance,
+      rewardRiskTP1: result.setup.rewardRiskTP1 || 1,
+      strategy: result.setup.strategy, strategyId: result.setup.strategyId,
+      strategyScore: result.selection?.score ?? null,
+      liveFitScore: result.selection?.liveFitScore ?? null,
+      family: result.setup.family, profile: result.setup.profile,
+      signalBarTime: result.setup.signalBarTime,
+      oscillator: result.setup.oscillator, previousOscillator: result.setup.previousOscillator,
+      lowerThreshold: result.setup.lowerThreshold, upperThreshold: result.setup.upperThreshold,
+      features: { atr: result.setup.atr14, oscillator: result.setup.oscillator },
+      source: "Live MT5 quote + verified closed candles; eight-candidate research pool",
+      note: result.setup.note, execution: "MANUAL_ONLY",
+      targetPolicy: "TP1_ONLY_CLOSE_FULL_POSITION"
+    } : null;
+
+    const selection = result.selection ? {
+      ...result.selection, strategyRanking: stripTp2(result.selection.strategyRanking)
+    } : result.selection;
+    const analysis = {
+      ...base, engine: "DARS_MULTI_SETUP_TP1_ONLY",
+      decision: setup?.side || "WAIT", setup, strategySelection: selection,
+      engineBoard: stripTp2(result.board), diagnostics: result.diagnostics || [],
+      tp1Management
+    };
+    return res.status(200).json({ ok: true, analysis });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false, error: "DARS analysis failed safely. No setup or broker order was generated."
+    });
   }
 };
-
